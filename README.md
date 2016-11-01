@@ -1,6 +1,9 @@
 # sshesame
 A fake SSH server that lets everyone in and logs their activity
 
+## Warning
+This software, just like any other, might contain bugs. Given the popular nature of SSH, you probably shouldn't run it unsupervised as root on a production server on port 22. Use common sense.
+
 ## Motivation
 I was just curious what all these guys were up to:
 ```
