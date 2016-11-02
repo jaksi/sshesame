@@ -64,6 +64,5 @@ Again, if you're interested in the technical details of SSH, read the [RFC](http
 
 ## Known issues
 * No exit-status request is sent in response to exec requests
-* Error logging is incomplete
 * Request payloads are not parsed
 * A terminal is created on session channels even if no shell request is received
