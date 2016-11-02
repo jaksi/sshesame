@@ -30,7 +30,7 @@ sshd[8159]: Disconnected from <client> port 24889 [preauth]
 For more details, read the [relevant RFC](https://tools.ietf.org/html/rfc4254).
 
 ## Installing
-* [Install go](https://golang.org/doc/install)
+* [Install go](https://golang.org/doc/install) (version 1.4 or newer required)
 * `go get -u github.com/jaksi/sshesame`
 
 ## Usage
