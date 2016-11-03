@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/sha256"
 	"flag"
 	"fmt"
+	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"
@@ -10,19 +12,33 @@ import (
 )
 
 func main() {
-	hostKey := flag.String("host_key", "host_key", "a file containing a private key to use")
+	hostKey := flag.String("host_key", "", "a file containing a private key to use")
 	listenAddress := flag.String("listen_address", "localhost", "the local address to listen on")
 	port := flag.Uint("port", 2022, "the port number to listen on")
 	flag.Parse()
 
-	keyBytes, err := ioutil.ReadFile(*hostKey)
-	if err != nil {
-		log.Fatalln("Failed to read host key:", err.Error())
-	}
-
-	key, err := ssh.ParsePrivateKey(keyBytes)
-	if err != nil {
-		log.Fatalln("Failed to parse host key:", err.Error())
+	var key ssh.Signer
+	var err error
+	if *hostKey != "" {
+		keyBytes, err := ioutil.ReadFile(*hostKey)
+		if err != nil {
+			log.Fatalln("Failed to read host key:", err.Error())
+		}
+		key, err = ssh.ParsePrivateKey(keyBytes)
+		if err != nil {
+			log.Fatalln("Failed to parse host key:", err.Error())
+		}
+	} else {
+		log.Println("WARNING: Generating a temporary private key. Consider creating one and passing it to -host_key")
+		_, keyBytes, err := ed25519.GenerateKey(nil)
+		if err != nil {
+			log.Fatalln("Failed to generate temporary private key:", err.Error())
+		}
+		key, err = ssh.NewSignerFromSigner(keyBytes)
+		if err != nil {
+			log.Fatalln("Failed to parse generated private key:", err.Error())
+		}
+		log.Printf("SHA-256 fingerprint: %v\n", sha256.Sum256(key.PublicKey().Marshal()))
 	}
 
 	serverConfig := &ssh.ServerConfig{
