@@ -44,6 +44,7 @@ Usage of sshesame:
   -port uint
     	the port number to listen on (default 2022)
 ```
+Consider creating a private key to use with sshesame, for example using `ssh-keygen`.
 
 ## Example output
 ```
