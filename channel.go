@@ -63,14 +63,14 @@ func handleNewChannel(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 			log.Printf("Terminal: client=%v, channel=%v, line=%q\n", remoteAddr, newChannel.ChannelType(), line)
 		}
 	} else {
-		data := make([]byte, 16)
+		data := make([]byte, 256)
 		for {
 			length, err := channel.Read(data)
 			if err != nil {
 				log.Println("Failed to read from channel:", err.Error())
 				break
 			}
-			log.Printf("Channel input: client=%v, channel=%v, data=%v\n", remoteAddr, newChannel.ChannelType(), data[:length])
+			log.Printf("Channel input: client=%v, channel=%v, data=%q\n", remoteAddr, newChannel.ChannelType(), string(data[:length]))
 		}
 	}
 }
