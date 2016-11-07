@@ -64,78 +64,100 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "pty-req":
 			parsedPayload := pty{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "x11-req":
 			parsedPayload := x11{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "env":
 			parsedPayload := env{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "exec":
 			parsedPayload := exec{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "subsystem":
 			parsedPayload := subsystem{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "window-change":
 			parsedPayload := windowChange{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "xon-xoff":
 			parsedPayload := flowControl{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "signal":
 			parsedPayload := signal{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "exit-status":
 			parsedPayload := exitStatus{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		case "exit-signal":
 			parsedPayload := exitSignal{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
 				log.Println("Failed to parse payload:", err.Error())
+				payload = fmt.Sprintf("%v", request.Payload)
+			} else {
+				payload = fmt.Sprintf("%+v", parsedPayload)
 			}
-			payload = fmt.Sprintf("%+v", parsedPayload)
 		default:
 			payload = fmt.Sprintf("%v", request.Payload)
 		}

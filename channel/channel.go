@@ -29,8 +29,10 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 		err := ssh.Unmarshal(newChannel.ExtraData(), &parsedPayload)
 		if err != nil {
 			log.Println("Failed to parse payload:", err.Error())
+			payload = fmt.Sprintf("%v", newChannel.ExtraData())
+		} else {
+			payload = fmt.Sprintf("%+v", parsedPayload)
 		}
-		payload = fmt.Sprintf("%+v", parsedPayload)
 	case "forwarded-tcpip":
 		// Server initiated forwarding
 		fallthrough
@@ -40,8 +42,10 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 		err := ssh.Unmarshal(newChannel.ExtraData(), &parsedPayload)
 		if err != nil {
 			log.Println("Failed to parse payload:", err.Error())
+			payload = fmt.Sprintf("%v", newChannel.ExtraData())
+		} else {
+			payload = fmt.Sprintf("%+v", parsedPayload)
 		}
-		payload = fmt.Sprintf("%+v", parsedPayload)
 	default:
 		payload = fmt.Sprintf("%v", newChannel.ExtraData())
 	}
