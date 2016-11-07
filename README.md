@@ -38,7 +38,7 @@ For more details, read the [relevant RFC](https://tools.ietf.org/html/rfc4254).
 $ sshesame -h
 Usage of sshesame:
   -host_key string
-    	a file containing a private key to use (default "host_key")
+    	a file containing a private key to use
   -listen_address string
     	the local address to listen on (default "localhost")
   -port uint
@@ -48,22 +48,38 @@ Consider creating a private key to use with sshesame, for example using `ssh-key
 
 ## Example output
 ```
-2016/11/01 18:20:50 Listen: <host>:22
-2016/11/01 18:53:05 Login: client=<client>:9224, user="iwan-admin", password="kss123!@#"
-2016/11/01 18:53:05 NewChannel: clinet=<client>:9224, type=session, payload=[]
-2016/11/01 18:53:05 Request: client=<client>:9224, channel=session, type=shell, payload=[]
-2016/11/01 18:53:10 NewChannel: clinet=<client>:9224, type=session, payload=[]
-2016/11/01 18:53:10 Request: client=<client>:9224, channel=session, type=exec, payload=[0 0 0 5 117 110 97 109 101]
-2016/11/01 18:53:15 EOF
-2016/11/01 18:53:15 EOF
-2016/11/01 18:53:15 Disconnect: client=<client>:9224
+Connection: client=<client>:45782
+Login: client=<client>:45782, user="root", password="cisco"
+Established SSH connection: client=<client>:45782
+New channel: clinet=<client>:45782, type=direct-tcpip, payload={DestinationAddress:<something> DestinationPort:110 SourceAddress:192.168.0.1 SourcePort:0}
+Failed to read from channel: EOF
+New channel: clinet=<client>:45782, type=direct-tcpip, payload={DestinationAddress:<something> DestinationPort:143 SourceAddress:192.168.0.1 SourcePort:0}
+Failed to read from channel: EOF
+New channel: clinet=<client>:45782, type=direct-tcpip, payload={DestinationAddress:<something> DestinationPort:587 SourceAddress:192.168.0.1 SourcePort:0}
+Failed to read from channel: EOF
+New channel: clinet=<client>:45782, type=direct-tcpip, payload={DestinationAddress:<something> DestinationPort:587 SourceAddress:192.168.0.1 SourcePort:0}
+Failed to read from channel: EOF
+New channel: clinet=<client>:45782, type=session, payload=[]
+Request: client=<client>:45782, channel=session, type=exec, payload={Command:/sbin/ifconfig}
+Failed to read from terminal: EOF
+New channel: clinet=<client>:45782, type=session, payload=[]
+Request: client=<client>:45782, channel=session, type=exec, payload={Command:cat /proc/meminfo}
+Failed to read from terminal: EOF
+New channel: clinet=<client>:45782, type=session, payload=[]
+Request: client=<client>:45782, channel=session, type=exec, payload={Command:2>/dev/null sh -c 'cat /lib/libdl.so* || cat /lib/librt.so* || cat /bin/cat || cat /sbin/ifconfig'}
+Failed to read from terminal: EOF
+New channel: clinet=<client>:45782, type=session, payload=[]
+Request: client=<client>:45782, channel=session, type=exec, payload={Command:cat /proc/version}
+Failed to read from terminal: EOF
+New channel: clinet=<client>:45782, type=session, payload=[]
+Request: client=<client>:45782, channel=session, type=exec, payload={Command:uptime}
+Failed to read from terminal: EOF
+Disconnect: client=<client>:45782
 ```
 So what happened here?
-* A client logged in with the user "iwan-admin" and the password "kss123!@#"
-* They opened a session channel and requested a shell on it (this is what happens on a "regular" SSH connection)
-* They opened another session channel and tried to execute "uname" (the first 4 bytes of the payload store the length, the rest contains the command in ASCII)
-* They waited 5 seconds for a response (some input on the channel and an exit-status request, probably)
-* They closed both channels and disconnected
+* A client logged in with the user "root" and the password "cisco"
+* Using TCP/IP forwarding over SSH, they tried to connect to a few remote mail servers over POP3 (port 110), IMAP (port 143) and Submission (port 587)
+* They tried to execute a few commands to get some information about the host
 
 Again, if you're interested in the technical details of SSH, read the [RFC](https://tools.ietf.org/html/rfc4254).
 
