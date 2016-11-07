@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"flag"
 	"fmt"
+	"github.com/jaksi/sshesame/channel"
+	"github.com/jaksi/sshesame/request"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
@@ -75,9 +77,9 @@ func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn) {
 		return
 	}
 	log.Printf("Established SSH connection: client=%v\n", conn.RemoteAddr())
-	go handleRequests(conn.RemoteAddr(), "global", requests)
+	go request.Handle(conn.RemoteAddr(), "global", requests)
 	for newChannel := range channels {
-		go handleNewChannel(conn.RemoteAddr(), newChannel)
+		go channel.Handle(conn.RemoteAddr(), newChannel)
 	}
 	log.Printf("Disconnect: client=%v\n", conn.RemoteAddr())
 }

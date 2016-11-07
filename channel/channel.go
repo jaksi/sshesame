@@ -1,7 +1,8 @@
-package main
+package channel
 
 import (
 	"fmt"
+	"github.com/jaksi/sshesame/request"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 	"log"
@@ -20,7 +21,7 @@ type tcpip struct {
 	SourcePort         uint32
 }
 
-func handleNewChannel(remoteAddr net.Addr, newChannel ssh.NewChannel) {
+func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 	var payload string
 	switch newChannel.ChannelType() {
 	case "x11":
@@ -51,7 +52,7 @@ func handleNewChannel(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 		return
 	}
 	defer channel.Close()
-	go handleRequests(remoteAddr, newChannel.ChannelType(), channelRequests)
+	go request.Handle(remoteAddr, newChannel.ChannelType(), channelRequests)
 	if newChannel.ChannelType() == "session" {
 		terminal := terminal.NewTerminal(channel, "$ ")
 		for {
