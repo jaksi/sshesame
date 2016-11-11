@@ -45,7 +45,7 @@ func main() {
 
 	serverConfig := &ssh.ServerConfig{
 		PasswordCallback: func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-			log.Printf("Login: client=%v, user=%q, password=%q\n", conn.RemoteAddr(), conn.User(), password)
+			log.Printf("Login: client=%v, user=%q, password=%q, version=%q\n", conn.RemoteAddr(), conn.User(), password, conn.ClientVersion())
 			return nil, nil
 		},
 	}
