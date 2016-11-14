@@ -6,6 +6,7 @@ import (
 	"github.com/jaksi/sshesame/request"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
+	"io"
 	"net"
 )
 
@@ -63,7 +64,14 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 		for {
 			line, err := terminal.ReadLine()
 			if err != nil {
-				log.Warning("Failed to read from terminal:", err.Error())
+				if err == io.EOF {
+					log.WithFields(log.Fields{
+						"client":  remoteAddr,
+						"channel": newChannel.ChannelType(),
+					}).Info("Terminal closed")
+				} else {
+					log.Warning("Failed to read from terminal:", err.Error())
+				}
 				break
 			}
 			log.WithFields(log.Fields{
@@ -77,7 +85,14 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 		for {
 			length, err := channel.Read(data)
 			if err != nil {
-				log.Warning("Failed to read from channel:", err.Error())
+				if err == io.EOF {
+					log.WithFields(log.Fields{
+						"client":  remoteAddr,
+						"channel": newChannel.ChannelType(),
+					}).Info("Channel closed")
+				} else {
+					log.Warning("Failed to read from channel:", err.Error())
+				}
 				break
 			}
 			log.WithFields(log.Fields{
