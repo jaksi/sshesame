@@ -53,6 +53,13 @@ type exitSignal struct {
 	Language     string
 }
 
+func SendExitStatus(channel ssh.Channel) {
+	_, err := channel.SendRequest("exit-status", false, ssh.Marshal(exitStatus{0}))
+	if err != nil {
+		log.Warning("Failed to send exit status:", err.Error())
+	}
+}
+
 func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 	for request := range requests {
 		payload := map[string]interface{}{

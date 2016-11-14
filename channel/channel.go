@@ -69,6 +69,7 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 						"client":  remoteAddr,
 						"channel": newChannel.ChannelType(),
 					}).Info("Terminal closed")
+					request.SendExitStatus(channel)
 				} else {
 					log.Warning("Failed to read from terminal:", err.Error())
 				}
@@ -90,6 +91,7 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 						"client":  remoteAddr,
 						"channel": newChannel.ChannelType(),
 					}).Info("Channel closed")
+					request.SendExitStatus(channel)
 				} else {
 					log.Warning("Failed to read from channel:", err.Error())
 				}
