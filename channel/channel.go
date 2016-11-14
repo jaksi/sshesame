@@ -1,11 +1,11 @@
 package channel
 
 import (
-	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/fatih/structs"
 	"github.com/jaksi/sshesame/request"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
-	"log"
 	"net"
 )
 
@@ -22,17 +22,18 @@ type tcpip struct {
 }
 
 func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
-	var payload string
+	payload := map[string]interface{}{
+		"data": newChannel.ExtraData(),
+	}
 	switch newChannel.ChannelType() {
 	case "x11":
 		parsedPayload := x11{}
 		err := ssh.Unmarshal(newChannel.ExtraData(), &parsedPayload)
 		if err != nil {
-			log.Println("Failed to parse payload:", err.Error())
-			payload = fmt.Sprintf("%v", newChannel.ExtraData())
-		} else {
-			payload = fmt.Sprintf("%+v", parsedPayload)
+			log.Warning("Failed to parse payload:", err.Error())
+			break
 		}
+		payload = structs.Map(parsedPayload)
 	case "forwarded-tcpip":
 		// Server initiated forwarding
 		fallthrough
@@ -41,18 +42,18 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 		parsedPayload := tcpip{}
 		err := ssh.Unmarshal(newChannel.ExtraData(), &parsedPayload)
 		if err != nil {
-			log.Println("Failed to parse payload:", err.Error())
-			payload = fmt.Sprintf("%v", newChannel.ExtraData())
-		} else {
-			payload = fmt.Sprintf("%+v", parsedPayload)
+			log.Warning("Failed to parse payload:", err.Error())
+			break
 		}
-	default:
-		payload = fmt.Sprintf("%v", newChannel.ExtraData())
+		payload = structs.Map(parsedPayload)
 	}
-	log.Printf("New channel: clinet=%v, type=%v, payload=%v\n", remoteAddr, newChannel.ChannelType(), payload)
+	logData := payload
+	logData["client"] = remoteAddr
+	logData["channel"] = newChannel.ChannelType()
+	log.WithFields(logData).Info("Channel requested")
 	channel, channelRequests, err := newChannel.Accept()
 	if err != nil {
-		log.Println("Failed to accept channel:", err.Error())
+		log.Warning("Failed to accept channel:", err.Error())
 		return
 	}
 	defer channel.Close()
@@ -62,20 +63,28 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 		for {
 			line, err := terminal.ReadLine()
 			if err != nil {
-				log.Println("Failed to read from terminal:", err.Error())
+				log.Warning("Failed to read from terminal:", err.Error())
 				break
 			}
-			log.Printf("Terminal: client=%v, channel=%v, line=%q\n", remoteAddr, newChannel.ChannelType(), line)
+			log.WithFields(log.Fields{
+				"client":  remoteAddr,
+				"channel": newChannel.ChannelType(),
+				"line":    line,
+			}).Info("Channel input received")
 		}
 	} else {
 		data := make([]byte, 256)
 		for {
 			length, err := channel.Read(data)
 			if err != nil {
-				log.Println("Failed to read from channel:", err.Error())
+				log.Warning("Failed to read from channel:", err.Error())
 				break
 			}
-			log.Printf("Channel input: client=%v, channel=%v, data=%q\n", remoteAddr, newChannel.ChannelType(), string(data[:length]))
+			log.WithFields(log.Fields{
+				"client":  remoteAddr,
+				"channel": newChannel.ChannelType(),
+				"data":    string(data[:length]),
+			}).Info("Channel input received")
 		}
 	}
 }

@@ -4,12 +4,12 @@ import (
 	"crypto/sha256"
 	"flag"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/jaksi/sshesame/channel"
 	"github.com/jaksi/sshesame/request"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
-	"log"
 	"net"
 )
 
@@ -24,28 +24,34 @@ func main() {
 	if *hostKey != "" {
 		keyBytes, err := ioutil.ReadFile(*hostKey)
 		if err != nil {
-			log.Fatalln("Failed to read host key:", err.Error())
+			log.Fatal("Failed to read host key:", err.Error())
 		}
 		key, err = ssh.ParsePrivateKey(keyBytes)
 		if err != nil {
-			log.Fatalln("Failed to parse host key:", err.Error())
+			log.Fatal("Failed to parse host key:", err.Error())
 		}
 	} else {
-		log.Println("WARNING: Generating a temporary private key. Consider creating one and passing it to -host_key")
 		_, keyBytes, err := ed25519.GenerateKey(nil)
 		if err != nil {
-			log.Fatalln("Failed to generate temporary private key:", err.Error())
+			log.Fatal("Failed to generate temporary private key:", err.Error())
 		}
 		key, err = ssh.NewSignerFromSigner(keyBytes)
 		if err != nil {
-			log.Fatalln("Failed to parse generated private key:", err.Error())
+			log.Fatal("Failed to parse generated private key:", err.Error())
 		}
-		log.Printf("SHA-256 fingerprint: %v\n", sha256.Sum256(key.PublicKey().Marshal()))
+		log.WithFields(log.Fields{
+			"sha256_fingerprint": sha256.Sum256(key.PublicKey().Marshal()),
+		}).Warning("Using a temporary host key, consider creating a permanent one and passing it to -host_key")
 	}
 
 	serverConfig := &ssh.ServerConfig{
 		PasswordCallback: func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-			log.Printf("Login: client=%v, user=%q, password=%q, version=%q\n", conn.RemoteAddr(), conn.User(), password, conn.ClientVersion())
+			log.WithFields(log.Fields{
+				"client":   conn.RemoteAddr(),
+				"user":     conn.User(),
+				"password": string(password),
+				"version":  string(conn.ClientVersion()),
+			}).Info("Password authentication accepted")
 			return nil, nil
 		},
 	}
@@ -53,18 +59,22 @@ func main() {
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", *listenAddress, *port))
 	if err != nil {
-		log.Fatalln("Failed to listen:", err.Error())
+		log.Fatal("Failed to listen:", err.Error())
 	}
-	log.Printf("Listen: %v\n", listener.Addr())
+	log.WithFields(log.Fields{
+		"listen_address": listener.Addr(),
+	}).Info("Listening")
 	defer listener.Close()
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Println("Failed to accept connection:", err.Error())
+			log.Warning("Failed to accept connection:", err.Error())
 			continue
 		}
-		log.Printf("Connection: client=%v\n", conn.RemoteAddr())
+		log.WithFields(log.Fields{
+			"client": conn.RemoteAddr(),
+		}).Info("Client connected")
 		go handleConn(serverConfig, conn)
 	}
 }
@@ -73,13 +83,17 @@ func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn) {
 	defer conn.Close()
 	_, channels, requests, err := ssh.NewServerConn(conn, serverConfig)
 	if err != nil {
-		log.Println("Failed to establish SSH connection:", err.Error())
+		log.Warning("Failed to establish SSH connection:", err.Error())
 		return
 	}
-	log.Printf("Established SSH connection: client=%v\n", conn.RemoteAddr())
+	log.WithFields(log.Fields{
+		"client": conn.RemoteAddr(),
+	}).Info("SSH connection established")
 	go request.Handle(conn.RemoteAddr(), "global", requests)
 	for newChannel := range channels {
 		go channel.Handle(conn.RemoteAddr(), newChannel)
 	}
-	log.Printf("Disconnect: client=%v\n", conn.RemoteAddr())
+	log.WithFields(log.Fields{
+		"client": conn.RemoteAddr(),
+	}).Info("Client disconnected")
 }

@@ -1,9 +1,9 @@
 package request
 
 import (
-	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/fatih/structs"
 	"golang.org/x/crypto/ssh"
-	"log"
 	"net"
 )
 
@@ -55,7 +55,9 @@ type exitSignal struct {
 
 func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 	for request := range requests {
-		var payload string
+		payload := map[string]interface{}{
+			"data": request.Payload,
+		}
 		switch request.Type {
 		case "tcpip-forward":
 			fallthrough
@@ -63,107 +65,102 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 			parsedPayload := tcpipForward{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "pty-req":
 			parsedPayload := pty{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "x11-req":
 			parsedPayload := x11{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "env":
 			parsedPayload := env{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "exec":
 			parsedPayload := exec{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "subsystem":
 			parsedPayload := subsystem{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "window-change":
 			parsedPayload := windowChange{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "xon-xoff":
 			parsedPayload := flowControl{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "signal":
 			parsedPayload := signal{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "exit-status":
 			parsedPayload := exitStatus{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
+			payload = structs.Map(parsedPayload)
 		case "exit-signal":
 			parsedPayload := exitSignal{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
 			if err != nil {
-				log.Println("Failed to parse payload:", err.Error())
-				payload = fmt.Sprintf("%v", request.Payload)
-			} else {
-				payload = fmt.Sprintf("%+v", parsedPayload)
+				log.Warning("Failed to parse payload:", err.Error())
+				break
 			}
-		default:
-			payload = fmt.Sprintf("%v", request.Payload)
+			payload = structs.Map(parsedPayload)
 		}
-		log.Printf("Request: client=%v, channel=%v, type=%v, payload=%v\n", remoteAddr, channel, request.Type, payload)
+		logData := payload
+		logData["client"] = remoteAddr
+		logData["channel"] = channel
+		logData["request"] = request.Type
+		log.WithFields(logData).Info("Request received")
 		if request.WantReply {
-			request.Reply(true, nil)
+			err := request.Reply(true, nil)
+			if err != nil {
+				log.Warning("Failed to accept request:", err.Error())
+				continue
+			}
 		}
 	}
 }
