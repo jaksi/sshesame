@@ -43,6 +43,8 @@ Usage of sshesame:
     	the local address to listen on (default "localhost")
   -port uint
     	the port number to listen on (default 2022)
+  -server_version string
+    	The version identification of the server (RFC 4253 section 4.2 requires that this string start with "SSH-2.0-") (default "SSH-2.0-sshesame")
 ```
 Consider creating a private key to use with sshesame, for example using `ssh-keygen`.
 

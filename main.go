@@ -17,6 +17,7 @@ func main() {
 	hostKey := flag.String("host_key", "", "a file containing a private key to use")
 	listenAddress := flag.String("listen_address", "localhost", "the local address to listen on")
 	port := flag.Uint("port", 2022, "the port number to listen on")
+	serverVersion := flag.String("server_version", "SSH-2.0-sshesame", "The version identification of the server (RFC 4253 section 4.2 requires that this string start with \"SSH-2.0-\")")
 	flag.Parse()
 
 	var key ssh.Signer
@@ -45,6 +46,7 @@ func main() {
 	}
 
 	serverConfig := &ssh.ServerConfig{
+		ServerVersion: *serverVersion,
 		PasswordCallback: func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
 			log.WithFields(log.Fields{
 				"client":   conn.RemoteAddr(),
