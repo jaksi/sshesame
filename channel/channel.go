@@ -1,13 +1,14 @@
 package channel
 
 import (
+	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/fatih/structs"
 	"github.com/jaksi/sshesame/request"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"net"
+	"strconv"
 )
 
 // RFC 4254
@@ -15,6 +16,11 @@ type x11 struct {
 	SourceAddress string
 	SourcePort    uint32
 }
+
+func (payload x11) String() string {
+	return net.JoinHostPort(payload.SourceAddress, strconv.Itoa(int(payload.SourcePort)))
+}
+
 type tcpip struct {
 	DestinationAddress string
 	DestinationPort    uint32
@@ -22,10 +28,14 @@ type tcpip struct {
 	SourcePort         uint32
 }
 
+func (payload tcpip) String() string {
+	return fmt.Sprintf("%v -> %v",
+		net.JoinHostPort(payload.SourceAddress, strconv.Itoa(int(payload.SourcePort))),
+		net.JoinHostPort(payload.DestinationAddress, strconv.Itoa(int(payload.DestinationPort))))
+}
+
 func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
-	payload := map[string]interface{}{
-		"data": newChannel.ExtraData(),
-	}
+	var payload interface{} = newChannel.ExtraData()
 	switch newChannel.ChannelType() {
 	case "x11":
 		parsedPayload := x11{}
@@ -34,7 +44,7 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 			log.Warning("Failed to parse payload:", err.Error())
 			break
 		}
-		payload = structs.Map(parsedPayload)
+		payload = parsedPayload
 	case "forwarded-tcpip":
 		// Server initiated forwarding
 		fallthrough
@@ -46,12 +56,13 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel) {
 			log.Warning("Failed to parse payload:", err.Error())
 			break
 		}
-		payload = structs.Map(parsedPayload)
+		payload = parsedPayload
 	}
-	logData := payload
-	logData["client"] = remoteAddr
-	logData["channel"] = newChannel.ChannelType()
-	log.WithFields(logData).Info("Channel requested")
+	log.WithFields(log.Fields{
+		"client":  remoteAddr,
+		"channel": newChannel.ChannelType(),
+		"payload": payload,
+	}).Info("Channel requested")
 	channel, channelRequests, err := newChannel.Accept()
 	if err != nil {
 		log.Warning("Failed to accept channel:", err.Error())

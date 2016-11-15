@@ -1,10 +1,11 @@
 package request
 
 import (
+	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/fatih/structs"
 	"golang.org/x/crypto/ssh"
 	"net"
+	"strconv"
 )
 
 // RFC 4254
@@ -12,45 +13,99 @@ type tcpipForward struct {
 	BindAddress string
 	BindPort    uint32
 }
+
+func (payload tcpipForward) String() string {
+	return net.JoinHostPort(payload.BindAddress, strconv.Itoa(int(payload.BindPort)))
+}
+
 type pty struct {
 	Term                    string
 	Width, Height           uint32
 	PixelWidth, PixelHeight uint32
 	Modes                   []byte
 }
+
+func (payload pty) String() string {
+	return fmt.Sprintf("%v, %vx%v (%vx%v pixels)", payload.Term, payload.Width, payload.Height, payload.PixelWidth, payload.PixelHeight)
+}
+
 type x11 struct {
 	SingleConnection       bool
 	AuthenticationProtocol string
 	AuthenticationCookie   string
 	Screen                 uint32
 }
+
+func (payload x11) String() string {
+	return fmt.Sprintf("Single connection: %v, protocol: %v, cookie: %v, screen: %v", payload.SingleConnection, payload.AuthenticationProtocol, payload.AuthenticationCookie, payload.Screen)
+}
+
 type env struct {
 	Name, Value string
 }
+
+func (payload env) String() string {
+	return fmt.Sprintf("%v=%v", payload.Name, payload.Value)
+}
+
 type exec struct {
 	Command string
 }
+
+func (payload exec) String() string {
+	return payload.Command
+}
+
 type subsystem struct {
 	Name string
 }
+
+func (payload subsystem) String() string {
+	return payload.Name
+}
+
 type windowChange struct {
 	Width, Height           uint32
 	PixelWidth, PixelHeight uint32
 }
+
+func (payload windowChange) String() string {
+	return fmt.Sprintf("%vx%v (%vx%v pixels)", payload.Width, payload.Height, payload.PixelWidth, payload.PixelHeight)
+}
+
 type flowControl struct {
 	CanDo bool
 }
+
+func (payload flowControl) String() string {
+	return strconv.FormatBool(payload.CanDo)
+}
+
 type signal struct {
 	Name string
 }
+
+func (payload signal) String() string {
+	return payload.Name
+}
+
 type exitStatus struct {
 	Status uint32
 }
+
+func (payload exitStatus) String() string {
+	return strconv.Itoa(int(payload.Status))
+}
+
 type exitSignal struct {
 	Name         string
 	CoreDumped   bool
 	ErrorMessage string
 	Language     string
+}
+
+func (payload exitSignal) String() string {
+	return fmt.Sprintf("%v, core dumped: %v, error message: %v, language: %v", payload.Name, payload.CoreDumped, payload.ErrorMessage, payload.Language)
 }
 
 func SendExitStatus(channel ssh.Channel) {
@@ -62,9 +117,7 @@ func SendExitStatus(channel ssh.Channel) {
 
 func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 	for request := range requests {
-		payload := map[string]interface{}{
-			"data": request.Payload,
-		}
+		var payload interface{} = request.Payload
 		switch request.Type {
 		case "tcpip-forward":
 			fallthrough
@@ -75,7 +128,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "pty-req":
 			parsedPayload := pty{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -83,7 +136,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "x11-req":
 			parsedPayload := x11{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -91,7 +144,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "env":
 			parsedPayload := env{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -99,7 +152,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "exec":
 			parsedPayload := exec{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -107,7 +160,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "subsystem":
 			parsedPayload := subsystem{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -115,7 +168,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "window-change":
 			parsedPayload := windowChange{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -123,7 +176,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "xon-xoff":
 			parsedPayload := flowControl{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -131,7 +184,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "signal":
 			parsedPayload := signal{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -139,7 +192,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "exit-status":
 			parsedPayload := exitStatus{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -147,7 +200,7 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		case "exit-signal":
 			parsedPayload := exitSignal{}
 			err := ssh.Unmarshal(request.Payload, &parsedPayload)
@@ -155,13 +208,14 @@ func Handle(remoteAddr net.Addr, channel string, requests <-chan *ssh.Request) {
 				log.Warning("Failed to parse payload:", err.Error())
 				break
 			}
-			payload = structs.Map(parsedPayload)
+			payload = parsedPayload
 		}
-		logData := payload
-		logData["client"] = remoteAddr
-		logData["channel"] = channel
-		logData["request"] = request.Type
-		log.WithFields(logData).Info("Request received")
+		log.WithFields(log.Fields{
+			"client":  remoteAddr,
+			"channel": channel,
+			"request": request.Type,
+			"payload": payload,
+		}).Info("Request received")
 		if request.WantReply {
 			err := request.Reply(true, nil)
 			if err != nil {
