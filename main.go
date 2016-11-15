@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"flag"
-	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/jaksi/sshesame/channel"
 	"github.com/jaksi/sshesame/request"
@@ -11,6 +10,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"net"
+	"strconv"
 )
 
 func main() {
@@ -59,7 +59,7 @@ func main() {
 	}
 	serverConfig.AddHostKey(key)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", *listenAddress, *port))
+	listener, err := net.Listen("tcp", net.JoinHostPort(*listenAddress, strconv.Itoa(int(*port))))
 	if err != nil {
 		log.Fatal("Failed to listen:", err.Error())
 	}
