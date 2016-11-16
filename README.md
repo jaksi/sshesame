@@ -30,8 +30,16 @@ sshd[8159]: Disconnected from <client> port 24889 [preauth]
 For more details, read the [relevant RFC](https://tools.ietf.org/html/rfc4254).
 
 ## Installing
+### From source
 * [Install go](https://golang.org/doc/install) (version 1.4 or newer required)
 * `go get -u github.com/jaksi/sshesame`
+
+### Snap
+`snap install sshesame`
+
+Package created and maintained by [chadmiller](https://github.com/chadmiller).
+
+You can find the package [here](https://code.launchpad.net/~privacy-squad/+junk/sshesame-snap).
 
 ## Usage
 ```
