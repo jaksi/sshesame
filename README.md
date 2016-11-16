@@ -39,6 +39,8 @@ $ sshesame -h
 Usage of sshesame:
   -host_key string
     	a file containing a private key to use
+  -json_logging
+    	enable logging in JSON
   -listen_address string
     	the local address to listen on (default "localhost")
   -port uint
