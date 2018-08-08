@@ -3,7 +3,7 @@ package channel
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/jaksi/sshesame/request"
+	"github.com/PRKD/sshesame/request"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
