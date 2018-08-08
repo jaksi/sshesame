@@ -68,7 +68,7 @@ func main() {
 			return nil, nil
 		},
 	}
-	f, err := os.OpenFile(path_log, os.O_WRONLY | os.O_CREATE, 0755)
+	f, err := os.OpenFile(*path_log, os.O_WRONLY | os.O_CREATE, 0755)
 if err == nil {
     log.Out = f
    } else {
