@@ -23,7 +23,7 @@ func main() {
 	port := flag.Uint("port", 2022, "the port number to listen on")
 	jsonLogging := flag.Bool("json_logging", false, "enable logging in JSON")
 	serverVersion := flag.String("server_version", "SSH-2.0-sshesame", "The version identification of the server (RFC 4253 section 4.2 requires that this string start with \"SSH-2.0-\")")
-	path_log := flag.String("/tmp/log.log")
+	path_log := flag.String("Path_log","/tmp/log.log", "The file that will contain the log")
 	flag.Parse()
 
 	if *jsonLogging {
