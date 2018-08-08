@@ -69,11 +69,13 @@ func main() {
 		},
 	}
 	f, err := os.OpenFile(*path_log, os.O_WRONLY | os.O_CREATE, 0755)
-if err == nil {
-    log.SetOutput(f)// = f
-   } else {
-    log.Info("Failed to log to file, using default stderr")
-  }
+	if *path_log !="os.Stdout" {
+		if err == nil {
+    			log.SetOutput(f)// = f
+  		 } else  {
+    			log.Info("Failed to log to file, using default stderr")
+		}
+	}
 	serverConfig.AddHostKey(key)
 
 	listener, err := net.Listen("tcp", net.JoinHostPort(*listenAddress, strconv.Itoa(int(*port))))
