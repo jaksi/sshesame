@@ -70,7 +70,7 @@ func main() {
 	}
 	f, err := os.OpenFile(*path_log, os.O_WRONLY | os.O_CREATE, 0755)
 if err == nil {
-    log..SetOutput(f)// = f
+    log.SetOutput(f)// = f
    } else {
     log.Info("Failed to log to file, using default stderr")
   }
