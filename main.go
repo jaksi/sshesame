@@ -3,9 +3,12 @@ package main
 import (
 	"crypto/sha256"
 	"flag"
+	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/jaksi/sshesame/channel"
-	"github.com/jaksi/sshesame/request"
+	"github.com/bechampion/sshesame/request"
+	//"./request"
+	"github.com/bechampion/sshesame/channel"
+	//"./channel"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
@@ -26,6 +29,7 @@ func main() {
 	}
 
 	var key ssh.Signer
+	sshmap := make(map[string]string)
 	var err error
 	if *hostKey != "" {
 		keyBytes, err := ioutil.ReadFile(*hostKey)
@@ -49,10 +53,10 @@ func main() {
 			"sha256_fingerprint": sha256.Sum256(key.PublicKey().Marshal()),
 		}).Warning("Using a temporary host key, consider creating a permanent one and passing it to -host_key")
 	}
-
 	serverConfig := &ssh.ServerConfig{
 		ServerVersion: *serverVersion,
 		PasswordCallback: func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+			sshmap[conn.RemoteAddr().String()] = conn.User()
 			log.WithFields(log.Fields{
 				"client":   conn.RemoteAddr(),
 				"user":     conn.User(),
@@ -65,6 +69,7 @@ func main() {
 	serverConfig.AddHostKey(key)
 
 	listener, err := net.Listen("tcp", net.JoinHostPort(*listenAddress, strconv.Itoa(int(*port))))
+	fmt.Println(sshmap)
 	if err != nil {
 		log.Fatal("Failed to listen:", err.Error())
 	}
@@ -82,11 +87,11 @@ func main() {
 		log.WithFields(log.Fields{
 			"client": conn.RemoteAddr(),
 		}).Info("Client connected")
-		go handleConn(serverConfig, conn)
+		go handleConn(serverConfig, conn ,sshmap)
 	}
 }
 
-func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn) {
+func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn , sshmap map[string]string ) {
 	defer conn.Close()
 	_, channels, requests, err := ssh.NewServerConn(conn, serverConfig)
 	if err != nil {
@@ -98,7 +103,7 @@ func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn) {
 	}).Info("SSH connection established")
 	go request.Handle(conn.RemoteAddr(), "global", requests)
 	for newChannel := range channels {
-		go channel.Handle(conn.RemoteAddr(), newChannel)
+		go channel.Handle(conn.RemoteAddr(), newChannel , sshmap)
 	}
 	log.WithFields(log.Fields{
 		"client": conn.RemoteAddr(),
