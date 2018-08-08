@@ -67,7 +67,7 @@ func main() {
 			return nil, nil
 		},
 	}
-	log.SetOutput(path_log)
+	log.out =path_log
 	
 	serverConfig.AddHostKey(key)
 
