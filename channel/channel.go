@@ -178,7 +178,6 @@ individual files in /usr/share/doc/*/copyright.
 Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
 applicable law.
 
-
 `
 	switch newChannel.ChannelType() {
 	case "x11":
