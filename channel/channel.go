@@ -215,7 +215,7 @@ applicable law.
 	defer channel.Close()
 	go request.Handle(remoteAddr, newChannel.ChannelType(), channelRequests)
 	if newChannel.ChannelType() == "session" {
-		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+"@moneyserver:/$ ")
+		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+"@android-2468097531:/$ ")
 		terminal.Write([]byte(motd))
 		for {
 			fmt.Println(sshmap[remoteAddr.String()])
