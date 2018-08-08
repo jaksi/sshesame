@@ -67,7 +67,11 @@ func main() {
 			return nil, nil
 		},
 	}
-	log.Out =path_log
+	f, err := os.OpenFile(path_log, os.O_WRONLY | os.O_CREATE, 0755)
+if err != nil {
+    # handle
+}
+log.SetOutput(f)
 	
 	serverConfig.AddHostKey(key)
 
