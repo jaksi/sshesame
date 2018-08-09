@@ -89,8 +89,7 @@ func main() {
 	}).Info("Listening")
 	defer listener.Close()
 	
-	var _motd string
-	_motd:=""
+	var _motd string =""
 	if *motd != "" {
 		_motd, err := ioutil.ReadFile(*motd)
 		if err != nil {
