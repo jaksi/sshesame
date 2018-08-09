@@ -98,6 +98,7 @@ func main() {
 		log.WithFields(log.Fields{
 			"client": conn.RemoteAddr(),
 		}).Info("Client connected")
+		var _motd string
 		if *motd != "" {
 		_motd, err := ioutil.ReadFile(*motd)
 		if err != nil {
