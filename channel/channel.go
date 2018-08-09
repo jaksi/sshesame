@@ -156,30 +156,12 @@ lrwxr-xr-x@   1 root  wheel    11 11 Jul 13:29 var -> private/var`
 }
 
 
-func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel , sshmap map[string]string) {
+func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel , sshmap map[string]string, motd string) {
 	var payload interface{} = newChannel.ExtraData()
 	//commandList := make(map[string]string)
 	//commandList["uname"] = "Kernel 2.2.2.2.2"
 	commands := populateCommandList()
-	motd := `Welcome to Ubuntu 16.04.5 LTS (GNU/Linux 4.15.0-29-generic i686)
-
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/advantage
-
-Pueden actualizarse 21 paquetes.
-8 actualizaciones son de seguridad.
-
-*** Es necesario reiniciar el sistema ***
-
-The programs included with the Ubuntu system are free software;
-the exact distribution terms for each program are described in the
-individual files in /usr/share/doc/*/copyright.
-
-Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
-applicable law.
-
-`
+	
 	switch newChannel.ChannelType() {
 	case "x11":
 		parsedPayload := x11{}
