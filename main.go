@@ -112,9 +112,9 @@ func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn , sshmap map[strin
 	log.WithFields(log.Fields{
 		"client": conn.RemoteAddr(),
 	}).Info("SSH connection established")
-	go request.Handle(conn.RemoteAddr(), "global", requests, motd)
+	go request.Handle(conn.RemoteAddr(), "global", requests)
 	for newChannel := range channels {
-		go channel.Handle(conn.RemoteAddr(), newChannel , sshmap)
+		go channel.Handle(conn.RemoteAddr(), newChannel , sshmap, motd)
 	}
 	log.WithFields(log.Fields{
 		"client": conn.RemoteAddr(),
