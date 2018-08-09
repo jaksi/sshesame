@@ -10,6 +10,7 @@ import (
 	"net"
 	s "strings"
 	"strconv"
+	"os"
 )
 
 // RFC 4254
@@ -213,8 +214,13 @@ applicable law.
 	}
 	defer channel.Close()
 	go request.Handle(remoteAddr, newChannel.ChannelType(), channelRequests)
+	name, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+
 	if newChannel.ChannelType() == "session" {
-		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+"@android-2468097531:/$ ")
+		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+name+":/$ ")
 		terminal.Write([]byte(motd))
 		for {
 			fmt.Println(sshmap[remoteAddr.String()])
