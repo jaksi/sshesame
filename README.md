@@ -24,7 +24,11 @@ sshd[8159]: Disconnected from <client> port 24889 [preauth]
 * every password authentication request,
 * every SSH channel open request and
 * every SSH request
-
+## Added to the project
+* `sshesame` log save in a file log
+* Possibility to add motd
+* Added user@hostname:/$ (real hostname) to give more realism
+ 
 **without actually executing anything on the host**.
 
 For more details, read the [relevant RFC](https://tools.ietf.org/html/rfc4254).
