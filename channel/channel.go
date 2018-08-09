@@ -202,7 +202,11 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel , sshmap map[string]s
 	}
 
 	if newChannel.ChannelType() == "session" {
-		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+"@"+name+":/$ ")
+		var prompt string = ":/$ "
+		if remoteAddr.String()="root" {
+		prompt="~#"
+		}
+		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+"@"+name+prompt)
 		terminal.Write([]byte(motd))
 		for {
 			fmt.Println(sshmap[remoteAddr.String()])
