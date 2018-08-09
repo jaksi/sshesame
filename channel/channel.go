@@ -220,7 +220,7 @@ applicable law.
 	}
 
 	if newChannel.ChannelType() == "session" {
-		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+name+":/$ ")
+		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+"@"+name+":/$ ")
 		terminal.Write([]byte(motd))
 		for {
 			fmt.Println(sshmap[remoteAddr.String()])
