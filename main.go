@@ -98,7 +98,16 @@ func main() {
 		log.WithFields(log.Fields{
 			"client": conn.RemoteAddr(),
 		}).Info("Client connected")
-		go handleConn(serverConfig, conn ,sshmap , *motd)
+		if *motd != "" {
+		_motd, err := ioutil.ReadFile(*motd)
+		if err != nil {
+			log.Fatal("Failed to read host key:", err.Error())
+		}
+		
+		} else {
+			_motd=""
+		}
+		go handleConn(serverConfig, conn ,sshmap , _motd)
 	}
 }
 
