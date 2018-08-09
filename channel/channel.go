@@ -203,7 +203,7 @@ func Handle(remoteAddr net.Addr, newChannel ssh.NewChannel , sshmap map[string]s
 
 	if newChannel.ChannelType() == "session" {
 		var prompt string = ":/$ "
-		if s.Contains( s.TrimSpace(remoteAddr.String()) ,"root")==true {
+		if s.Contains( s.TrimSpace(sshmap[remoteAddr.String()]) ,"root")==true {
 		prompt="~#"
 		}
 		terminal := terminal.NewTerminal(channel, sshmap[remoteAddr.String()]+"@"+name+prompt)
