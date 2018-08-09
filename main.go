@@ -24,7 +24,7 @@ func main() {
 	jsonLogging := flag.Bool("json_logging", false, "enable logging in JSON")
 	serverVersion := flag.String("server_version", "SSH-2.0-sshesame", "The version identification of the server (RFC 4253 section 4.2 requires that this string start with \"SSH-2.0-\")")
 	path_log := flag.String("Path_log","os.Stdout", "The file that will contain the log")
-	motd := flag.String("motd","", "a file that will contain motd")
+	motd_file := flag.String("motd_file","", "a file that will contain motd")
 	flag.Parse()
 
 	if *jsonLogging {
@@ -89,12 +89,13 @@ func main() {
 	}).Info("Listening")
 	defer listener.Close()
 	
-	var _motd string =""
-	if *motd != "" {
-		_motd, err := ioutil.ReadFile(*motd)
+	var motd string =""
+	if *motd_file != "" {
+		motd_f, err := ioutil.ReadFile(*motd_file)
 		if err != nil {
 			log.Fatal("Failed to read host key:", err.Error())
 			}
+		motd=string(motd_f)
 	} 
 
 	for {
@@ -107,7 +108,7 @@ func main() {
 			"client": conn.RemoteAddr(),
 		}).Info("Client connected")
 		
-		go handleConn(serverConfig, conn ,sshmap , _motd)
+		go handleConn(serverConfig, conn ,sshmap , motd)
 	}
 }
 
