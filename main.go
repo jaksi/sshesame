@@ -24,6 +24,7 @@ func main() {
 	jsonLogging := flag.Bool("json_logging", false, "enable logging in JSON")
 	serverVersion := flag.String("server_version", "SSH-2.0-sshesame", "The version identification of the server (RFC 4253 section 4.2 requires that this string start with \"SSH-2.0-\")")
 	path_log := flag.String("Path_log","os.Stdout", "The file that will contain the log")
+	motd := flag.String("motd","", "a file that will contain motd")
 	flag.Parse()
 
 	if *jsonLogging {
@@ -111,7 +112,7 @@ func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn , sshmap map[strin
 	log.WithFields(log.Fields{
 		"client": conn.RemoteAddr(),
 	}).Info("SSH connection established")
-	go request.Handle(conn.RemoteAddr(), "global", requests)
+	go request.Handle(conn.RemoteAddr(), "global", requests, motd)
 	for newChannel := range channels {
 		go channel.Handle(conn.RemoteAddr(), newChannel , sshmap)
 	}
