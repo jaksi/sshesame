@@ -32,29 +32,27 @@ For more details, read the [relevant RFC](https://tools.ietf.org/html/rfc4254).
 ## Installing
 ### From source
 * [Install go](https://golang.org/doc/install) (version 1.4 or newer required)
-* `go get -u github.com/jaksi/sshesame`
-
-### Snap
-`snap install sshesame`
-
-Package created and maintained by [chadmiller](https://github.com/chadmiller).
-
-You can find the package [here](https://code.launchpad.net/~privacy-squad/+junk/sshesame-snap).
+* `go get -u github.com/PRKD/sshesame`
 
 ## Usage
 ```
 $ sshesame -h
 Usage of sshesame:
+  -Path_log string
+    	The file that will contain the log (default "os.Stdout")
   -host_key string
     	a file containing a private key to use
   -json_logging
     	enable logging in JSON
   -listen_address string
     	the local address to listen on (default "localhost")
+  -motd_file string
+    	a file that will contain motd
   -port uint
     	the port number to listen on (default 2022)
   -server_version string
     	The version identification of the server (RFC 4253 section 4.2 requires that this string start with "SSH-2.0-") (default "SSH-2.0-sshesame")
+
 ```
 Consider creating a private key to use with sshesame, for example using `ssh-keygen`.
 
