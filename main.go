@@ -98,11 +98,11 @@ func main() {
 		log.WithFields(log.Fields{
 			"client": conn.RemoteAddr(),
 		}).Info("Client connected")
-		go handleConn(serverConfig, conn ,sshmap)
+		go handleConn(serverConfig, conn ,sshmap , *motd)
 	}
 }
 
-func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn , sshmap map[string]string ) {
+func handleConn(serverConfig *ssh.ServerConfig, conn net.Conn , sshmap map[string]string , motd string) {
 	defer conn.Close()
 	_, channels, requests, err := ssh.NewServerConn(conn, serverConfig)
 	if err != nil {
