@@ -17,7 +17,7 @@ func main() {
 	sshServerConfig := &ssh.ServerConfig{
 		NoClientAuth: true,
 	}
-	for _, hostKeyFileName := range config.hostKeys {
+	for _, hostKeyFileName := range config.HostKeys {
 		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
 		if err != nil {
 			log.Fatalln("Failed to read host key", hostKeyFileName, ":", err)
@@ -29,7 +29,7 @@ func main() {
 		sshServerConfig.AddHostKey(signer)
 	}
 
-	listener, err := net.Listen("tcp", config.listenAddress)
+	listener, err := net.Listen("tcp", config.ListenAddress)
 	if err != nil {
 		log.Fatalln("Failed to listen for connections:", err)
 	}
