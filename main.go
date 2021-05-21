@@ -11,7 +11,7 @@ func main() {
 		log.Fatalln("Failed to get config:", err)
 	}
 
-	sshServerConfig := cfg.createSshServerConfig()
+	sshServerConfig := cfg.createSSHServerConfig()
 
 	listener, err := net.Listen("tcp", cfg.ListenAddress)
 	if err != nil {

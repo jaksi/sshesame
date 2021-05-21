@@ -44,7 +44,7 @@ type config struct {
 	Banner        string
 }
 
-func (cfg config) createSshServerConfig() *ssh.ServerConfig {
+func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 	sshServerConfig := &ssh.ServerConfig{
 		Config: ssh.Config{
 			RekeyThreshold: cfg.RekeyThreshold,
