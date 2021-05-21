@@ -3,6 +3,9 @@ package main
 import (
 	"log"
 	"net"
+	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -19,12 +22,15 @@ func main() {
 	}
 	defer listener.Close()
 
+	logrus.SetOutput(os.Stdout)
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Println("Failed to accept connection:", err)
 			continue
 		}
+		logrus.WithFields(logrus.Fields{"remote_address": conn.RemoteAddr().String()}).Infoln("Connection accepted")
 		go handleConnection(conn, sshServerConfig)
 	}
 }

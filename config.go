@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -17,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )
@@ -59,10 +61,28 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 		BannerCallback: func(conn ssh.ConnMetadata) string { return strings.ReplaceAll(cfg.Banner, "\n", "\r\n") },
 	}
 	if cfg.PasswordAuth {
-		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) { return nil, nil }
+		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+			logrus.WithFields(logrus.Fields{
+				"client_version": string(conn.ClientVersion()),
+				"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
+				"user":           conn.User(),
+				"remote_addr":    conn.RemoteAddr().String(),
+				"password":       string(password),
+			}).Infoln("Password authentication accepted")
+			return nil, nil
+		}
 	}
 	if cfg.PublicKeyAuth {
-		sshServerConfig.PublicKeyCallback = func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) { return nil, nil }
+		sshServerConfig.PublicKeyCallback = func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+			logrus.WithFields(logrus.Fields{
+				"client_version":         string(conn.ClientVersion()),
+				"session_id":             base64.RawStdEncoding.EncodeToString(conn.SessionID()),
+				"user":                   conn.User(),
+				"remote_addr":            conn.RemoteAddr().String(),
+				"public_key_fingerprint": ssh.FingerprintSHA256(key),
+			}).Infoln("Public key authentication accepted")
+			return nil, nil
+		}
 	}
 	if cfg.KeyboardInteractiveAuth {
 		sshServerConfig.KeyboardInteractiveCallback = func(conn ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
@@ -72,9 +92,17 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 				questions = append(questions, question.Text)
 				echos = append(echos, question.Echo)
 			}
-			if _, err := client(conn.User(), cfg.KeyboardInteractiveAuthConfig.Instruction, questions, echos); err != nil {
+			answers, err := client(conn.User(), cfg.KeyboardInteractiveAuthConfig.Instruction, questions, echos)
+			if err != nil {
 				log.Println("Failed to process keyboard interactive authentication:", err)
 			}
+			logrus.WithFields(logrus.Fields{
+				"client_version": string(conn.ClientVersion()),
+				"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
+				"user":           conn.User(),
+				"remote_addr":    conn.RemoteAddr().String(),
+				"answers":        answers,
+			}).Infoln("Keyboard interactive authentication accepted")
 			return nil, nil
 		}
 	}
