@@ -6,11 +6,11 @@ macs: null  # a sensible default is used
 hostkeys: null  # generate and use RSA, ECDSA, Ed25519 keys
 noclientauth: false
 maxauthtries: 0  # if set to zero, the number of attempts are limited to 6
-passwordauth: false
+passwordauth: true
 publickeyauth: false
-keyboardinteractiveauth: true
+keyboardinteractiveauth: false
 keyboardinteractiveauthconfig:
-  instruction: something
+  instruction: Answer these weird questions to log in!
   questions:
   - text: "What's your name? "
     echo: true
