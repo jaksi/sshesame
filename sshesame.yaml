@@ -1,0 +1,22 @@
+listenaddress: 127.0.0.1:2022
+rekeythreshold: 0  # a size suitable for the chosen cipher is used
+keyexchanges: null  # a default set of algorithms is used
+ciphers: null  # a sensible default is used
+macs: null  # a sensible default is used
+hostkeys: null  # generate and use RSA, ECDSA, Ed25519 keys
+noclientauth: false
+maxauthtries: 0  # if set to zero, the number of attempts are limited to 6
+passwordauth: false
+publickeyauth: false
+keyboardinteractiveauth: true
+keyboardinteractiveauthconfig:
+  instruction: something
+  questions:
+  - text: "What's your name? "
+    echo: true
+  - text: "What's your deepest secret? "
+    echo: false
+serverversion: SSH-2.0-sshesame
+banner: |+
+  This is an SSH honeypot.
+  This connection, including the authentication details is logged and monitored.

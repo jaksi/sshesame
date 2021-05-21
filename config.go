@@ -14,14 +14,82 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/adrg/xdg"
+	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )
 
 type config struct {
-	ListenAddress string
-	HostKeys      []string
+	ListenAddress                 string
+	RekeyThreshold                uint64
+	KeyExchanges                  []string
+	Ciphers                       []string
+	MACs                          []string
+	HostKeys                      []string
+	NoClientAuth                  bool
+	MaxAuthTries                  int
+	PasswordAuth                  bool
+	PublicKeyAuth                 bool
+	KeyboardInteractiveAuth       bool
+	KeyboardInteractiveAuthConfig struct {
+		Instruction string
+		Questions   []struct {
+			Text string
+			Echo bool
+		}
+	}
+	ServerVersion string
+	Banner        string
+}
+
+func (cfg config) createSshServerConfig() *ssh.ServerConfig {
+	sshServerConfig := &ssh.ServerConfig{
+		Config: ssh.Config{
+			RekeyThreshold: cfg.RekeyThreshold,
+			KeyExchanges:   cfg.KeyExchanges,
+			Ciphers:        cfg.Ciphers,
+			MACs:           cfg.MACs,
+		},
+		NoClientAuth: cfg.NoClientAuth,
+		MaxAuthTries: cfg.MaxAuthTries,
+		// AuthLogCallback: TODO,
+		ServerVersion:  cfg.ServerVersion,
+		BannerCallback: func(conn ssh.ConnMetadata) string { return strings.ReplaceAll(cfg.Banner, "\n", "\r\n") },
+	}
+	if cfg.PasswordAuth {
+		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) { return nil, nil }
+	}
+	if cfg.PublicKeyAuth {
+		sshServerConfig.PublicKeyCallback = func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) { return nil, nil }
+	}
+	if cfg.KeyboardInteractiveAuth {
+		sshServerConfig.KeyboardInteractiveCallback = func(conn ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+			var questions []string
+			var echos []bool
+			for _, question := range cfg.KeyboardInteractiveAuthConfig.Questions {
+				questions = append(questions, question.Text)
+				echos = append(echos, question.Echo)
+			}
+			if _, err := client(conn.User(), cfg.KeyboardInteractiveAuthConfig.Instruction, questions, echos); err != nil {
+				log.Println("Failed to process keyboard interactive authentication:", err)
+			}
+			return nil, nil
+		}
+	}
+	for _, hostKeyFileName := range cfg.HostKeys {
+		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
+		if err != nil {
+			log.Fatalln("Failed to read host key", hostKeyFileName, ":", err)
+		}
+		signer, err := ssh.ParsePrivateKey(hostKeyBytes)
+		if err != nil {
+			log.Fatalln("Failed to parse host key", hostKeyFileName, ":", err)
+		}
+		sshServerConfig.AddHostKey(signer)
+	}
+	return sshServerConfig
 }
 
 type hostKeyType int
