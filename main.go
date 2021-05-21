@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"net"
 
@@ -16,8 +17,16 @@ func main() {
 	sshServerConfig := &ssh.ServerConfig{
 		NoClientAuth: true,
 	}
-	for _, hostKey := range config.hostKeys {
-		sshServerConfig.AddHostKey(hostKey)
+	for _, hostKeyFileName := range config.hostKeys {
+		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
+		if err != nil {
+			log.Fatalln("Failed to read host key", hostKeyFileName, ":", err)
+		}
+		signer, err := ssh.ParsePrivateKey(hostKeyBytes)
+		if err != nil {
+			log.Fatalln("Failed to parse host key", hostKeyFileName, ":", err)
+		}
+		sshServerConfig.AddHostKey(signer)
 	}
 
 	listener, err := net.Listen("tcp", config.listenAddress)
