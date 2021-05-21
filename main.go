@@ -20,7 +20,7 @@ func main() {
 		sshServerConfig.AddHostKey(hostKey)
 	}
 
-	listener, err := net.Listen("tcp", "127.0.0.1:2022")
+	listener, err := net.Listen("tcp", config.listenAddress)
 	if err != nil {
 		log.Fatalln("Failed to listen for connections:", err)
 	}

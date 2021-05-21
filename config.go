@@ -15,11 +15,14 @@ import (
 )
 
 type config struct {
-	hostKeys []ssh.Signer
+	listenAddress string
+	hostKeys      []ssh.Signer
 }
 
 func getConfig() (*config, error) {
-	result := &config{}
+	result := &config{
+		listenAddress: "127.0.0.1:2022",
+	}
 
 	dataDir := path.Join(xdg.DataHome, "sshesame")
 	keyFileName := path.Join(dataDir, "host_rsa_key")
