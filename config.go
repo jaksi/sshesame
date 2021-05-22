@@ -192,13 +192,16 @@ func getConfig() (*config, error) {
 		dataDir := path.Join(xdg.DataHome, "sshesame")
 		log.Println("No host keys configured, using keys at", dataDir)
 
-		for keyType, fileName := range map[hostKeyType]string{
-			rsa_key:     "host_rsa_key",
-			ecdsa_key:   "host_ecdsa_key",
-			ed25519_key: "host_ed25519_key",
+		for _, key := range []struct {
+			keyType  hostKeyType
+			filename string
+		}{
+			{keyType: rsa_key, filename: "host_rsa_key"},
+			{keyType: ecdsa_key, filename: "host_ecdsa_key"},
+			{keyType: ed25519_key, filename: "host_ed25519_key"},
 		} {
-			keyFileName := path.Join(dataDir, fileName)
-			if err := generateKey(keyFileName, keyType); err != nil {
+			keyFileName := path.Join(dataDir, key.filename)
+			if err := generateKey(keyFileName, key.keyType); err != nil {
 				return nil, err
 			}
 			result.HostKeys = []string{keyFileName}
