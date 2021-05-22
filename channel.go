@@ -14,7 +14,7 @@ type channelMetadata struct {
 }
 
 func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
-	channel, _, err := newChannel.Accept()
+	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		log.Println("Failed to accept new channel:", err)
 	}
@@ -23,6 +23,9 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 		"channel_type":       newChannel.ChannelType(),
 		"clannel_extra_data": newChannel.ExtraData(),
 	}).Infoln("New channel accepted")
+
+	go handleChannelRequests(requests, conn)
+
 	if _, err := io.Copy(channel, channel); err != nil {
 		log.Println("Failed to read from or write to channel:", err)
 	}
