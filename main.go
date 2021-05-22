@@ -11,6 +11,7 @@ import (
 
 func main() {
 	configFileName := flag.String("config", "", "config file")
+	jsonLogging := flag.Bool("json_logging", false, "enable JSON logging")
 	flag.Parse()
 
 	cfg, err := getConfig(*configFileName)
@@ -27,6 +28,9 @@ func main() {
 	defer listener.Close()
 
 	logrus.SetOutput(os.Stdout)
+	if *jsonLogging {
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	}
 
 	for {
 		conn, err := listener.Accept()
