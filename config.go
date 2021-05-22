@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
@@ -56,13 +55,9 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 		NoClientAuth: cfg.NoClientAuth,
 		MaxAuthTries: cfg.MaxAuthTries,
 		AuthLogCallback: func(conn ssh.ConnMetadata, method string, err error) {
-			logrus.WithFields(logrus.Fields{
-				"client_version": string(conn.ClientVersion()),
-				"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
-				"user":           conn.User(),
-				"remote_addr":    conn.RemoteAddr().String(),
-				"method":         method,
-				"success":        err == nil,
+			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
+				"method":  method,
+				"success": err == nil,
 			}).Infoln("Client authenticated")
 		},
 		ServerVersion:  cfg.ServerVersion,
@@ -70,23 +65,15 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 	}
 	if cfg.PasswordAuth {
 		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-			logrus.WithFields(logrus.Fields{
-				"client_version": string(conn.ClientVersion()),
-				"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
-				"user":           conn.User(),
-				"remote_addr":    conn.RemoteAddr().String(),
-				"password":       string(password),
+			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
+				"password": string(password),
 			}).Infoln("Password authentication accepted")
 			return nil, nil
 		}
 	}
 	if cfg.PublicKeyAuth {
 		sshServerConfig.PublicKeyCallback = func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			logrus.WithFields(logrus.Fields{
-				"client_version":         string(conn.ClientVersion()),
-				"session_id":             base64.RawStdEncoding.EncodeToString(conn.SessionID()),
-				"user":                   conn.User(),
-				"remote_addr":            conn.RemoteAddr().String(),
+			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
 				"public_key_fingerprint": ssh.FingerprintSHA256(key),
 			}).Infoln("Public key authentication accepted")
 			return nil, nil
@@ -104,12 +91,8 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 			if err != nil {
 				log.Println("Failed to process keyboard interactive authentication:", err)
 			}
-			logrus.WithFields(logrus.Fields{
-				"client_version": string(conn.ClientVersion()),
-				"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
-				"user":           conn.User(),
-				"remote_addr":    conn.RemoteAddr().String(),
-				"answers":        answers,
+			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
+				"answers": answers,
 			}).Infoln("Keyboard interactive authentication accepted")
 			return nil, nil
 		}
