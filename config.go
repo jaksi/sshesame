@@ -88,7 +88,7 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 				log.Println("Failed to process keyboard interactive authentication:", err)
 				return nil, nil
 			}
-			getLogEntry(conn).WithField("answers", answers).Infoln("Keyboard interactive authentication accepted")
+			getLogEntry(conn).WithField("answers", strings.Join(answers, ", ")).Infoln("Keyboard interactive authentication accepted")
 			return nil, nil
 		}
 	}

@@ -38,7 +38,7 @@ func main() {
 			log.Println("Failed to accept connection:", err)
 			continue
 		}
-		logrus.WithFields(logrus.Fields{"remote_address": conn.RemoteAddr().String()}).Infoln("Connection accepted")
+		logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
 		go handleConnection(conn, sshServerConfig)
 	}
 }
