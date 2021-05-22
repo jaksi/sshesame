@@ -41,6 +41,7 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 		log.Println("Failed to accept new channel:", err)
 		return
 	}
+	defer channel.Close()
 
 	var channelData interface{}
 	switch newChannel.ChannelType() {
