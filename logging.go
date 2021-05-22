@@ -7,11 +7,15 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func getLogFields(conn ssh.ConnMetadata) logrus.Fields {
-	return logrus.Fields{
+func getLogEntry(conn ssh.ConnMetadata) *logrus.Entry {
+	return logrus.WithFields(logrus.Fields{
 		"client_version": string(conn.ClientVersion()),
 		"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
 		"user":           conn.User(),
 		"remote_addr":    conn.RemoteAddr().String(),
-	}
+	})
+}
+
+func (conn channelMetadata) getLogEntry() *logrus.Entry {
+	return getLogEntry(conn.conn).WithField("channel_id", conn.channelID)
 }

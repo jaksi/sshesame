@@ -55,7 +55,7 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 		NoClientAuth: cfg.NoClientAuth,
 		MaxAuthTries: cfg.MaxAuthTries,
 		AuthLogCallback: func(conn ssh.ConnMetadata, method string, err error) {
-			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
+			getLogEntry(conn).WithFields(logrus.Fields{
 				"method":  method,
 				"success": err == nil,
 			}).Infoln("Client authenticated")
@@ -65,17 +65,13 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 	}
 	if cfg.PasswordAuth {
 		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
-				"password": string(password),
-			}).Infoln("Password authentication accepted")
+			getLogEntry(conn).WithField("password", string(password)).Infoln("Password authentication accepted")
 			return nil, nil
 		}
 	}
 	if cfg.PublicKeyAuth {
 		sshServerConfig.PublicKeyCallback = func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
-				"public_key_fingerprint": ssh.FingerprintSHA256(key),
-			}).Infoln("Public key authentication accepted")
+			getLogEntry(conn).WithField("public_key_fingerprint", ssh.FingerprintSHA256(key)).Infoln("Public key authentication accepted")
 			return nil, nil
 		}
 	}
@@ -91,9 +87,7 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 			if err != nil {
 				log.Println("Failed to process keyboard interactive authentication:", err)
 			}
-			logrus.WithFields(getLogFields(conn)).WithFields(logrus.Fields{
-				"answers": answers,
-			}).Infoln("Keyboard interactive authentication accepted")
+			getLogEntry(conn).WithField("answers", answers).Infoln("Keyboard interactive authentication accepted")
 			return nil, nil
 		}
 	}
