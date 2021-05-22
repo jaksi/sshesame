@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 
 	"github.com/sirupsen/logrus"
@@ -21,11 +22,6 @@ func (payload tcpipRequestPayload) String() string {
 
 func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 	for request := range requests {
-		if err := request.Reply(true, nil); err != nil {
-			log.Println("Failed to accept global request:", err)
-			continue
-		}
-
 		var requestPayload interface{}
 		switch request.Type {
 		case "tcpip-forward":
@@ -44,6 +40,17 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 			}
 
 			requestPayloadString = fmt.Sprint(requestPayload)
+		}
+
+		if request.WantReply {
+			var response []byte
+			if request.Type == "tcpip-forward" && requestPayload.(*tcpipRequestPayload).Port == 0 {
+				response = ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
+			}
+			if err := request.Reply(true, response); err != nil {
+				log.Println("Failed to accept global request:", err)
+				continue
+			}
 		}
 
 		getLogEntry(conn).WithFields(logrus.Fields{
@@ -143,11 +150,6 @@ func (payload exitSignalRequestPayload) String() string {
 
 func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 	for request := range requests {
-		if err := request.Reply(true, nil); err != nil {
-			log.Println("Failed to accept channel request:", err)
-			continue
-		}
-
 		var requestPayload interface{}
 		switch request.Type {
 		case "pty-req":
@@ -183,6 +185,13 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 			}
 
 			requestPayloadString = fmt.Sprint(requestPayload)
+		}
+
+		if request.WantReply {
+			if err := request.Reply(true, nil); err != nil {
+				log.Println("Failed to accept channel request:", err)
+				continue
+			}
 		}
 
 		conn.getLogEntry().WithFields(logrus.Fields{
