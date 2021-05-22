@@ -55,7 +55,16 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 		},
 		NoClientAuth: cfg.NoClientAuth,
 		MaxAuthTries: cfg.MaxAuthTries,
-		// AuthLogCallback: TODO,
+		AuthLogCallback: func(conn ssh.ConnMetadata, method string, err error) {
+			logrus.WithFields(logrus.Fields{
+				"client_version": string(conn.ClientVersion()),
+				"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
+				"user":           conn.User(),
+				"remote_addr":    conn.RemoteAddr().String(),
+				"method":         method,
+				"success":        err == nil,
+			}).Infoln("Client authenticated")
+		},
 		ServerVersion:  cfg.ServerVersion,
 		BannerCallback: func(conn ssh.ConnMetadata) string { return strings.ReplaceAll(cfg.Banner, "\n", "\r\n") },
 	}
