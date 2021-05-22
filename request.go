@@ -11,6 +11,7 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 	for request := range requests {
 		if err := request.Reply(true, nil); err != nil {
 			log.Println("Failed to accept global request:", err)
+			continue
 		}
 
 		getLogEntry(conn).WithFields(logrus.Fields{
@@ -25,6 +26,7 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 	for request := range requests {
 		if err := request.Reply(true, nil); err != nil {
 			log.Println("Failed to accept channel request:", err)
+			continue
 		}
 
 		conn.getLogEntry().WithFields(logrus.Fields{

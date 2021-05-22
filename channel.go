@@ -17,6 +17,7 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		log.Println("Failed to accept new channel:", err)
+		return
 	}
 
 	conn.getLogEntry().WithFields(logrus.Fields{
@@ -28,5 +29,6 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 
 	if _, err := io.Copy(channel, channel); err != nil {
 		log.Println("Failed to read from or write to channel:", err)
+		return
 	}
 }
