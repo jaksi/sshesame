@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -163,21 +162,20 @@ func generateKey(fileName string, keyType hostKeyType) error {
 	return nil
 }
 
-func getConfig() (*config, error) {
+func getConfig(fileName string) (*config, error) {
 	result := &config{
 		ListenAddress: "127.0.0.1:2022",
 	}
 
-	configFileName := flag.String("config", "", "config file")
 	var configBytes []byte
 	var err error
-	if *configFileName == "" {
+	if fileName == "" {
 		configBytes, err = ioutil.ReadFile(path.Join(xdg.ConfigHome, "sshesame.yaml"))
 		if err != nil && !os.IsNotExist(err) {
 			return nil, err
 		}
 	} else {
-		configBytes, err = ioutil.ReadFile(*configFileName)
+		configBytes, err = ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, err
 		}
