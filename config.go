@@ -125,14 +125,15 @@ func generateKey(fileName string, keyType hostKeyType) error {
 			}
 		}
 		var key interface{}
-		if keyType == rsa_key {
+		switch keyType {
+		case rsa_key:
 			key, err = rsa.GenerateKey(rand.Reader, 3072)
-		} else if keyType == ecdsa_key {
+		case ecdsa_key:
 			key, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		} else if keyType == ed25519_key {
+		case ed25519_key:
 			_, key, err = ed25519.GenerateKey(rand.Reader)
-		} else {
-			return errors.New("unsupported key type")
+		default:
+			err = errors.New("unsupported key type")
 		}
 		if err != nil {
 			return err
