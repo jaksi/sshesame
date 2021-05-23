@@ -1,11 +1,12 @@
 package main
 
 import (
-	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"math/rand"
 	"net"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
@@ -70,7 +71,17 @@ type ptyRequestPayload struct {
 }
 
 func (payload ptyRequestPayload) String() string {
-	return fmt.Sprintf("Term: %v, Size: %vx%v (%vx%v px), Modes: %v", payload.Term, payload.Width, payload.Height, payload.PixelWidth, payload.PixelHeight, base64.RawStdEncoding.EncodeToString([]byte(payload.Modes)))
+	terminalModes := []string{}
+	modeBytes := []byte(payload.Modes)
+	for i := 0; i < len(modeBytes); i += 5 {
+		opcode := modeBytes[i]
+		if opcode >= 160 {
+			break
+		}
+		argument := binary.BigEndian.Uint32(modeBytes[i+1 : i+5])
+		terminalModes = append(terminalModes, fmt.Sprintf("%v: %v", opcode, argument))
+	}
+	return fmt.Sprintf("Term: %v, Size: %vx%v (%vx%v px), Modes: %v", payload.Term, payload.Width, payload.Height, payload.PixelWidth, payload.PixelHeight, strings.Join(terminalModes, ", "))
 }
 
 type x11RequestPayload struct {
