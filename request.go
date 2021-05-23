@@ -142,7 +142,7 @@ func (payload ptyRequestPayload) String() string {
 			129: "TTY_OP_OSPEED",
 		}[opcode]
 		if !ok {
-			opcodeString = fmt.Sprint(opcode)
+			opcodeString = fmt.Sprintf("OPCODE_%v", opcode)
 		}
 		terminalModes = append(terminalModes, fmt.Sprintf("%v=%v", opcodeString, argument))
 	}
