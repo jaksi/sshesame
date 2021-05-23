@@ -27,27 +27,21 @@ func (data tcpipChannelData) String() string {
 }
 
 func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
-	channel, requests, err := newChannel.Accept()
-	if err != nil {
-		log.Println("Failed to accept new channel:", err)
-		return
-	}
-	defer channel.Close()
-
 	var channelData interface{}
+	accept := true
 	switch newChannel.ChannelType() {
 	case "session":
 	case "direct-tcpip":
 		channelData = new(tcpipChannelData)
 	default:
 		log.Println("Unsupported channel type", newChannel.ChannelType())
-		return
+		accept = false
 	}
 	channelDataString := ""
 	if channelData != nil {
 		if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
 			log.Println("Failed to parse channel data:", err)
-			return
+			accept = false
 		}
 
 		channelDataString = fmt.Sprint(channelData)
@@ -56,7 +50,22 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 	conn.getLogEntry().WithFields(logrus.Fields{
 		"channel_type":       newChannel.ChannelType(),
 		"clannel_extra_data": channelDataString,
-	}).Infoln("New channel accepted")
+		"accepted":           accept,
+	}).Infoln("New channel requested")
+
+	if !accept {
+		if err := newChannel.Reject(ssh.Prohibited, ""); err != nil {
+			log.Println("Failed to reject new channel:", err)
+		}
+		return
+	}
+
+	channel, requests, err := newChannel.Accept()
+	if err != nil {
+		log.Println("Failed to accept new channel:", err)
+		return
+	}
+	defer channel.Close()
 
 	go handleChannelRequests(requests, conn)
 
