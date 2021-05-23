@@ -187,39 +187,12 @@ func (payload windowChangeRequestPayload) String() string {
 	return fmt.Sprintf("%vx%v (%vx%v px)", payload.Width, payload.Height, payload.PixelWidth, payload.PixelHeight)
 }
 
-type flowControlRequestPayload struct {
-	Enabled bool
-}
-
-func (payload flowControlRequestPayload) String() string {
-	return fmt.Sprintf("Enabled: %v", payload.Enabled)
-}
-
 type signalRequestPayload struct {
 	Signal string
 }
 
 func (payload signalRequestPayload) String() string {
 	return payload.Signal
-}
-
-type exitStatusRequestPayload struct {
-	ExitStatus uint32
-}
-
-func (payload exitStatusRequestPayload) String() string {
-	return fmt.Sprint(payload.ExitStatus)
-}
-
-type exitSignalRequestPayload struct {
-	Signal     string
-	CoreDumped bool
-	Error      string
-	Language   string
-}
-
-func (payload exitSignalRequestPayload) String() string {
-	return fmt.Sprintf("Signal: %v, Core dumped: %v, Error: %v, Language: %v", payload.Signal, payload.CoreDumped, payload.Error, payload.Language)
 }
 
 func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
@@ -240,14 +213,8 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 			requestPayload = new(subsystemRequestPayload)
 		case "window-change":
 			requestPayload = new(windowChangeRequestPayload)
-		case "xon-xoff":
-			requestPayload = new(flowControlRequestPayload)
 		case "signal":
 			requestPayload = new(signalRequestPayload)
-		case "exit-status":
-			requestPayload = new(exitStatusRequestPayload)
-		case "exit-signal":
-			requestPayload = new(exitSignalRequestPayload)
 		default:
 			log.Println("Unsupported channel request type", request.Type)
 			accept = false
