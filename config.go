@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -61,7 +62,7 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 			}).Infoln("Client attempted to authenticate")
 		},
 		ServerVersion:  cfg.ServerVersion,
-		BannerCallback: func(conn ssh.ConnMetadata) string { return strings.ReplaceAll(cfg.Banner, "\n", "\r\n") },
+		BannerCallback: func(conn ssh.ConnMetadata) string { return cfg.Banner },
 	}
 	if cfg.PasswordAuth.Enabled {
 		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
@@ -172,7 +173,7 @@ func getConfig(fileName string) (*config, error) {
 	result := &config{
 		ListenAddress: "127.0.0.1:2022",
 		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
+		Banner:        "This is an SSH honeypot. Everything is logged and monitored.\r\n",
 	}
 	result.PasswordAuth.Enabled = true
 	result.PasswordAuth.Accepted = true
@@ -196,6 +197,10 @@ func getConfig(fileName string) (*config, error) {
 		if err := yaml.UnmarshalStrict(configBytes, result); err != nil {
 			return nil, err
 		}
+		if !strings.HasSuffix(result.Banner, "\n") {
+			result.Banner = fmt.Sprintf("%v\n", result.Banner)
+		}
+		result.Banner = strings.ReplaceAll(result.Banner, "\n", "\r\n")
 	}
 
 	if len(result.HostKeys) == 0 {
