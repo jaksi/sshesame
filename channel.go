@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -45,6 +46,9 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 		}
 
 		channelDataString = fmt.Sprint(channelData)
+	}
+	if channelDataString == "" {
+		channelDataString = base64.RawStdEncoding.EncodeToString(newChannel.ExtraData())
 	}
 
 	conn.getLogEntry().WithFields(logrus.Fields{
