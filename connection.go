@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
@@ -19,6 +20,10 @@ func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig) {
 
 	getLogEntry(serverConn).Infoln("SSH connection established")
 	defer getLogEntry(serverConn).Infoln("SSH connection closed")
+
+	if strings.HasPrefix(string(serverConn.ClientVersion()), "SSH-2.0-OpenSSH") && strings.HasPrefix(string(serverConn.ServerVersion()), "SSH-2.0-OpenSSH") {
+		serverConn.SendRequest("hostkeys-00@openssh.com", false, ssh.Marshal(struct{ hostKeys []string }{}))
+	}
 
 	go handleGlobalRequests(requests, serverConn)
 
