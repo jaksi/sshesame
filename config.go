@@ -58,14 +58,17 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 			getLogEntry(conn).WithFields(logrus.Fields{
 				"method":  method,
 				"success": err == nil,
-			}).Infoln("Client authenticated")
+			}).Infoln("Client attempted to authenticate")
 		},
 		ServerVersion:  cfg.ServerVersion,
 		BannerCallback: func(conn ssh.ConnMetadata) string { return strings.ReplaceAll(cfg.Banner, "\n", "\r\n") },
 	}
 	if cfg.PasswordAuth.Enabled {
 		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-			getLogEntry(conn).WithField("password", string(password)).Infoln("Password authentication accepted")
+			getLogEntry(conn).WithFields(logrus.Fields{
+				"password": string(password),
+				"success":  cfg.PasswordAuth.Accepted,
+			}).Infoln("Password authentication attempted")
 			if !cfg.PasswordAuth.Accepted {
 				return nil, errors.New("")
 			}
@@ -74,7 +77,10 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 	}
 	if cfg.PublicKeyAuth.Enabled {
 		sshServerConfig.PublicKeyCallback = func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			getLogEntry(conn).WithField("public_key_fingerprint", ssh.FingerprintSHA256(key)).Infoln("Public key authentication accepted")
+			getLogEntry(conn).WithFields(logrus.Fields{
+				"public_key_fingerprint": ssh.FingerprintSHA256(key),
+				"success":                cfg.PublicKeyAuth.Accepted,
+			}).Infoln("Public key authentication attempted")
 			if !cfg.PublicKeyAuth.Accepted {
 				return nil, errors.New("")
 			}
@@ -94,7 +100,10 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 				log.Println("Failed to process keyboard interactive authentication:", err)
 				return nil, errors.New("")
 			}
-			getLogEntry(conn).WithField("answers", strings.Join(answers, ", ")).Infoln("Keyboard interactive authentication accepted")
+			getLogEntry(conn).WithFields(logrus.Fields{
+				"answers": strings.Join(answers, ", "),
+				"success": cfg.KeyboardInteractiveAuth.Accepted,
+			}).Infoln("Keyboard interactive authentication attempted")
 			if !cfg.KeyboardInteractiveAuth.Accepted {
 				return nil, errors.New("")
 			}
