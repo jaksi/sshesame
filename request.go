@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"log"
@@ -42,6 +43,9 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 			}
 
 			requestPayloadString = fmt.Sprint(requestPayload)
+		}
+		if requestPayloadString == "" {
+			requestPayloadString = base64.RawStdEncoding.EncodeToString(request.Payload)
 		}
 
 		getLogEntry(conn).WithFields(logrus.Fields{
@@ -227,6 +231,9 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 			}
 
 			requestPayloadString = fmt.Sprint(requestPayload)
+		}
+		if requestPayloadString == "" {
+			requestPayloadString = base64.RawStdEncoding.EncodeToString(request.Payload)
 		}
 
 		conn.getLogEntry().WithFields(logrus.Fields{
