@@ -23,6 +23,7 @@ func (payload tcpipRequestPayload) String() string {
 func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 	for request := range requests {
 		var requestPayload interface{}
+		accept := true
 		switch request.Type {
 		case "tcpip-forward":
 			fallthrough
@@ -30,7 +31,7 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 			requestPayload = new(tcpipRequestPayload)
 		default:
 			log.Println("Unsupported global request type", request.Type)
-			continue
+			accept = false
 		}
 		requestPayloadString := ""
 		if requestPayload != nil {
@@ -47,8 +48,8 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 			if request.Type == "tcpip-forward" && requestPayload.(*tcpipRequestPayload).Port == 0 {
 				response = ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
 			}
-			if err := request.Reply(true, response); err != nil {
-				log.Println("Failed to accept global request:", err)
+			if err := request.Reply(accept, response); err != nil {
+				log.Println("Failed to reply to global request:", err)
 				continue
 			}
 		}
@@ -57,7 +58,8 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 			"request_payload":    requestPayloadString,
 			"request_type":       request.Type,
 			"request_want_reply": request.WantReply,
-		}).Infoln("Global request accepted")
+			"accepted":           accept,
+		}).Infoln("Global request received")
 	}
 }
 
@@ -151,6 +153,7 @@ func (payload exitSignalRequestPayload) String() string {
 func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 	for request := range requests {
 		var requestPayload interface{}
+		accept := true
 		switch request.Type {
 		case "pty-req":
 			requestPayload = new(ptyRequestPayload)
@@ -175,7 +178,7 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 			requestPayload = new(exitSignalRequestPayload)
 		default:
 			log.Println("Unsupported channel request type", request.Type)
-			continue
+			accept = false
 		}
 		requestPayloadString := ""
 		if requestPayload != nil {
@@ -188,8 +191,8 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 		}
 
 		if request.WantReply {
-			if err := request.Reply(true, nil); err != nil {
-				log.Println("Failed to accept channel request:", err)
+			if err := request.Reply(accept, nil); err != nil {
+				log.Println("Failed to reply to channel request:", err)
 				continue
 			}
 		}
@@ -198,6 +201,7 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 			"request_payload":    requestPayloadString,
 			"request_type":       request.Type,
 			"request_want_reply": request.WantReply,
-		}).Infoln("Channel request accepted")
+			"accepted":           accept,
+		}).Infoln("Channel request received")
 	}
 }
