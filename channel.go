@@ -66,6 +66,7 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 		return
 	}
 	defer channel.Close()
+	defer conn.getLogEntry().Infoln("Channel closed")
 
 	go handleChannelRequests(requests, conn)
 
