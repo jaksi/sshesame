@@ -22,20 +22,20 @@ import (
 )
 
 type config struct {
-	ListenAddress                 string
-	RekeyThreshold                uint64
-	KeyExchanges                  []string
-	Ciphers                       []string
-	MACs                          []string
-	HostKeys                      []string
-	NoClientAuth                  bool
-	MaxAuthTries                  int
-	PasswordAuth                  bool
-	PublicKeyAuth                 bool
-	KeyboardInteractiveAuth       bool
-	KeyboardInteractiveAuthConfig struct {
-		Instruction string
-		Questions   []struct {
+	ListenAddress           string
+	RekeyThreshold          uint64
+	KeyExchanges            []string
+	Ciphers                 []string
+	MACs                    []string
+	HostKeys                []string
+	NoClientAuth            bool
+	MaxAuthTries            int
+	PasswordAuth            struct{ Enabled, Accepted bool }
+	PublicKeyAuth           struct{ Enabled, Accepted bool }
+	KeyboardInteractiveAuth struct {
+		Enabled, Accepted bool
+		Instruction       string
+		Questions         []struct {
 			Text string
 			Echo bool
 		}
@@ -63,32 +63,41 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 		ServerVersion:  cfg.ServerVersion,
 		BannerCallback: func(conn ssh.ConnMetadata) string { return strings.ReplaceAll(cfg.Banner, "\n", "\r\n") },
 	}
-	if cfg.PasswordAuth {
+	if cfg.PasswordAuth.Enabled {
 		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
 			getLogEntry(conn).WithField("password", string(password)).Infoln("Password authentication accepted")
+			if !cfg.PasswordAuth.Accepted {
+				return nil, errors.New("")
+			}
 			return nil, nil
 		}
 	}
-	if cfg.PublicKeyAuth {
+	if cfg.PublicKeyAuth.Enabled {
 		sshServerConfig.PublicKeyCallback = func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			getLogEntry(conn).WithField("public_key_fingerprint", ssh.FingerprintSHA256(key)).Infoln("Public key authentication accepted")
+			if !cfg.PublicKeyAuth.Accepted {
+				return nil, errors.New("")
+			}
 			return nil, nil
 		}
 	}
-	if cfg.KeyboardInteractiveAuth {
+	if cfg.KeyboardInteractiveAuth.Enabled {
 		sshServerConfig.KeyboardInteractiveCallback = func(conn ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
 			var questions []string
 			var echos []bool
-			for _, question := range cfg.KeyboardInteractiveAuthConfig.Questions {
+			for _, question := range cfg.KeyboardInteractiveAuth.Questions {
 				questions = append(questions, question.Text)
 				echos = append(echos, question.Echo)
 			}
-			answers, err := client(conn.User(), cfg.KeyboardInteractiveAuthConfig.Instruction, questions, echos)
+			answers, err := client(conn.User(), cfg.KeyboardInteractiveAuth.Instruction, questions, echos)
 			if err != nil {
 				log.Println("Failed to process keyboard interactive authentication:", err)
-				return nil, nil
+				return nil, errors.New("")
 			}
 			getLogEntry(conn).WithField("answers", strings.Join(answers, ", ")).Infoln("Keyboard interactive authentication accepted")
+			if !cfg.KeyboardInteractiveAuth.Accepted {
+				return nil, errors.New("")
+			}
 			return nil, nil
 		}
 	}
@@ -153,10 +162,13 @@ func generateKey(fileName string, keyType hostKeyType) error {
 func getConfig(fileName string) (*config, error) {
 	result := &config{
 		ListenAddress: "127.0.0.1:2022",
-		PasswordAuth:  true,
 		ServerVersion: "SSH-2.0-sshesame",
 		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
 	}
+	result.PasswordAuth.Enabled = true
+	result.PasswordAuth.Accepted = true
+	result.PublicKeyAuth.Enabled = true
+	result.PublicKeyAuth.Accepted = false
 
 	var configBytes []byte
 	var err error

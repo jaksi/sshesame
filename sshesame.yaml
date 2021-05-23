@@ -6,10 +6,15 @@ macs: null  # a sensible default is used
 hostkeys: null  # generate and use RSA, ECDSA, Ed25519 keys
 noclientauth: false
 maxauthtries: 0  # if set to zero, the number of attempts are limited to 6
-passwordauth: true
-publickeyauth: false
-keyboardinteractiveauth: false
-keyboardinteractiveauthconfig:
+passwordauth:
+  enabled: true
+  accepted: true
+publickeyauth:
+  enabled: true
+  accepted: false
+keyboardinteractiveauth:
+  enabled: false
+  accepted: false
   instruction: Answer these weird questions to log in!
   questions:
   - text: "What's your name? "
@@ -17,6 +22,4 @@ keyboardinteractiveauthconfig:
   - text: "What's your deepest secret? "
     echo: false
 serverversion: SSH-2.0-sshesame
-banner: |+
-  This is an SSH honeypot.
-  This connection, including the authentication details is logged and monitored.
+banner: This is an SSH honeypot. Everything is logged and monitored.
