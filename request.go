@@ -79,7 +79,68 @@ func (payload ptyRequestPayload) String() string {
 			break
 		}
 		argument := binary.BigEndian.Uint32(modeBytes[i+1 : i+5])
-		terminalModes = append(terminalModes, fmt.Sprintf("%v: %v", opcode, argument))
+		opcodeString, ok := map[uint8]string{
+			0:   "TTY_OP_END",
+			1:   "VINTR",
+			2:   "VQUIT",
+			3:   "VERASE",
+			4:   "VKILL",
+			5:   "VEOF",
+			6:   "VEOL",
+			7:   "VEOL2",
+			8:   "VSTART",
+			9:   "VSTOP",
+			10:  "VSUSP",
+			11:  "VDSUSP",
+			12:  "VREPRINT",
+			13:  "VWERASE",
+			14:  "VLNEXT",
+			15:  "VFLUSH",
+			16:  "VSWTCH",
+			17:  "VSTATUS",
+			18:  "VDISCARD",
+			30:  "IGNPAR",
+			31:  "PARMRK",
+			32:  "INPCK",
+			33:  "ISTRIP",
+			34:  "INLCR",
+			35:  "IGNCR",
+			36:  "ICRNL",
+			37:  "IUCLC",
+			38:  "IXON",
+			39:  "IXANY",
+			40:  "IXOFF",
+			41:  "IMAXBEL",
+			50:  "ISIG",
+			51:  "ICANON",
+			52:  "XCASE",
+			53:  "ECHO",
+			54:  "ECHOE",
+			55:  "ECHOK",
+			56:  "ECHONL",
+			57:  "NOFLSH",
+			58:  "TOSTOP",
+			59:  "IEXTEN",
+			60:  "ECHOCTL",
+			61:  "ECHOKE",
+			62:  "PENDIN",
+			70:  "OPOST",
+			71:  "OLCUC",
+			72:  "ONLCR",
+			73:  "OCRNL",
+			74:  "ONOCR",
+			75:  "ONLRET",
+			90:  "CS7",
+			91:  "CS8",
+			92:  "PARENB",
+			93:  "PARODD",
+			128: "TTY_OP_ISPEED",
+			129: "TTY_OP_OSPEED",
+		}[opcode]
+		if !ok {
+			opcodeString = fmt.Sprint(opcode)
+		}
+		terminalModes = append(terminalModes, fmt.Sprintf("%v=%v", opcodeString, argument))
 	}
 	return fmt.Sprintf("Term: %v, Size: %vx%v (%vx%v px), Modes: %v", payload.Term, payload.Width, payload.Height, payload.PixelWidth, payload.PixelHeight, strings.Join(terminalModes, ", "))
 }
