@@ -22,7 +22,10 @@ func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig) {
 	defer getLogEntry(serverConn).Infoln("SSH connection closed")
 
 	if strings.HasPrefix(string(serverConn.ClientVersion()), "SSH-2.0-OpenSSH") && strings.HasPrefix(string(serverConn.ServerVersion()), "SSH-2.0-OpenSSH") {
-		serverConn.SendRequest("hostkeys-00@openssh.com", false, ssh.Marshal(struct{ hostKeys []string }{}))
+		if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, ssh.Marshal(struct{ hostKeys []string }{})); err != nil {
+			log.Println("Failed to send hostkeys-00@openssh.com request:", err)
+			return
+		}
 	}
 
 	go handleGlobalRequests(requests, serverConn)
