@@ -153,6 +153,9 @@ func generateKey(fileName string, keyType hostKeyType) error {
 func getConfig(fileName string) (*config, error) {
 	result := &config{
 		ListenAddress: "127.0.0.1:2022",
+		PasswordAuth:  true,
+		ServerVersion: "SSH-2.0-sshesame",
+		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
 	}
 
 	var configBytes []byte
