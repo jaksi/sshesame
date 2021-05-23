@@ -15,15 +15,6 @@ type channelMetadata struct {
 	conn      ssh.ConnMetadata
 }
 
-type x11ChanelData struct {
-	OriginatorAddress string
-	OriginatorPort    uint32
-}
-
-func (data x11ChanelData) String() string {
-	return net.JoinHostPort(data.OriginatorAddress, fmt.Sprint(data.OriginatorPort))
-}
-
 type tcpipChannelData struct {
 	Address           string
 	Port              uint32
@@ -46,10 +37,6 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 	var channelData interface{}
 	switch newChannel.ChannelType() {
 	case "session":
-	case "x11":
-		channelData = new(x11ChanelData)
-	case "forwarded-tcpip":
-		fallthrough
 	case "direct-tcpip":
 		channelData = new(tcpipChannelData)
 	default:
