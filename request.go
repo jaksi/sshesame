@@ -43,6 +43,13 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 			requestPayloadString = fmt.Sprint(requestPayload)
 		}
 
+		getLogEntry(conn).WithFields(logrus.Fields{
+			"request_payload":    requestPayloadString,
+			"request_type":       request.Type,
+			"request_want_reply": request.WantReply,
+			"accepted":           accept,
+		}).Infoln("Global request received")
+
 		if request.WantReply {
 			var response []byte
 			if request.Type == "tcpip-forward" && requestPayload.(*tcpipRequestPayload).Port == 0 {
@@ -53,13 +60,6 @@ func handleGlobalRequests(requests <-chan *ssh.Request, conn ssh.ConnMetadata) {
 				continue
 			}
 		}
-
-		getLogEntry(conn).WithFields(logrus.Fields{
-			"request_payload":    requestPayloadString,
-			"request_type":       request.Type,
-			"request_want_reply": request.WantReply,
-			"accepted":           accept,
-		}).Infoln("Global request received")
 	}
 }
 
@@ -190,18 +190,18 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 			requestPayloadString = fmt.Sprint(requestPayload)
 		}
 
-		if request.WantReply {
-			if err := request.Reply(accept, nil); err != nil {
-				log.Println("Failed to reply to channel request:", err)
-				continue
-			}
-		}
-
 		conn.getLogEntry().WithFields(logrus.Fields{
 			"request_payload":    requestPayloadString,
 			"request_type":       request.Type,
 			"request_want_reply": request.WantReply,
 			"accepted":           accept,
 		}).Infoln("Channel request received")
+
+		if request.WantReply {
+			if err := request.Reply(accept, nil); err != nil {
+				log.Println("Failed to reply to channel request:", err)
+				continue
+			}
+		}
 	}
 }
