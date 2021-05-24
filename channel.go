@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"net"
 
@@ -70,12 +70,17 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 		return
 	}
 	defer channel.Close()
-	defer conn.getLogEntry().Infoln("Channel closed")
+	channelInput := ""
+	defer func(channelInput *string) {
+		conn.getLogEntry().WithField("channel_input", *channelInput).Infoln("Channel closed")
+	}(&channelInput)
 
 	go handleChannelRequests(requests, conn)
 
-	if _, err := io.Copy(channel, channel); err != nil {
-		log.Println("Failed to read from or write to channel:", err)
+	channelInputBytes, err := ioutil.ReadAll(channel)
+	channelInput = string(channelInputBytes)
+	if err != nil {
+		log.Println("Failed to read from channel:", err)
 		return
 	}
 }
