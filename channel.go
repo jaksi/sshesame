@@ -53,7 +53,7 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 
 	conn.getLogEntry().WithFields(logrus.Fields{
 		"channel_type":       newChannel.ChannelType(),
-		"clannel_extra_data": channelDataString,
+		"channel_extra_data": channelDataString,
 		"accepted":           accept,
 	}).Infoln("New channel requested")
 
