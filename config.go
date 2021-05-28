@@ -24,6 +24,7 @@ import (
 
 type config struct {
 	ListenAddress           string
+	LogFile                 string
 	RekeyThreshold          uint64
 	KeyExchanges            []string
 	Ciphers                 []string

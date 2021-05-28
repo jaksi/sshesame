@@ -27,7 +27,16 @@ func main() {
 	}
 	defer listener.Close()
 
-	logrus.SetOutput(os.Stdout)
+	if cfg.LogFile != "" {
+		logFile, err := os.OpenFile(cfg.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalln("Failed to open log file:", err)
+		}
+		defer logFile.Close()
+		logrus.SetOutput(logFile)
+	} else {
+		logrus.SetOutput(os.Stdout)
+	}
 	if *jsonLogging {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
