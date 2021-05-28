@@ -4,7 +4,7 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 `sshesame` accepts and logs SSH connections and activity (channels, requests), without doing anything on the host (e.g. executing commands, making network requests).
 
-[![asciicast](https://asciinema.org/a/Pjpgtj1VbTqYAb6NXdLT5ZcSI.svg)](https://asciinema.org/a/Pjpgtj1VbTqYAb6NXdLT5ZcSI)
+[![asciicast](https://asciinema.org/a/Rb0MFuB4ifodScIiirxOtOxOu.svg)](https://asciinema.org/a/Rb0MFuB4ifodScIiirxOtOxOu)
 
 ## Installation
 
