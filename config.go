@@ -184,12 +184,7 @@ func getConfig(fileName string) (*config, error) {
 
 	var configBytes []byte
 	var err error
-	if fileName == "" {
-		configBytes, err = ioutil.ReadFile(path.Join(xdg.ConfigHome, "sshesame.yaml"))
-		if err != nil && !os.IsNotExist(err) {
-			return nil, err
-		}
-	} else {
+	if fileName != "" {
 		configBytes, err = ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, err
