@@ -194,7 +194,7 @@ func getConfig(fileName string) (*config, error) {
 		if err := yaml.UnmarshalStrict(configBytes, result); err != nil {
 			return nil, err
 		}
-		if !strings.HasSuffix(result.Banner, "\n") {
+		if result.Banner != "" && !strings.HasSuffix(result.Banner, "\n") {
 			result.Banner = fmt.Sprintf("%v\n", result.Banner)
 		}
 		result.Banner = strings.ReplaceAll(result.Banner, "\n", "\r\n")
