@@ -25,6 +25,7 @@ import (
 type config struct {
 	ListenAddress           string
 	LogFile                 string
+	JSONLogging             bool
 	RekeyThreshold          uint64
 	KeyExchanges            []string
 	Ciphers                 []string

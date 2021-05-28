@@ -11,7 +11,6 @@ import (
 
 func main() {
 	configFileName := flag.String("config", "", "config file")
-	jsonLogging := flag.Bool("json_logging", false, "enable JSON logging")
 	flag.Parse()
 
 	cfg, err := getConfig(*configFileName)
@@ -37,7 +36,7 @@ func main() {
 	} else {
 		logrus.SetOutput(os.Stdout)
 	}
-	if *jsonLogging {
+	if cfg.JSONLogging {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
 
