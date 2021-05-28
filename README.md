@@ -26,6 +26,7 @@ A configuration file can optionally be passed using the `-config` flag.
 Without using one, sane defaults will be used and RSA, ECDSA and Ed25519 host keys will be generated and stored.
 
 A [sample configuration file](sshesame.yaml) with explanations for the configuration options is included.
+A [minimal configuration file](openssh.yaml) which tries to mimic OpenSSH  is also included.
 
 Logs are human readable by default. JSON logging can optionally be enabled using the `-json_logging` flag.
 
