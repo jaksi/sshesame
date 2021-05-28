@@ -17,7 +17,7 @@ go get github.com/jaksi/sshesame
 ## Usage
 
 ```
-sshesame [-config sshesame.yaml] [-json_logging]
+sshesame [-config sshesame.yaml]
 ```
 
 ### Configuration
@@ -26,10 +26,9 @@ A configuration file can optionally be passed using the `-config` flag.
 Without using one, sane defaults will be used and RSA, ECDSA and Ed25519 host keys will be generated and stored.
 
 A [sample configuration file](sshesame.yaml) with explanations for the configuration options is included.
+A [minimal configuration file](openssh.yaml) which tries to mimic an OpenSSH server is also included.
 
-Logs are human readable by default. JSON logging can optionally be enabled using the `-json_logging` flag.
-
-Debug and error logs are written to standard error. Session (activity) logs are written to standard out.
+Debug and error logs are written to standard error. Session (activity) logs by default are written to standard out, unless the `logfile` config option is set.
 
 ## Annotated sample output
 

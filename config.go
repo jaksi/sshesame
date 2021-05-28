@@ -24,6 +24,8 @@ import (
 
 type config struct {
 	ListenAddress           string
+	LogFile                 string
+	JSONLogging             bool
 	RekeyThreshold          uint64
 	KeyExchanges            []string
 	Ciphers                 []string
@@ -61,8 +63,7 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 				"success": err == nil,
 			}).Infoln("Client attempted to authenticate")
 		},
-		ServerVersion:  cfg.ServerVersion,
-		BannerCallback: func(conn ssh.ConnMetadata) string { return cfg.Banner },
+		ServerVersion: cfg.ServerVersion,
 	}
 	if cfg.PasswordAuth.Enabled {
 		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
@@ -110,6 +111,9 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 			}
 			return nil, nil
 		}
+	}
+	if cfg.Banner != "" {
+		sshServerConfig.BannerCallback = func(conn ssh.ConnMetadata) string { return cfg.Banner }
 	}
 	for _, hostKeyFileName := range cfg.HostKeys {
 		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
@@ -182,26 +186,19 @@ func getConfig(fileName string) (*config, error) {
 
 	var configBytes []byte
 	var err error
-	if fileName == "" {
-		configBytes, err = ioutil.ReadFile(path.Join(xdg.ConfigHome, "sshesame.yaml"))
-		if err != nil && !os.IsNotExist(err) {
-			return nil, err
-		}
-	} else {
+	if fileName != "" {
 		configBytes, err = ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if configBytes != nil {
-		if err := yaml.UnmarshalStrict(configBytes, result); err != nil {
-			return nil, err
-		}
-		if !strings.HasSuffix(result.Banner, "\n") {
-			result.Banner = fmt.Sprintf("%v\n", result.Banner)
-		}
-		result.Banner = strings.ReplaceAll(result.Banner, "\n", "\r\n")
+	if err := yaml.UnmarshalStrict(configBytes, result); err != nil {
+		return nil, err
 	}
+	if result.Banner != "" && !strings.HasSuffix(result.Banner, "\n") {
+		result.Banner = fmt.Sprintf("%v\n", result.Banner)
+	}
+	result.Banner = strings.ReplaceAll(result.Banner, "\n", "\r\n")
 
 	if len(result.HostKeys) == 0 {
 		dataDir := path.Join(xdg.DataHome, "sshesame")

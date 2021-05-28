@@ -11,7 +11,6 @@ import (
 
 func main() {
 	configFileName := flag.String("config", "", "config file")
-	jsonLogging := flag.Bool("json_logging", false, "enable JSON logging")
 	flag.Parse()
 
 	cfg, err := getConfig(*configFileName)
@@ -27,8 +26,19 @@ func main() {
 	}
 	defer listener.Close()
 
-	logrus.SetOutput(os.Stdout)
-	if *jsonLogging {
+	log.Println("Listening on", listener.Addr())
+
+	if cfg.LogFile != "" {
+		logFile, err := os.OpenFile(cfg.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalln("Failed to open log file:", err)
+		}
+		defer logFile.Close()
+		logrus.SetOutput(logFile)
+	} else {
+		logrus.SetOutput(os.Stdout)
+	}
+	if cfg.JSONLogging {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
 
