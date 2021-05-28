@@ -1,25 +1,25 @@
 listenaddress: 127.0.0.1:2022
-rekeythreshold: 0  # a size suitable for the chosen cipher is used
-keyexchanges: null  # a default set of algorithms is used
-ciphers: null  # a sensible default is used
-macs: null  # a sensible default is used
-hostkeys: null  # generate and use RSA, ECDSA, Ed25519 keys
-noclientauth: false
-maxauthtries: 0  # if set to zero, the number of attempts are limited to 6
+rekeythreshold: 0  # The maximum number of bytes sent or received after which a new key is negotiated. It must be at least 256. If unspecified, a size suitable for the chosen cipher is used.
+keyexchanges: null  # The allowed key exchanges algorithms. If unspecified then a default set of algorithms is used.
+ciphers: null  # The allowed cipher algorithms. If unspecified then a sensible default is used.
+macs: null  # The allowed MAC algorithms. If unspecified then a sensible default is used.
+hostkeys: null  # Host private key files. If unspecified then an RSA, ECDSA and Ed25519 key will be generated and stored.
+noclientauth: false  # Allow clients to connect without authenticating.
+maxauthtries: 0  # The maximum number of authentication attempts permitted per connection. If set to a negative number, the number of attempts are unlimited. If set to zero, the number of attempts are limited to 6.
 passwordauth:
-  enabled: true
-  accepted: true
+  enabled: true  # Offer password authentication as an authentication option.
+  accepted: true  # Accept all passwords.
 publickeyauth:
-  enabled: true
-  accepted: false
+  enabled: true  # Offer public key authentication as an authentication option.
+  accepted: false  # Accept all public keys.
 keyboardinteractiveauth:
-  enabled: false
-  accepted: false
-  instruction: Answer these weird questions to log in!
+  enabled: false  # Offer keyboard interactive authentication as an authentication option.
+  accepted: false  # Accept all keyboard interactive answers.
+  instruction: Answer these weird questions to log in!  # Instruction for the keyboard interactive authentication.
   questions:
-  - text: "What's your name? "
-    echo: true
+  - text: "What's your name? "  # Keyboard interactive authentication question text.
+    echo: true  # Enable echoing the answer.
   - text: "What's your deepest secret? "
     echo: false
-serverversion: SSH-2.0-sshesame
-banner: This is an SSH honeypot. Everything is logged and monitored.
+serverversion: SSH-2.0-sshesame  # The version identification string to announce in the public handshake. If empty, a reasonable default is used. Note that RFC 4253 section 4.2 requires that this string start with "SSH-2.0-".
+banner: This is an SSH honeypot. Everything is logged and monitored.  # Sent to the client after key exchange completed but before authentication.
