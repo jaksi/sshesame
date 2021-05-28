@@ -26,6 +26,8 @@ func main() {
 	}
 	defer listener.Close()
 
+	log.Println("Listening on", listener.Addr())
+
 	if cfg.LogFile != "" {
 		logFile, err := os.OpenFile(cfg.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
