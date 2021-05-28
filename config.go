@@ -63,8 +63,7 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 				"success": err == nil,
 			}).Infoln("Client attempted to authenticate")
 		},
-		ServerVersion:  cfg.ServerVersion,
-		BannerCallback: func(conn ssh.ConnMetadata) string { return cfg.Banner },
+		ServerVersion: cfg.ServerVersion,
 	}
 	if cfg.PasswordAuth.Enabled {
 		sshServerConfig.PasswordCallback = func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
@@ -112,6 +111,9 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 			}
 			return nil, nil
 		}
+	}
+	if cfg.Banner != "" {
+		sshServerConfig.BannerCallback = func(conn ssh.ConnMetadata) string { return cfg.Banner }
 	}
 	for _, hostKeyFileName := range cfg.HostKeys {
 		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)

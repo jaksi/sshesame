@@ -24,4 +24,4 @@ keyboardinteractiveauth:
   - text: "What's your deepest secret? "
     echo: false
 serverversion: SSH-2.0-sshesame  # The version identification string to announce in the public handshake. If empty, a reasonable default is used. Note that RFC 4253 section 4.2 requires that this string start with "SSH-2.0-".
-banner: This is an SSH honeypot. Everything is logged and monitored.  # Sent to the client after key exchange completed but before authentication.
+banner: This is an SSH honeypot. Everything is logged and monitored.  # Sent to the client after key exchange completed but before authentication. If empty, no banner is sent.
