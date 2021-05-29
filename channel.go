@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 
@@ -77,8 +76,15 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 
 	go handleChannelRequests(requests, conn)
 
-	channelInputBytes, err := ioutil.ReadAll(channel)
-	channelInput = string(channelInputBytes)
+	switch newChannel.ChannelType() {
+	case "direct-tcpip":
+		channelInput, err = handleDirectTCPIPChannel(channel, channelData.(tcpipChannelData).Port)
+	case "session":
+		channelInput, err = handleSessionChannel(channel)
+	default:
+		log.Println("Unsupported channel type", newChannel.ChannelType())
+		return
+	}
 	if err != nil {
 		log.Println("Failed to read from channel:", err)
 		return
