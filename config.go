@@ -16,7 +16,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/adrg/xdg"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
@@ -47,7 +46,7 @@ type config struct {
 	Banner        string
 }
 
-func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
+func (cfg config) createSSHServerConfig() (*ssh.ServerConfig, error) {
 	sshServerConfig := &ssh.ServerConfig{
 		Config: ssh.Config{
 			RekeyThreshold: cfg.RekeyThreshold,
@@ -118,15 +117,36 @@ func (cfg config) createSSHServerConfig() *ssh.ServerConfig {
 	for _, hostKeyFileName := range cfg.HostKeys {
 		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
 		if err != nil {
-			log.Fatalln("Failed to read host key", hostKeyFileName, ":", err)
+			return nil, err
 		}
 		signer, err := ssh.ParsePrivateKey(hostKeyBytes)
 		if err != nil {
-			log.Fatalln("Failed to parse host key", hostKeyFileName, ":", err)
+			return nil, err
 		}
 		sshServerConfig.AddHostKey(signer)
 	}
-	return sshServerConfig
+	return sshServerConfig, nil
+}
+
+func (cfg config) setupLogging() (*os.File, error) {
+	var result *os.File
+	if cfg.LogFile != "" {
+		logFile, err := os.OpenFile(cfg.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, err
+		}
+		defer logFile.Close()
+		logrus.SetOutput(logFile)
+		result = logFile
+	} else {
+		logrus.SetOutput(os.Stdout)
+	}
+	if cfg.JSONLogging {
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	} else {
+		logrus.SetFormatter(&logrus.TextFormatter{})
+	}
+	return result, nil
 }
 
 type hostKeyType int
@@ -173,11 +193,11 @@ func generateKey(fileName string, keyType hostKeyType) error {
 	return nil
 }
 
-func getConfig(fileName string) (*config, error) {
+func getConfig(fileName string, dataDir string) (*config, error) {
 	result := &config{
 		ListenAddress: "127.0.0.1:2022",
 		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "This is an SSH honeypot. Everything is logged and monitored.\r\n",
+		Banner:        "This is an SSH honeypot. Everything is logged and monitored.\n",
 	}
 	result.PasswordAuth.Enabled = true
 	result.PasswordAuth.Accepted = true
@@ -201,7 +221,6 @@ func getConfig(fileName string) (*config, error) {
 	result.Banner = strings.ReplaceAll(result.Banner, "\n", "\r\n")
 
 	if len(result.HostKeys) == 0 {
-		dataDir := path.Join(xdg.DataHome, "sshesame")
 		log.Println("No host keys configured, using keys at", dataDir)
 
 		for _, key := range []struct {
@@ -216,7 +235,7 @@ func getConfig(fileName string) (*config, error) {
 			if err := generateKey(keyFileName, key.keyType); err != nil {
 				return nil, err
 			}
-			result.HostKeys = []string{keyFileName}
+			result.HostKeys = append(result.HostKeys, keyFileName)
 		}
 	}
 

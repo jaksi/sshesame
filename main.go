@@ -4,8 +4,9 @@ import (
 	"flag"
 	"log"
 	"net"
-	"os"
+	"path"
 
+	"github.com/adrg/xdg"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,12 +14,15 @@ func main() {
 	configFileName := flag.String("config", "", "config file")
 	flag.Parse()
 
-	cfg, err := getConfig(*configFileName)
+	cfg, err := getConfig(*configFileName, path.Join(xdg.DataHome, "sshesame"))
 	if err != nil {
 		log.Fatalln("Failed to get config:", err)
 	}
 
-	sshServerConfig := cfg.createSSHServerConfig()
+	sshServerConfig, err := cfg.createSSHServerConfig()
+	if err != nil {
+		log.Fatalln("Failed to create SSH server config:", err)
+	}
 
 	listener, err := net.Listen("tcp", cfg.ListenAddress)
 	if err != nil {
@@ -28,18 +32,12 @@ func main() {
 
 	log.Println("Listening on", listener.Addr())
 
-	if cfg.LogFile != "" {
-		logFile, err := os.OpenFile(cfg.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Fatalln("Failed to open log file:", err)
-		}
-		defer logFile.Close()
-		logrus.SetOutput(logFile)
-	} else {
-		logrus.SetOutput(os.Stdout)
+	logFile, err := cfg.setupLogging()
+	if err != nil {
+		log.Fatalln("Failed to setup logging:", err)
 	}
-	if cfg.JSONLogging {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
+	if logFile != nil {
+		defer logFile.Close()
 	}
 
 	for {
