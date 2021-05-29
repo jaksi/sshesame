@@ -14,6 +14,7 @@ func handleDirectTCPIPChannel(channel ssh.Channel, port uint32) (string, error) 
 	switch port {
 	case 80:
 		return handleHTTPChannel(channel)
+		return "", nil
 	default:
 		return "", fmt.Errorf("unsupported port %v", port)
 	}
