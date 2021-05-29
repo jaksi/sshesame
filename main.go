@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net"
 	"os"
@@ -10,10 +9,7 @@ import (
 )
 
 func main() {
-	configFileName := flag.String("config", "", "config file")
-	flag.Parse()
-
-	cfg, err := getConfig(*configFileName)
+	cfg, err := getConfig()
 	if err != nil {
 		log.Fatalln("Failed to get config:", err)
 	}

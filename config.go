@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -173,7 +174,10 @@ func generateKey(fileName string, keyType hostKeyType) error {
 	return nil
 }
 
-func getConfig(fileName string) (*config, error) {
+func getConfig() (*config, error) {
+	fileName := flag.String("config", "", "config file")
+	flag.Parse()
+
 	result := &config{
 		ListenAddress: "127.0.0.1:2022",
 		ServerVersion: "SSH-2.0-sshesame",
@@ -186,8 +190,8 @@ func getConfig(fileName string) (*config, error) {
 
 	var configBytes []byte
 	var err error
-	if fileName != "" {
-		configBytes, err = ioutil.ReadFile(fileName)
+	if *fileName != "" {
+		configBytes, err = ioutil.ReadFile(*fileName)
 		if err != nil {
 			return nil, err
 		}
