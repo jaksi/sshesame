@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"github.com/adrg/xdg"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -46,7 +45,6 @@ func main() {
 			log.Println("Failed to accept connection:", err)
 			continue
 		}
-		logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
 		go handleConnection(conn, sshServerConfig)
 	}
 }

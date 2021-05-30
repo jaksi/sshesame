@@ -269,7 +269,9 @@ func TestUserConfigWithKeys(t *testing.T) {
 	configFileName := path.Join(t.TempDir(), "no_keys.yaml")
 	ioutil.WriteFile(configFileName, []byte(`
 hostkeys: [/some/key, /some/other/key]
-banner: Yo!`), 0644)
+banner: |-
+  Hey
+  Yo!`), 0644)
 	dataDir := t.TempDir()
 	cfg, err := getConfig(configFileName, dataDir)
 	if err != nil {
@@ -279,7 +281,7 @@ banner: Yo!`), 0644)
 		ListenAddress: "127.0.0.1:2022",
 		HostKeys:      []string{"/some/key", "/some/other/key"},
 		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "Yo!\r\n",
+		Banner:        "Hey\r\nYo!\r\n",
 	}
 	expectedConfig.PasswordAuth.Enabled = true
 	expectedConfig.PasswordAuth.Accepted = true
@@ -313,5 +315,41 @@ banner: Yo!`), 0644)
 	}
 	if _, ok := logrus.StandardLogger().Formatter.(*logrus.TextFormatter); !ok {
 		t.Fatalf("Type of logrus.StandardLogger().Formatter = %T, want *logrus.TextFormatter", logrus.StandardLogger().Formatter)
+	}
+}
+
+func TestNewLogFile(t *testing.T) {
+	logFileName := path.Join(t.TempDir(), "new.log")
+	if _, err := os.Stat(logFileName); err == nil {
+		t.Fatalf("os.Stat(logFile) = %v, want an error", err)
+	}
+	cfg := config{LogFile: logFileName}
+	logFile, err := cfg.setupLogging()
+	if err != nil {
+		t.Fatalf("Failed to setup logging: %v", err)
+	}
+	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
+	logrus.Infoln("test")
+	logFile.Close()
+	logs, err := ioutil.ReadFile(logFileName)
+	if err != nil || string(logs) != "level=info msg=test\n" {
+		t.Fatalf("ioutil.ReadFile(logFileName) = %v, %v, want \"level=info msg=test\n\", nil", string(logs), err)
+	}
+}
+
+func TestExistingLogFile(t *testing.T) {
+	logFileName := path.Join(t.TempDir(), "existing.log")
+	ioutil.WriteFile(logFileName, []byte("previous_test\n"), 0644)
+	cfg := config{LogFile: logFileName}
+	logFile, err := cfg.setupLogging()
+	if err != nil {
+		t.Fatalf("Failed to setup logging: %v", err)
+	}
+	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
+	logrus.Infoln("test")
+	logFile.Close()
+	logs, err := ioutil.ReadFile(logFileName)
+	if err != nil || string(logs) != "previous_test\nlevel=info msg=test\n" {
+		t.Fatalf("ioutil.ReadFile(logFileName) = %v, %v, want \"level=info msg=test\n\", nil", string(logs), err)
 	}
 }

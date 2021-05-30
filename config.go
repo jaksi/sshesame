@@ -135,7 +135,6 @@ func (cfg config) setupLogging() (*os.File, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer logFile.Close()
 		logrus.SetOutput(logFile)
 		result = logFile
 	} else {
