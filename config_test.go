@@ -119,7 +119,7 @@ func TestDefaultConfig(t *testing.T) {
 func TestUserConfigNoKeys(t *testing.T) {
 	configFileName := path.Join(t.TempDir(), "no_keys.yaml")
 	logFileName := path.Join(t.TempDir(), "sshesame.log")
-	ioutil.WriteFile(configFileName, []byte(fmt.Sprintf(`
+	if err := ioutil.WriteFile(configFileName, []byte(fmt.Sprintf(`
 listenaddress: 0.0.0.0:22
 jsonlogging: true
 logfile: %v
@@ -145,7 +145,9 @@ keyboardinteractiveauth:
   - text: q1
     echo: true
   - text: q2
-    echo: false`, logFileName)), 0644)
+    echo: false`, logFileName)), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
 	dataDir := path.Join(t.TempDir(), "subdir")
 	cfg, err := getConfig(configFileName, dataDir)
 	if err != nil {
@@ -267,11 +269,13 @@ keyboardinteractiveauth:
 
 func TestUserConfigWithKeys(t *testing.T) {
 	configFileName := path.Join(t.TempDir(), "no_keys.yaml")
-	ioutil.WriteFile(configFileName, []byte(`
+	if err := ioutil.WriteFile(configFileName, []byte(`
 hostkeys: [/some/key, /some/other/key]
 banner: |-
   Hey
-  Yo!`), 0644)
+  Yo!`), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
 	dataDir := t.TempDir()
 	cfg, err := getConfig(configFileName, dataDir)
 	if err != nil {
@@ -339,7 +343,9 @@ func TestNewLogFile(t *testing.T) {
 
 func TestExistingLogFile(t *testing.T) {
 	logFileName := path.Join(t.TempDir(), "existing.log")
-	ioutil.WriteFile(logFileName, []byte("previous_test\n"), 0644)
+	if err := ioutil.WriteFile(logFileName, []byte("previous_test\n"), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
 	cfg := config{LogFile: logFileName}
 	logFile, err := cfg.setupLogging()
 	if err != nil {
