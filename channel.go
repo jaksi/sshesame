@@ -78,7 +78,7 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 
 	switch newChannel.ChannelType() {
 	case "direct-tcpip":
-		channelInput, err = handleDirectTCPIPChannel(channel, channelData.(tcpipChannelData).Port)
+		channelInput, err = handleDirectTCPIPChannel(channel, channelData.(*tcpipChannelData).Port)
 	case "session":
 		channelInput, err = handleSessionChannel(channel)
 	default:
