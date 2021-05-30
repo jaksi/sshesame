@@ -10,6 +10,7 @@ import (
 )
 
 func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig) {
+	logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
 	defer conn.Close()
 	defer logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection closed")
 	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, sshServerConfig)
