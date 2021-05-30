@@ -69,18 +69,23 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 		return
 	}
 	defer channel.Close()
-	channelInput := ""
-	defer func(channelInput *string) {
-		conn.getLogEntry().WithField("channel_input", *channelInput).Infoln("Channel closed")
-	}(&channelInput)
+	defer conn.getLogEntry().Infoln("Channel closed")
 
 	go handleChannelRequests(requests, conn)
 
+	channelInput := make(chan string)
+
+	go func() {
+		for input := range channelInput {
+			conn.getLogEntry().WithField("input", input).Infoln("Channel input received")
+		}
+	}()
+
 	switch newChannel.ChannelType() {
 	case "direct-tcpip":
-		channelInput, err = handleDirectTCPIPChannel(channel, channelData.(*tcpipChannelData).Port)
+		err = handleDirectTCPIPChannel(channel, channelData.(*tcpipChannelData).Port, channelInput)
 	case "session":
-		channelInput, err = handleSessionChannel(channel)
+		err = handleSessionChannel(channel, channelInput)
 	default:
 		log.Println("Unsupported channel type", newChannel.ChannelType())
 		return
