@@ -35,7 +35,7 @@ Debug and error logs are written to standard error. Session (activity) logs by d
 ### TCP connection
 
 ```
-msg="Connection accepted" remote_address=[...]
+INFO[0002] Connection accepted                           remote_address=[...]
 ```
 
 ### Authentication
@@ -43,44 +43,44 @@ msg="Connection accepted" remote_address=[...]
 #### None (no password or public key), denied
 
 ```
-msg="Client attempted to authenticate" client_version=[...] method=none remote_addr=[...] session_id=[...] success=false user=jaksi
+INFO[0002] Client attempted to authenticate              client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" method=none remote_addr=[...] session_id=[...] success=false user=jaksi
 ```
 
 #### Public key, denied
 
 ```
-msg="Public key authentication attempted" client_version=[...] public_key_fingerprint=[...] remote_addr=[...] session_id=[...] success=false user=jaksi
-msg="Client attempted to authenticate" client_version=[...] method=publickey remote_addr=[...] session_id=[...] success=false user=jaksi
+INFO[0002] Public key authentication attempted           client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" public_key_fingerprint=[...] remote_addr=[...] session_id=[...] success=false user=jaksi
+INFO[0002] Client attempted to authenticate              client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" method=publickey remote_addr=[...] session_id=[...] success=false user=jaksi
 ```
 
 #### Password, accepted
 
 ```
-msg="Password authentication attempted" client_version=[...] password=hunter2 remote_addr=[...] session_id=[...] success=true user=jaksi
-msg="Client attempted to authenticate" client_version=[...] method=password remote_addr=[...] session_id=[...] success=true user=jaksi
-msg="SSH connection established" client_version=[...] remote_addr=[...] session_id=[...] user=jaksi
+INFO[0005] Password authentication attempted             client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" password=hunter2 remote_addr=[...] session_id=[...] success=true user=jaksi
+INFO[0005] Client attempted to authenticate              client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" method=password remote_addr=[...] session_id=[...] success=true user=jaksi
+INFO[0005] SSH connection established                    client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] session_id=[...] user=jaksi
 ```
 
 #### Session channel for a shell
 
 ```
-msg="New channel requested" accepted=true channel_extra_data= channel_id=0 channel_type=session client_version=[...] remote_addr=[...] session_id=[...] user=jaksi
-msg="Channel request received" accepted=true channel_id=0 client_version=[...] remote_addr=[...] request_payload="Term: xterm-256color, Size: 423x79 (0x0 px), Modes: [...] request_type=pty-req request_want_reply=true session_id=[...] user=jaksi
-msg="Channel request received" accepted=true channel_id=0 client_version=[...] remote_addr=[...] request_payload="LANG=C.UTF-8" request_type=env request_want_reply=false session_id=[...] user=jaksi
-msg="Channel request received" accepted=true channel_id=0 client_version=[...] remote_addr=[...] request_payload= request_type=shell request_want_reply=true session_id=[...] user=jaksi
-msg="Channel closed" channel_id=0 channel_input="cat /etc/passwd\r" client_version=[...] remote_addr=[...] session_id=[...] user=jaksi
+INFO[0005] New channel requested                         accepted=true channel_extra_data= channel_id=0 channel_type=session client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] session_id=[...] user=jaksi
+INFO[0005] Channel request received                      accepted=true channel_id=0 client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] request_payload="Term: xterm-256color, Size: 120x30 (0x0 px), Modes: [...]" request_type=pty-req request_want_reply=true session_id=[...] user=jaksi
+INFO[0005] Channel request received                      accepted=true channel_id=0 client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] request_payload="LANG=C.UTF-8" request_type=env request_want_reply=false session_id=[...] user=jaksi
+INFO[0005] Channel request received                      accepted=true channel_id=0 client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] request_payload= request_type=shell request_want_reply=true session_id=[...] user=jaksi
+INFO[0015] Channel closed                                channel_id=0 channel_input="cat /etc/passwd\r" client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] session_id=[...] user=jaksi
 ```
 
 #### TCP/IP channel  (`ssh [...] -L 8080:github.com:80`)
 
 ```
-msg="New channel requested" accepted=true channel_extra_data="127.0.0.1:57958 -> github.com:80" channel_id=1 channel_type=direct-tcpip client_version=[...] remote_addr=[...] session_id=[...] user=jaksi
-msg="Channel closed" channel_id=1 channel_input="GET /jaksi/sshesame HTTP/1.1\r\nHost: github.com\r\nUser-Agent: curl/7.68.0\r\nAccept: */*\r\n\r\n" client_version=[...] remote_addr=[...] session_id=[...] user=jaksi
+INFO[0013] New channel requested                         accepted=true channel_extra_data="127.0.0.1:53288 -> github.com:80" channel_id=1 channel_type=direct-tcpip client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] session_id=[...] user=jaksi
+INFO[0013] Channel closed                                channel_id=1 channel_input="GET / HTTP/1.1\r\nHost: github.com\r\nAccept: */*\r\nUser-Agent: curl/7.68.0\r\n\r\n" client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] session_id=[...] user=jaksi
 ```
 
 #### Connection closed
 
 ```
-msg="SSH connection closed" client_version=[...] remote_addr=[...] session_id=[...] user=jaksi
-msg="Connection closed" remote_address=[...]
+INFO[0015] SSH connection closed                         client_version="SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2" remote_addr=[...] session_id=[...] user=jaksi
+INFO[0015] Connection closed                             remote_address=[...]
 ```
