@@ -74,6 +74,7 @@ func handleNewChannel(newChannel ssh.NewChannel, conn channelMetadata) {
 	go handleChannelRequests(requests, conn)
 
 	channelInput := make(chan string)
+	defer close(channelInput)
 
 	go func() {
 		for input := range channelInput {

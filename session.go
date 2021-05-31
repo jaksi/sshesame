@@ -6,7 +6,6 @@ import (
 )
 
 func handleSessionChannel(channel ssh.Channel, channelInput chan<- string) error {
-	defer close(channelInput)
 	terminal := term.NewTerminal(channel, "$ ")
 	for {
 		line, err := terminal.ReadLine()

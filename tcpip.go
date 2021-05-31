@@ -11,7 +11,6 @@ import (
 )
 
 func handleDirectTCPIPChannel(channel ssh.Channel, port uint32, channelInput chan<- string) error {
-	defer close(channelInput)
 	switch port {
 	case 80:
 		return handleHTTPChannel(channel, channelInput)
