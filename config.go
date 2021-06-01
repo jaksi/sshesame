@@ -44,9 +44,27 @@ type config struct {
 	}
 	ServerVersion string
 	Banner        string
+
+	hostKeys []ssh.Signer
 }
 
-func (cfg config) createSSHServerConfig() (*ssh.ServerConfig, error) {
+func (cfg config) parseHostKeys() ([]ssh.Signer, error) {
+	result := make([]ssh.Signer, 0)
+	for _, hostKeyFileName := range cfg.HostKeys {
+		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
+		if err != nil {
+			return nil, err
+		}
+		signer, err := ssh.ParsePrivateKey(hostKeyBytes)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, signer)
+	}
+	return result, nil
+}
+
+func (cfg *config) createSSHServerConfig() (*ssh.ServerConfig, error) {
 	sshServerConfig := &ssh.ServerConfig{
 		Config: ssh.Config{
 			RekeyThreshold: cfg.RekeyThreshold,
@@ -114,16 +132,13 @@ func (cfg config) createSSHServerConfig() (*ssh.ServerConfig, error) {
 	if cfg.Banner != "" {
 		sshServerConfig.BannerCallback = func(conn ssh.ConnMetadata) string { return cfg.Banner }
 	}
-	for _, hostKeyFileName := range cfg.HostKeys {
-		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
-		if err != nil {
-			return nil, err
-		}
-		signer, err := ssh.ParsePrivateKey(hostKeyBytes)
-		if err != nil {
-			return nil, err
-		}
-		sshServerConfig.AddHostKey(signer)
+	hostKeys, err := cfg.parseHostKeys()
+	if err != nil {
+		return nil, err
+	}
+	cfg.hostKeys = hostKeys
+	for _, hostKey := range hostKeys {
+		sshServerConfig.AddHostKey(hostKey)
 	}
 	return sshServerConfig, nil
 }

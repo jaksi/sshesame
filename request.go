@@ -251,3 +251,11 @@ func handleChannelRequests(requests <-chan *ssh.Request, conn channelMetadata) {
 		}
 	}
 }
+
+func marshalStrings(strings []string) []byte {
+	result := make([]byte, 0)
+	for _, s := range strings {
+		result = append(result, ssh.Marshal(struct{ Content string }{s})...)
+	}
+	return result
+}

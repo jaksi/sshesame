@@ -99,6 +99,9 @@ func TestDefaultConfig(t *testing.T) {
 	if sshServerConfig.ServerVersion != "SSH-2.0-sshesame" {
 		t.Fatalf("sshServerConfig.ServerVersion = %v, want SSH-2.0-sshesame", sshServerConfig.ServerVersion)
 	}
+	if len(cfg.hostKeys) != 3 {
+		t.Fatalf("len(cfg.hostKeys) = %v, want 3", len(cfg.hostKeys))
+	}
 
 	logFile, err := cfg.setupLogging()
 	if err != nil {
@@ -249,6 +252,9 @@ keyboardinteractiveauth:
 	}
 	if sshServerConfig.ServerVersion != "SSH-2.0-test" {
 		t.Fatalf("sshServerConfig.ServerVersion = %v, want SSH-2.0-test", sshServerConfig.ServerVersion)
+	}
+	if len(cfg.hostKeys) != 3 {
+		t.Fatalf("len(cfg.hostKeys) = %v, want 3", len(cfg.hostKeys))
 	}
 
 	logFile, err := cfg.setupLogging()
