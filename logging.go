@@ -12,7 +12,7 @@ func getLogEntry(conn ssh.ConnMetadata) *logrus.Entry {
 		"client_version": string(conn.ClientVersion()),
 		"session_id":     base64.RawStdEncoding.EncodeToString(conn.SessionID()),
 		"user":           conn.User(),
-		"remote_addr":    conn.RemoteAddr().String(),
+		"remote_address": conn.RemoteAddr().String(),
 	})
 }
 
