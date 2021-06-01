@@ -18,6 +18,7 @@ func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig) {
 		log.Println("Failed to establish SSH connection:", err)
 		return
 	}
+	defer serverConn.Close()
 
 	getLogEntry(serverConn).Infoln("SSH connection established")
 	defer getLogEntry(serverConn).Infoln("SSH connection closed")
