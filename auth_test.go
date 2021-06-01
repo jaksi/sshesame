@@ -47,7 +47,7 @@ func TestNoAuthDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -91,7 +91,7 @@ func TestNoAuthEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=true user=test
@@ -138,7 +138,7 @@ func TestPasswordDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -183,7 +183,7 @@ func TestPasswordEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -231,7 +231,7 @@ func TestPasswordAccepted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -288,7 +288,7 @@ func TestPublicKeyDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -341,7 +341,7 @@ func TestPublicKeyEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -397,7 +397,7 @@ func TestPublicKeyAccepted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -448,7 +448,7 @@ func TestKeyboardInteractiveDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -504,7 +504,7 @@ func TestKeyboardInteractiveEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -563,7 +563,7 @@ func TestKeyboardInteractiveAccepted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
@@ -620,7 +620,7 @@ func TestBannerDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=true user=test
@@ -675,7 +675,7 @@ func TestBannerEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	handleConnection(serverConn, sshServerConfig)
+	handleConnection(serverConn, sshServerConfig, cfg.hostKeys)
 	logs, err := io.ReadAll(&logBuffer)
 	expectedLogs := regexp.MustCompile(`^level=info msg="Connection accepted" remote_address="127.0.0.1:\d+"
 level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=true user=test

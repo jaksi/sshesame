@@ -3,13 +3,12 @@ package main
 import (
 	"log"
 	"net"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 
-func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig) {
+func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig, hostKeys []ssh.Signer) {
 	logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
 	defer conn.Close()
 	defer logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection closed")
@@ -23,11 +22,13 @@ func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig) {
 	getLogEntry(serverConn).Infoln("SSH connection established")
 	defer getLogEntry(serverConn).Infoln("SSH connection closed")
 
-	if strings.HasPrefix(string(serverConn.ClientVersion()), "SSH-2.0-OpenSSH") && strings.HasPrefix(string(serverConn.ServerVersion()), "SSH-2.0-OpenSSH") {
-		if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, ssh.Marshal(struct{ hostKeys []string }{})); err != nil {
-			log.Println("Failed to send hostkeys-00@openssh.com request:", err)
-			return
-		}
+	hostkeysData := make([]string, 0)
+	for _, hostKey := range hostKeys {
+		hostkeysData = append(hostkeysData, string(hostKey.PublicKey().Marshal()))
+	}
+	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, marshalStrings(hostkeysData)); err != nil {
+		log.Println("Failed to send hostkeys-00@openssh.com request:", err)
+		return
 	}
 
 	go handleGlobalRequests(requests, serverConn)

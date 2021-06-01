@@ -45,6 +45,6 @@ func main() {
 			log.Println("Failed to accept connection:", err)
 			continue
 		}
-		go handleConnection(conn, sshServerConfig)
+		go handleConnection(conn, sshServerConfig, cfg.hostKeys)
 	}
 }
