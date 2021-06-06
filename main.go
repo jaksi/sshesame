@@ -10,17 +10,12 @@ import (
 )
 
 func main() {
-	configFileName := flag.String("config", "", "config file")
+	configFile := flag.String("config", "", "config file")
 	flag.Parse()
 
-	cfg, err := getConfig(*configFileName, path.Join(xdg.DataHome, "sshesame"))
+	cfg, err := getConfig(*configFile, path.Join(xdg.DataHome, "sshesame"))
 	if err != nil {
 		log.Fatalln("Failed to get config:", err)
-	}
-
-	sshServerConfig, err := cfg.createSSHServerConfig()
-	if err != nil {
-		log.Fatalln("Failed to create SSH server config:", err)
 	}
 
 	listener, err := net.Listen("tcp", cfg.ListenAddress)
@@ -31,20 +26,12 @@ func main() {
 
 	log.Println("Listening on", listener.Addr())
 
-	logFile, err := cfg.setupLogging()
-	if err != nil {
-		log.Fatalln("Failed to setup logging:", err)
-	}
-	if logFile != nil {
-		defer logFile.Close()
-	}
-
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Println("Failed to accept connection:", err)
 			continue
 		}
-		go handleConnection(conn, sshServerConfig, cfg.hostKeys)
+		go handleConnection(conn, cfg)
 	}
 }

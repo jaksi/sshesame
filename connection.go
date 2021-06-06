@@ -8,34 +8,31 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func handleConnection(conn net.Conn, sshServerConfig *ssh.ServerConfig, hostKeys []ssh.Signer) {
+func handleConnection(conn net.Conn, cfg *config) {
 	logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
 	defer conn.Close()
 	defer logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection closed")
-	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, sshServerConfig)
+	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
 		log.Println("Failed to establish SSH connection:", err)
 		return
 	}
 	defer serverConn.Close()
 
-	getLogEntry(serverConn).Infoln("SSH connection established")
-	defer getLogEntry(serverConn).Infoln("SSH connection closed")
+	metadata := connMetadata{serverConn}
+	metadata.getLogEntry().Infoln("SSH connection established")
+	defer metadata.getLogEntry().Infoln("SSH connection closed")
 
-	hostkeysData := make([]string, 0)
-	for _, hostKey := range hostKeys {
-		hostkeysData = append(hostkeysData, string(hostKey.PublicKey().Marshal()))
-	}
-	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, marshalStrings(hostkeysData)); err != nil {
+	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, createHostkeysRequestPayload(cfg.parsedHostKeys)); err != nil {
 		log.Println("Failed to send hostkeys-00@openssh.com request:", err)
 		return
 	}
 
-	go handleGlobalRequests(requests, serverConn)
+	go handleGlobalRequests(requests, metadata)
 
 	channelID := 0
 	for newChannel := range newChannels {
-		go handleNewChannel(newChannel, channelMetadata{conn: serverConn, channelID: channelID})
+		go handleNewChannel(newChannel, channelMetadata{metadata, channelID})
 		channelID++
 	}
 }
