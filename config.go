@@ -206,7 +206,9 @@ func getConfig(configFile string, dataDir string) (*config, error) {
 
 	if len(cfg.HostKeys) == 0 {
 		log.Println("No host keys configured, using keys at", dataDir)
-		cfg.setDefaultHostKeys(dataDir)
+		if err := cfg.setDefaultHostKeys(dataDir); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := cfg.setupSSHConfig(); err != nil {

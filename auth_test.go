@@ -35,7 +35,7 @@ func authenticate(cfg *config, auth []ssh.AuthMethod, t *testing.T) (bool, strin
 	clientSuccess := make(chan bool)
 	clientBanner := make(chan *string)
 	go func() {
-		success := true
+		success := false
 		var banner *string
 		defer func() {
 			clientSuccess <- success
@@ -385,12 +385,12 @@ func TestKeyboardInteractiveAccepted(t *testing.T) {
 			t.Errorf("receivedEchos[%v]=%v, want %v", i, receivedEchos[i], cfg.KeyboardInteractiveAuth.Questions[i].Echo)
 		}
 	}
-	if success {
-		t.Errorf("success=%v, want false", success)
+	if !success {
+		t.Errorf("success=%v, want true", success)
 	}
 	expectedLogs := regexp.MustCompile(`^level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=none remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
-level=info msg="Keyboard interactive authentication attempted" answers="a1, a2" client_version=SSH-2.0-Go remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
-level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=keyboard-interactive remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=false user=test
+level=info msg="Keyboard interactive authentication attempted" answers="a1, a2" client_version=SSH-2.0-Go remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=true user=test
+level=info msg="Client attempted to authenticate" client_version=SSH-2.0-Go method=keyboard-interactive remote_address="127.0.0.1:\d+" session_id=[^ ]+ success=true user=test
 $`)
 	if !expectedLogs.MatchString(logs) {
 		t.Errorf("logs=%v, want match for %v", string(logs), expectedLogs)
