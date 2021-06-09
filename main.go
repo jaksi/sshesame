@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"log"
 	"net"
 	"path"
@@ -13,7 +14,16 @@ func main() {
 	configFile := flag.String("config", "", "config file")
 	flag.Parse()
 
-	cfg, err := getConfig(*configFile, path.Join(xdg.DataHome, "sshesame"))
+	configString := ""
+	if *configFile != "" {
+		configBytes, err := ioutil.ReadFile(*configFile)
+		if err != nil {
+			log.Fatalln("Failed to read config file:", err)
+		}
+		configString = string(configBytes)
+	}
+
+	cfg, err := getConfig(configString, path.Join(xdg.DataHome, "sshesame"), pkcs8fileKey{})
 	if err != nil {
 		log.Fatalln("Failed to get config:", err)
 	}

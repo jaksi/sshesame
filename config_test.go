@@ -256,14 +256,10 @@ banner:
 	expectedConfig.KeyboardInteractiveAuth.Accepted = true
 	expectedConfig.KeyboardInteractiveAuth.Enabled = true
 	expectedConfig.KeyboardInteractiveAuth.Instruction = "instruction"
-	expectedConfig.KeyboardInteractiveAuth.Questions = append(expectedConfig.KeyboardInteractiveAuth.Questions, struct {
-		Text string
-		Echo bool
-	}{"q1", true})
-	expectedConfig.KeyboardInteractiveAuth.Questions = append(expectedConfig.KeyboardInteractiveAuth.Questions, struct {
-		Text string
-		Echo bool
-	}{"q2", false})
+	expectedConfig.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+		{"q1", true},
+		{"q2", false},
+	}
 	verifyConfig(cfg, expectedConfig, t)
 	verifyDefaultKeys(dataDir, t)
 }

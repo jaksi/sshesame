@@ -19,6 +19,21 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type authConfig struct {
+	Enabled, Accepted bool
+}
+
+type keyboardInteractiveAuthQuestion struct {
+	Text string
+	Echo bool
+}
+
+type keyboardInteractiveAuthConfig struct {
+	authConfig  `yaml:",inline"`
+	Instruction string
+	Questions   []keyboardInteractiveAuthQuestion
+}
+
 type config struct {
 	ListenAddress           string
 	LogFile                 string
@@ -30,18 +45,11 @@ type config struct {
 	HostKeys                []string
 	NoClientAuth            bool
 	MaxAuthTries            int
-	PasswordAuth            struct{ Enabled, Accepted bool }
-	PublicKeyAuth           struct{ Enabled, Accepted bool }
-	KeyboardInteractiveAuth struct {
-		Enabled, Accepted bool
-		Instruction       string
-		Questions         []struct {
-			Text string
-			Echo bool
-		}
-	}
-	ServerVersion string
-	Banner        string
+	PasswordAuth            authConfig
+	PublicKeyAuth           authConfig
+	KeyboardInteractiveAuth keyboardInteractiveAuthConfig
+	ServerVersion           string
+	Banner                  string
 
 	parsedHostKeys []ssh.Signer
 	sshConfig      *ssh.ServerConfig
@@ -61,31 +69,90 @@ func getDefaultConfig() *config {
 	return cfg
 }
 
-func (cfg *config) setDefaultHostKeys(dataDir string) error {
-	for _, key := range []struct {
-		keyType  hostKeyType
-		filename string
-	}{
-		{keyType: rsa_key, filename: "host_rsa_key"},
-		{keyType: ecdsa_key, filename: "host_ecdsa_key"},
-		{keyType: ed25519_key, filename: "host_ed25519_key"},
-	} {
-		keyFileName := path.Join(dataDir, key.filename)
-		if err := generateKey(keyFileName, key.keyType); err != nil {
+type keySignature int
+
+const (
+	rsa_key keySignature = iota
+	ecdsa_key
+	ed25519_key
+)
+
+type keyType interface {
+	generate(dataDir string, signature keySignature) (string, error)
+	load(keyFile string) (ssh.Signer, error)
+}
+
+type pkcs8fileKey struct{}
+
+func (pkcs8fileKey) generate(dataDir string, signature keySignature) (string, error) {
+	var keyFile string
+	switch signature {
+	case rsa_key:
+		keyFile = "host_rsa_key"
+	case ecdsa_key:
+		keyFile = "host_ecdsa_key"
+	case ed25519_key:
+		keyFile = "host_ed25519_key"
+	default:
+		return "", errors.New("unsupported key signature")
+	}
+	keyFile = path.Join(dataDir, keyFile)
+	if _, err := os.Stat(keyFile); err == nil {
+		return keyFile, nil
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+	log.Println("Host key", keyFile, "not found, generating it")
+	if _, err := os.Stat(path.Dir(keyFile)); os.IsNotExist(err) {
+		if err := os.MkdirAll(path.Dir(keyFile), 0755); err != nil {
+			return "", err
+		}
+	}
+	var key interface{}
+	var err error
+	switch signature {
+	case rsa_key:
+		key, err = rsa.GenerateKey(rand.Reader, 3072)
+	case ecdsa_key:
+		key, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	case ed25519_key:
+		_, key, err = ed25519.GenerateKey(rand.Reader)
+	}
+	if err != nil {
+		return "", err
+	}
+	keyBytes, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return "", err
+	}
+	if err := ioutil.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes}), 0600); err != nil {
+		return "", err
+	}
+	return keyFile, nil
+}
+
+func (pkcs8fileKey) load(keyFile string) (ssh.Signer, error) {
+	keyBytes, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return ssh.ParsePrivateKey(keyBytes)
+}
+
+func (cfg *config) setDefaultHostKeys(dataDir string, key keyType, signatures []keySignature) error {
+	for _, signature := range signatures {
+		keyFile, err := key.generate(dataDir, signature)
+		if err != nil {
 			return err
 		}
-		cfg.HostKeys = append(cfg.HostKeys, keyFileName)
+		cfg.HostKeys = append(cfg.HostKeys, keyFile)
 	}
 	return nil
 }
 
-func (cfg *config) parseHostKeys() error {
-	for _, key := range cfg.HostKeys {
-		keyBytes, err := ioutil.ReadFile(key)
-		if err != nil {
-			return err
-		}
-		signer, err := ssh.ParsePrivateKey(keyBytes)
+func (cfg *config) parseHostKeys(key keyType) error {
+	for _, keyFile := range cfg.HostKeys {
+		signer, err := key.load(keyFile)
 		if err != nil {
 			return err
 		}
@@ -94,7 +161,7 @@ func (cfg *config) parseHostKeys() error {
 	return nil
 }
 
-func (cfg *config) setupSSHConfig() error {
+func (cfg *config) setupSSHConfig(key keyType) error {
 	sshConfig := &ssh.ServerConfig{
 		Config: ssh.Config{
 			RekeyThreshold: cfg.RekeyThreshold,
@@ -111,11 +178,11 @@ func (cfg *config) setupSSHConfig() error {
 		KeyboardInteractiveCallback: cfg.getKeyboardInteractiveCallback(),
 		BannerCallback:              cfg.getBannerCallback(),
 	}
-	if err := cfg.parseHostKeys(); err != nil {
+	if err := cfg.parseHostKeys(key); err != nil {
 		return err
 	}
-	for _, hostKey := range cfg.parsedHostKeys {
-		sshConfig.AddHostKey(hostKey)
+	for _, key := range cfg.parsedHostKeys {
+		sshConfig.AddHostKey(key)
 	}
 	cfg.sshConfig = sshConfig
 	return nil
@@ -144,74 +211,21 @@ func (cfg *config) setupLogging() error {
 	return nil
 }
 
-type hostKeyType int
-
-const (
-	rsa_key hostKeyType = iota
-	ecdsa_key
-	ed25519_key
-)
-
-func generateKey(keyFile string, keyType hostKeyType) error {
-	if _, err := os.Stat(keyFile); err == nil {
-		return nil
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-	log.Println("Host key", keyFile, "not found, generating it")
-	if _, err := os.Stat(path.Dir(keyFile)); os.IsNotExist(err) {
-		if err := os.MkdirAll(path.Dir(keyFile), 0755); err != nil {
-			return err
-		}
-	}
-	var key interface{}
-	var err error
-	switch keyType {
-	case rsa_key:
-		key, err = rsa.GenerateKey(rand.Reader, 3072)
-	case ecdsa_key:
-		key, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	case ed25519_key:
-		_, key, err = ed25519.GenerateKey(rand.Reader)
-	default:
-		err = errors.New("unsupported key type")
-	}
-	if err != nil {
-		return err
-	}
-	keyBytes, err := x509.MarshalPKCS8PrivateKey(key)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes}), 0600); err != nil {
-		return err
-	}
-	return nil
-}
-
-func getConfig(configFile string, dataDir string) (*config, error) {
+func getConfig(configString string, dataDir string, key keyType) (*config, error) {
 	cfg := getDefaultConfig()
 
-	var configBytes []byte
-	var err error
-	if configFile != "" {
-		configBytes, err = ioutil.ReadFile(configFile)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if err := yaml.UnmarshalStrict(configBytes, cfg); err != nil {
+	if err := yaml.UnmarshalStrict([]byte(configString), cfg); err != nil {
 		return nil, err
 	}
 
 	if len(cfg.HostKeys) == 0 {
 		log.Println("No host keys configured, using keys at", dataDir)
-		if err := cfg.setDefaultHostKeys(dataDir); err != nil {
+		if err := cfg.setDefaultHostKeys(dataDir, key, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := cfg.setupSSHConfig(); err != nil {
+	if err := cfg.setupSSHConfig(key); err != nil {
 		return nil, err
 	}
 	if err := cfg.setupLogging(); err != nil {
