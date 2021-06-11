@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"reflect"
@@ -248,7 +250,9 @@ func verifyConfig(cfg *config, expected *config, t *testing.T) {
 func TestDefaultConfig(t *testing.T) {
 	dataDir := "test"
 	key := &mockKeyType{}
+	log.SetOutput(ioutil.Discard)
 	cfg, err := getConfig("", dataDir, key)
+	log.SetOutput(os.Stderr)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -301,7 +305,9 @@ banner:
 `, logFile)
 	dataDir := "test"
 	key := &mockKeyType{}
+	log.SetOutput(ioutil.Discard)
 	cfg, err := getConfig(cfgString, dataDir, key)
+	log.SetOutput(os.Stderr)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}

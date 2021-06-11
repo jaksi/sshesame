@@ -21,14 +21,14 @@ type tcpipChannelData struct {
 	OriginatorPort    uint32
 }
 
-func (data *tcpipChannelData) String() string {
+func (data tcpipChannelData) String() string {
 	return fmt.Sprintf("%v -> %v", net.JoinHostPort(data.OriginatorAddress, fmt.Sprint(data.OriginatorPort)), net.JoinHostPort(data.Address, fmt.Sprint(data.Port)))
 }
 
 var channelDataParsers = map[string]channelDataParser{
 	"session": func(data []byte) (channelData, error) { return nil, nil },
 	"direct-tcpip": func(data []byte) (channelData, error) {
-		tcpipData := &tcpipChannelData{}
+		tcpipData := tcpipChannelData{}
 		if err := ssh.Unmarshal(data, tcpipData); err != nil {
 			return nil, err
 		}

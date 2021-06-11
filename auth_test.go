@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net"
+	"os"
 	"reflect"
 	"testing"
 
@@ -12,27 +15,27 @@ import (
 
 type mockConnMetadata struct{}
 
-func (metadata *mockConnMetadata) User() string {
+func (metadata mockConnMetadata) User() string {
 	return "root"
 }
 
-func (metadata *mockConnMetadata) SessionID() []byte {
+func (metadata mockConnMetadata) SessionID() []byte {
 	return []byte("somesession")
 }
 
-func (metadata *mockConnMetadata) ClientVersion() []byte {
+func (metadata mockConnMetadata) ClientVersion() []byte {
 	return []byte("SSH-2.0-testclient")
 }
 
-func (metadata *mockConnMetadata) ServerVersion() []byte {
+func (metadata mockConnMetadata) ServerVersion() []byte {
 	return []byte("SSH-2.0-testserver")
 }
 
-func (metadata *mockConnMetadata) RemoteAddr() net.Addr {
+func (metadata mockConnMetadata) RemoteAddr() net.Addr {
 	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234}
 }
 
-func (metadata *mockConnMetadata) LocalAddr() net.Addr {
+func (metadata mockConnMetadata) LocalAddr() net.Addr {
 	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2022}
 }
 
@@ -45,7 +48,7 @@ func setupLogBuffer() *bytes.Buffer {
 
 func TestAuthLogCallbackSuccess(t *testing.T) {
 	logBuffer := setupLogBuffer()
-	authLogCallback(&mockConnMetadata{}, "some-method", nil)
+	authLogCallback(mockConnMetadata{}, "some-method", nil)
 	logs := logBuffer.String()
 	expectedLogs := `level=info msg="Client attempted to authenticate" client_version=SSH-2.0-testclient method=some-method remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=true user=root
 `
@@ -56,7 +59,7 @@ func TestAuthLogCallbackSuccess(t *testing.T) {
 
 func TestAuthLogCallbackFail(t *testing.T) {
 	logBuffer := setupLogBuffer()
-	authLogCallback(&mockConnMetadata{}, "some-other-method", errors.New(""))
+	authLogCallback(mockConnMetadata{}, "some-other-method", errors.New(""))
 	logs := logBuffer.String()
 	expectedLogs := `level=info msg="Client attempted to authenticate" client_version=SSH-2.0-testclient method=some-other-method remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=false user=root
 `
@@ -83,7 +86,7 @@ func TestPasswordCallbackFail(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, []byte("hunter2"))
+	permissions, err := callback(mockConnMetadata{}, []byte("hunter2"))
 	logs := logBuffer.String()
 	if err == nil {
 		t.Errorf("err=nil, want an error")
@@ -107,7 +110,7 @@ func TestPasswordCallbackSuccess(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, []byte("hunter2"))
+	permissions, err := callback(mockConnMetadata{}, []byte("hunter2"))
 	logs := logBuffer.String()
 	if err != nil {
 		t.Errorf("err=%v, want nil", err)
@@ -140,7 +143,7 @@ func TestPublicKeyCallbackFail(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, &mockPublicKey{})
+	permissions, err := callback(mockConnMetadata{}, mockPublicKey{})
 	logs := logBuffer.String()
 	if err == nil {
 		t.Errorf("err=nil, want an error")
@@ -164,7 +167,7 @@ func TestPublicKeyCallbackSuccess(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, &mockPublicKey{})
+	permissions, err := callback(mockConnMetadata{}, mockPublicKey{})
 	logs := logBuffer.String()
 	if err != nil {
 		t.Errorf("err=%v, want nil", err)
@@ -207,7 +210,8 @@ func TestKeyboardInteractiveCallbackError(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
+	log.SetOutput(ioutil.Discard)
+	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
 		if user != "root" {
 			t.Errorf("user=%v, want root", user)
 		}
@@ -222,6 +226,8 @@ func TestKeyboardInteractiveCallbackError(t *testing.T) {
 		}
 		return nil, errors.New("")
 	})
+	log.SetOutput(os.Stderr)
+
 	logs := logBuffer.String()
 	if err == nil {
 		t.Errorf("err=nil, want an error")
@@ -249,7 +255,7 @@ func TestKeyboardInteractiveCallbackFail(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
+	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
 		return []string{"a1", "a2"}, nil
 	})
 	logs := logBuffer.String()
@@ -280,7 +286,7 @@ func TestKeyboardInteractiveCallbackSuccess(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
+	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
 		return []string{"a1", "a2"}, nil
 	})
 	logs := logBuffer.String()
@@ -311,7 +317,7 @@ func TestBannerCallback(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	banner := callback(&mockConnMetadata{})
+	banner := callback(mockConnMetadata{})
 	expectedBanner := "Lorem\r\nIpsum\r\nDolor\r\n\r\nSit Amet\r\n"
 	if banner != expectedBanner {
 		t.Errorf("banner=%v, want %v", banner, expectedBanner)
