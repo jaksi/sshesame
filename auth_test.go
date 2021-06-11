@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh"
 )
 
 type mockConnMetadata struct{}
@@ -35,20 +34,6 @@ func (metadata *mockConnMetadata) RemoteAddr() net.Addr {
 
 func (metadata *mockConnMetadata) LocalAddr() net.Addr {
 	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2022}
-}
-
-type mockPublicKey struct{}
-
-func (publicKey mockPublicKey) Type() string {
-	return "ssh-test"
-}
-
-func (publicKey mockPublicKey) Marshal() []byte {
-	return nil
-}
-
-func (publicKey mockPublicKey) Verify(data []byte, sig *ssh.Signature) error {
-	return nil
 }
 
 func setupLogBuffer() *bytes.Buffer {
@@ -155,7 +140,7 @@ func TestPublicKeyCallbackFail(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, mockPublicKey{})
+	permissions, err := callback(&mockConnMetadata{}, &mockPublicKey{})
 	logs := logBuffer.String()
 	if err == nil {
 		t.Errorf("err=nil, want an error")
@@ -179,7 +164,7 @@ func TestPublicKeyCallbackSuccess(t *testing.T) {
 		t.Fatalf("callback=nil, want a function")
 	}
 	logBuffer := setupLogBuffer()
-	permissions, err := callback(&mockConnMetadata{}, mockPublicKey{})
+	permissions, err := callback(&mockConnMetadata{}, &mockPublicKey{})
 	logs := logBuffer.String()
 	if err != nil {
 		t.Errorf("err=%v, want nil", err)

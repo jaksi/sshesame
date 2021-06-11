@@ -15,7 +15,7 @@ type server interface {
 }
 
 var servers = map[uint32]server{
-	80: httpServer{},
+	80: &httpServer{},
 }
 
 func handleTCPIPChannel(channel ssh.Channel, port uint32, input chan<- string) error {
@@ -28,7 +28,7 @@ func handleTCPIPChannel(channel ssh.Channel, port uint32, input chan<- string) e
 
 type httpServer struct{}
 
-func (httpServer) handle(channel ssh.Channel, input chan<- string) error {
+func (*httpServer) handle(channel ssh.Channel, input chan<- string) error {
 	request, err := http.ReadRequest(bufio.NewReader(channel))
 	if err != nil {
 		return err

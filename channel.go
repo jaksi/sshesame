@@ -21,7 +21,7 @@ type tcpipChannelData struct {
 	OriginatorPort    uint32
 }
 
-func (data tcpipChannelData) String() string {
+func (data *tcpipChannelData) String() string {
 	return fmt.Sprintf("%v -> %v", net.JoinHostPort(data.OriginatorAddress, fmt.Sprint(data.OriginatorPort)), net.JoinHostPort(data.Address, fmt.Sprint(data.Port)))
 }
 

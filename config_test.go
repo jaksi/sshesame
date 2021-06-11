@@ -1,8 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"reflect"
@@ -11,6 +12,122 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
+
+type mockPublicKey struct {
+	signature keySignature
+}
+
+func (publicKey mockPublicKey) Type() string {
+	switch publicKey.signature {
+	case rsa_key:
+		return "rsa"
+	case ecdsa_key:
+		return "ecdsa"
+	case ed25519_key:
+		return "ed25519"
+	default:
+		return "unknown"
+	}
+}
+
+func (publicKey mockPublicKey) Marshal() []byte {
+	return nil
+}
+
+func (publicKey mockPublicKey) Verify(data []byte, sig *ssh.Signature) error {
+	return nil
+}
+
+type mockSigner struct {
+	signature keySignature
+}
+
+func (signer mockSigner) PublicKey() ssh.PublicKey {
+	return mockPublicKey(signer)
+}
+
+func (signer mockSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, error) {
+	return nil, errors.New("")
+}
+
+type mockKeyType struct {
+	keys map[string]keySignature
+}
+
+func (key *mockKeyType) generate(dataDir string, signature keySignature) (string, error) {
+	var keyFile string
+	switch signature {
+	case rsa_key:
+		keyFile = "host_rsa_key"
+	case ecdsa_key:
+		keyFile = "host_ecdsa_key"
+	case ed25519_key:
+		keyFile = "host_ed25519_key"
+	default:
+		return "", errors.New("unsupported key signature")
+	}
+	keyFile = path.Join(dataDir, keyFile)
+	if key.keys == nil {
+		key.keys = map[string]keySignature{}
+	}
+	key.keys[keyFile] = signature
+	return keyFile, nil
+}
+
+func (key *mockKeyType) load(keyFile string) (ssh.Signer, error) {
+	result, ok := key.keys[keyFile]
+	if !ok {
+		return nil, errors.New("")
+	}
+	return mockSigner{result}, nil
+}
+
+func (key *mockKeyType) verifyDefaultKeys(dataDir string, t *testing.T) {
+	expectedKeys := map[string]keySignature{
+		path.Join(dataDir, "host_rsa_key"):     rsa_key,
+		path.Join(dataDir, "host_ecdsa_key"):   ecdsa_key,
+		path.Join(dataDir, "host_ed25519_key"): ed25519_key,
+	}
+	if !reflect.DeepEqual(key.keys, expectedKeys) {
+		t.Fatalf("keys=%v, want %v", key.keys, expectedKeys)
+	}
+	for file, signature := range key.keys {
+		signer, err := key.load(file)
+		if err != nil {
+			t.Fatalf("Failed to load key: %v", err)
+		}
+		var expectedKeyType string
+		switch signature {
+		case rsa_key:
+			expectedKeyType = "rsa"
+		case ecdsa_key:
+			expectedKeyType = "ecdsa"
+		case ed25519_key:
+			expectedKeyType = "ed25519"
+		default:
+			t.Fatalf("Unexpected key signature: %v", signature)
+		}
+		if signer.PublicKey().Type() != expectedKeyType {
+			t.Errorf("signer.PublicKey().Type()=%v, want %v", signer.PublicKey().Type(), expectedKeyType)
+		}
+	}
+}
+
+type mockFile struct {
+	closed bool
+}
+
+func (file *mockFile) Write(p []byte) (n int, err error) {
+	return 0, errors.New("")
+}
+
+func (file *mockFile) Close() error {
+	if file.closed {
+		return errors.New("")
+	}
+	file.closed = true
+	return nil
+}
 
 func verifyConfig(cfg *config, expected *config, t *testing.T) {
 	if cfg.ListenAddress != expected.ListenAddress {
@@ -128,55 +245,10 @@ func verifyConfig(cfg *config, expected *config, t *testing.T) {
 	}
 }
 
-func verifyDefaultKeys(dataDir string, t *testing.T) {
-	expectedKeys := map[string]string{
-		"host_rsa_key":     "ssh-rsa",
-		"host_ecdsa_key":   "ecdsa-sha2-nistp256",
-		"host_ed25519_key": "ssh-ed25519",
-	}
-	keys, err := ioutil.ReadDir(dataDir)
-	if err != nil {
-		t.Fatalf("Failed to list %v: %v", dataDir, err)
-	}
-	if len(keys) != len(expectedKeys) {
-		t.Errorf("len(keys)=%v, want %v", len(keys), len(expectedKeys))
-	}
-	for _, key := range keys {
-		if _, ok := expectedKeys[key.Name()]; !ok {
-			t.Errorf("Unexpected key: %v", key)
-		}
-	}
-	for keyFile, keyType := range expectedKeys {
-		keyBytes, err := ioutil.ReadFile(path.Join(dataDir, keyFile))
-		if err != nil {
-			t.Fatalf("Can't read %v: %v", keyFile, err)
-		}
-		signer, err := ssh.ParsePrivateKey(keyBytes)
-		if err != nil {
-			t.Fatalf("Can't parse %v: %v", keyFile, err)
-		}
-		if signer.PublicKey().Type() != keyType {
-			t.Errorf("Type(%v)=%v, want %v", keyFile, signer.PublicKey().Type(), keyType)
-		}
-	}
-}
-
-func verifyNoDefaultKeys(dataDir string, t *testing.T) {
-	keys, err := ioutil.ReadDir(dataDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return
-		}
-		t.Fatalf("Failed to list %v: %v", dataDir, err)
-	}
-	if len(keys) != 0 {
-		t.Errorf("len(keys)=%v, want 0", len(keys))
-	}
-}
-
 func TestDefaultConfig(t *testing.T) {
-	dataDir := path.Join(t.TempDir(), "test")
-	cfg, err := getConfig("", dataDir)
+	dataDir := "test"
+	key := &mockKeyType{}
+	cfg, err := getConfig("", dataDir, key)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -194,15 +266,14 @@ func TestDefaultConfig(t *testing.T) {
 	expectedConfig.PasswordAuth.Accepted = true
 	expectedConfig.PublicKeyAuth.Enabled = true
 	verifyConfig(cfg, expectedConfig, t)
-	verifyDefaultKeys(dataDir, t)
+	key.verifyDefaultKeys(dataDir, t)
 }
 
 func TestUserConfigDefaultKeys(t *testing.T) {
-	configFile := path.Join(t.TempDir(), "sshesame.yaml")
-	logDir := t.TempDir()
-	if err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+	logFile := path.Join(t.TempDir(), "test.log")
+	cfgString := fmt.Sprintf(`
 listenaddress: 0.0.0.0:22
-logfile: %v/test.log
+logfile: %v
 jsonlogging: true
 rekeythreshold: 123
 keyexchanges: [kex]
@@ -227,17 +298,16 @@ keyboardinteractiveauth:
     echo: false
 serverversion: SSH-2.0-test
 banner:
-`, logDir)), 0664); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
-	}
-	dataDir := path.Join(t.TempDir(), "test")
-	cfg, err := getConfig(configFile, dataDir)
+`, logFile)
+	dataDir := "test"
+	key := &mockKeyType{}
+	cfg, err := getConfig(cfgString, dataDir, key)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	expectedConfig := &config{
 		ListenAddress:  "0.0.0.0:22",
-		LogFile:        fmt.Sprintf("%v/test.log", logDir),
+		LogFile:        logFile,
 		JSONLogging:    true,
 		RekeyThreshold: 123,
 		KeyExchanges:   []string{"kex"},
@@ -261,22 +331,17 @@ banner:
 		{"q2", false},
 	}
 	verifyConfig(cfg, expectedConfig, t)
-	verifyDefaultKeys(dataDir, t)
+	key.verifyDefaultKeys(dataDir, t)
 }
 
 func TestUserConfigCustomKeys(t *testing.T) {
-	keyFile := path.Join(t.TempDir(), "rsa.key")
-	if err := generateKey(keyFile, rsa_key); err != nil {
-		t.Fatalf("Failed to generate key: %v", err)
-	}
-	configFile := path.Join(t.TempDir(), "sshesame.yaml")
-	if err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+	keyFile := "rsa.key"
+	cfgString := fmt.Sprintf(`
 hostkeys: [%v]
-`, keyFile)), 0644); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
-	}
-	dataDir := path.Join(t.TempDir(), "test")
-	cfg, err := getConfig(configFile, dataDir)
+`, keyFile)
+	dataDir := "test"
+	key := &mockKeyType{map[string]keySignature{keyFile: rsa_key}}
+	cfg, err := getConfig(cfgString, dataDir, key)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -290,41 +355,21 @@ hostkeys: [%v]
 	expectedConfig.PasswordAuth.Accepted = true
 	expectedConfig.PublicKeyAuth.Enabled = true
 	verifyConfig(cfg, expectedConfig, t)
-	verifyNoDefaultKeys(dataDir, t)
-}
-
-func TestDefaultConfigKeysExist(t *testing.T) {
-	dataDir := path.Join(t.TempDir(), "test")
-	keyFile := path.Join(dataDir, "host_rsa_key")
-	if err := generateKey(keyFile, rsa_key); err != nil {
-		t.Fatalf("Failed to generate key: %v", err)
+	expectedKeys := map[string]keySignature{
+		keyFile: rsa_key,
 	}
-	keyBytes, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		t.Fatalf("Failed to read key: %v", err)
-	}
-	if _, err := getConfig("", dataDir); err != nil {
-		t.Fatalf("Failed to get config: %v", err)
-	}
-	newKeyBytes, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		t.Fatalf("Failed to read key: %v", err)
-	}
-	if !reflect.DeepEqual(keyBytes, newKeyBytes) {
-		t.Errorf("newKeyBytes=%v, want %v", newKeyBytes, keyBytes)
+	if !reflect.DeepEqual(key.keys, expectedKeys) {
+		t.Errorf("key.keys=%v, want %v", key.keys, expectedKeys)
 	}
 }
 
 func TestSetupLoggingOldHandleClosed(t *testing.T) {
-	file, err := os.Create(path.Join(t.TempDir(), "test.log"))
-	if err != nil {
-		t.Fatalf("Failed to create file: %v", err)
-	}
+	file := &mockFile{}
 	cfg := &config{logFileHandle: file}
 	if err := cfg.setupLogging(); err != nil {
 		t.Fatalf("Failed to set up logging: %v", err)
 	}
-	if _, err := file.WriteString("test"); err == nil {
-		t.Errorf("file.WriteString()=nil, want an error (should be closed)")
+	if !file.closed {
+		t.Errorf("file.closed=false, want true")
 	}
 }

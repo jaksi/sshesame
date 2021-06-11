@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -53,7 +54,7 @@ type config struct {
 
 	parsedHostKeys []ssh.Signer
 	sshConfig      *ssh.ServerConfig
-	logFileHandle  *os.File
+	logFileHandle  io.WriteCloser
 }
 
 func getDefaultConfig() *config {
