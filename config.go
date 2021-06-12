@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -78,6 +79,19 @@ const (
 	ed25519_key
 )
 
+func (signature keySignature) String() string {
+	switch signature {
+	case rsa_key:
+		return "rsa"
+	case ecdsa_key:
+		return "ecdsa"
+	case ed25519_key:
+		return "ed25519"
+	default:
+		return "unknown"
+	}
+}
+
 type keyType interface {
 	generate(dataDir string, signature keySignature) (string, error)
 	load(keyFile string) (ssh.Signer, error)
@@ -86,18 +100,7 @@ type keyType interface {
 type pkcs8fileKey struct{}
 
 func (pkcs8fileKey) generate(dataDir string, signature keySignature) (string, error) {
-	var keyFile string
-	switch signature {
-	case rsa_key:
-		keyFile = "host_rsa_key"
-	case ecdsa_key:
-		keyFile = "host_ecdsa_key"
-	case ed25519_key:
-		keyFile = "host_ed25519_key"
-	default:
-		return "", errors.New("unsupported key signature")
-	}
-	keyFile = path.Join(dataDir, keyFile)
+	keyFile := path.Join(dataDir, fmt.Sprintf("host_%v_key", signature))
 	if _, err := os.Stat(keyFile); err == nil {
 		return keyFile, nil
 	} else if !os.IsNotExist(err) {
@@ -110,7 +113,7 @@ func (pkcs8fileKey) generate(dataDir string, signature keySignature) (string, er
 		}
 	}
 	var key interface{}
-	var err error
+	err := errors.New("unsupported key type")
 	switch signature {
 	case rsa_key:
 		key, err = rsa.GenerateKey(rand.Reader, 3072)

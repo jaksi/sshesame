@@ -20,16 +20,7 @@ type mockPublicKey struct {
 }
 
 func (publicKey mockPublicKey) Type() string {
-	switch publicKey.signature {
-	case rsa_key:
-		return "rsa"
-	case ecdsa_key:
-		return "ecdsa"
-	case ed25519_key:
-		return "ed25519"
-	default:
-		return "unknown"
-	}
+	return publicKey.signature.String()
 }
 
 func (publicKey mockPublicKey) Marshal() []byte {
@@ -57,18 +48,7 @@ type mockKeyType struct {
 }
 
 func (key *mockKeyType) generate(dataDir string, signature keySignature) (string, error) {
-	var keyFile string
-	switch signature {
-	case rsa_key:
-		keyFile = "host_rsa_key"
-	case ecdsa_key:
-		keyFile = "host_ecdsa_key"
-	case ed25519_key:
-		keyFile = "host_ed25519_key"
-	default:
-		return "", errors.New("unsupported key signature")
-	}
-	keyFile = path.Join(dataDir, keyFile)
+	keyFile := path.Join(dataDir, fmt.Sprintf("host_%v_key", signature))
 	if key.keys == nil {
 		key.keys = map[string]keySignature{}
 	}
@@ -98,17 +78,7 @@ func (key *mockKeyType) verifyDefaultKeys(dataDir string, t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to load key: %v", err)
 		}
-		var expectedKeyType string
-		switch signature {
-		case rsa_key:
-			expectedKeyType = "rsa"
-		case ecdsa_key:
-			expectedKeyType = "ecdsa"
-		case ed25519_key:
-			expectedKeyType = "ed25519"
-		default:
-			t.Fatalf("Unexpected key signature: %v", signature)
-		}
+		expectedKeyType := signature.String()
 		if signer.PublicKey().Type() != expectedKeyType {
 			t.Errorf("signer.PublicKey().Type()=%v, want %v", signer.PublicKey().Type(), expectedKeyType)
 		}
@@ -377,5 +347,59 @@ func TestSetupLoggingOldHandleClosed(t *testing.T) {
 	}
 	if !file.closed {
 		t.Errorf("file.closed=false, want true")
+	}
+}
+
+func TestPKCS8fileKey(t *testing.T) {
+	baseDir := t.TempDir()
+	for signature, keyType := range map[keySignature]string{
+		rsa_key:     "ssh-rsa",
+		ecdsa_key:   "ecdsa-sha2-nistp256",
+		ed25519_key: "ssh-ed25519",
+	} {
+		dataDir := path.Join(baseDir, keyType)
+		log.SetOutput(ioutil.Discard)
+		keyFile, err := pkcs8fileKey{}.generate(dataDir, signature)
+		log.SetOutput(os.Stderr)
+		if err != nil {
+			t.Fatalf("Failed to generate key: %v", err)
+		}
+		signer, err := pkcs8fileKey{}.load(keyFile)
+		if err != nil {
+			t.Fatalf("Failed to load key: %v", err)
+		}
+		files, err := ioutil.ReadDir(dataDir)
+		if err != nil {
+			t.Fatalf("Failed to list directory: %v", err)
+		}
+		if len(files) != 1 {
+			t.Errorf("len(files)=%v, want 1", len(files))
+		}
+		if signer.PublicKey().Type() != keyType {
+			t.Errorf("signer.PublicKey().Type()=%v, want %v", signer.PublicKey().Type(), keyType)
+		}
+	}
+}
+
+func TestExistingPKCS8fileKey(t *testing.T) {
+	dataDir := t.TempDir()
+	oldKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+	oldKey, err := ioutil.ReadFile(oldKeyFile)
+	if err != nil {
+		t.Fatalf("Failed to read key: %v", err)
+	}
+	newKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+	newKey, err := ioutil.ReadFile(newKeyFile)
+	if err != nil {
+		t.Fatalf("Failed to read key: %v", err)
+	}
+	if !reflect.DeepEqual(oldKey, newKey) {
+		t.Errorf("oldKey!=newKey")
 	}
 }
