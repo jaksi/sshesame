@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"log"
 	"net"
 	"path"
@@ -10,17 +11,21 @@ import (
 )
 
 func main() {
-	configFileName := flag.String("config", "", "config file")
+	configFile := flag.String("config", "", "config file")
 	flag.Parse()
 
-	cfg, err := getConfig(*configFileName, path.Join(xdg.DataHome, "sshesame"))
-	if err != nil {
-		log.Fatalln("Failed to get config:", err)
+	configString := ""
+	if *configFile != "" {
+		configBytes, err := ioutil.ReadFile(*configFile)
+		if err != nil {
+			log.Fatalln("Failed to read config file:", err)
+		}
+		configString = string(configBytes)
 	}
 
-	sshServerConfig, err := cfg.createSSHServerConfig()
+	cfg, err := getConfig(configString, path.Join(xdg.DataHome, "sshesame"), pkcs8fileKey{})
 	if err != nil {
-		log.Fatalln("Failed to create SSH server config:", err)
+		log.Fatalln("Failed to get config:", err)
 	}
 
 	listener, err := net.Listen("tcp", cfg.ListenAddress)
@@ -31,20 +36,12 @@ func main() {
 
 	log.Println("Listening on", listener.Addr())
 
-	logFile, err := cfg.setupLogging()
-	if err != nil {
-		log.Fatalln("Failed to setup logging:", err)
-	}
-	if logFile != nil {
-		defer logFile.Close()
-	}
-
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Println("Failed to accept connection:", err)
 			continue
 		}
-		go handleConnection(conn, sshServerConfig, cfg.hostKeys)
+		go handleConnection(conn, cfg)
 	}
 }

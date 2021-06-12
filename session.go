@@ -5,16 +5,15 @@ import (
 	"golang.org/x/term"
 )
 
-func handleSessionChannel(channel ssh.Channel, channelInput chan<- string) error {
+func handleSessionChannel(channel ssh.Channel, input chan<- string) error {
 	terminal := term.NewTerminal(channel, "$ ")
 	for {
 		line, err := terminal.ReadLine()
+		if line != "" {
+			input <- line
+		}
 		if err != nil {
-			if line != "" {
-				channelInput <- line
-			}
 			return err
 		}
-		channelInput <- line
 	}
 }

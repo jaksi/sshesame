@@ -10,16 +10,25 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func handleDirectTCPIPChannel(channel ssh.Channel, port uint32, channelInput chan<- string) error {
-	switch port {
-	case 80:
-		return handleHTTPChannel(channel, channelInput)
-	default:
-		return fmt.Errorf("unsupported port %v", port)
-	}
+type server interface {
+	handle(channel ssh.Channel, input chan<- string) error
 }
 
-func handleHTTPChannel(channel ssh.Channel, channelInput chan<- string) error {
+var servers = map[uint32]server{
+	80: httpServer{},
+}
+
+func handleTCPIPChannel(channel ssh.Channel, port uint32, input chan<- string) error {
+	server := servers[port]
+	if server == nil {
+		return fmt.Errorf("unsupported port %v", port)
+	}
+	return server.handle(channel, input)
+}
+
+type httpServer struct{}
+
+func (httpServer) handle(channel ssh.Channel, input chan<- string) error {
 	request, err := http.ReadRequest(bufio.NewReader(channel))
 	if err != nil {
 		return err
@@ -28,7 +37,7 @@ func handleHTTPChannel(channel ssh.Channel, channelInput chan<- string) error {
 	if err != nil {
 		return err
 	}
-	channelInput <- string(requestBytes)
+	input <- string(requestBytes)
 	responseRecorder := httptest.NewRecorder()
 	http.NotFound(responseRecorder, request)
 	if err := responseRecorder.Result().Write(channel); err != nil {

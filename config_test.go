@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,13 +15,218 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type mockPublicKey struct {
+	signature keySignature
+}
+
+func (publicKey mockPublicKey) Type() string {
+	return publicKey.signature.String()
+}
+
+func (publicKey mockPublicKey) Marshal() []byte {
+	return nil
+}
+
+func (publicKey mockPublicKey) Verify(data []byte, sig *ssh.Signature) error {
+	return nil
+}
+
+type mockSigner struct {
+	signature keySignature
+}
+
+func (signer mockSigner) PublicKey() ssh.PublicKey {
+	return mockPublicKey(signer)
+}
+
+func (signer mockSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, error) {
+	return nil, errors.New("")
+}
+
+type mockKeyType struct {
+	keys map[string]keySignature
+}
+
+func (key *mockKeyType) generate(dataDir string, signature keySignature) (string, error) {
+	keyFile := path.Join(dataDir, fmt.Sprintf("host_%v_key", signature))
+	if key.keys == nil {
+		key.keys = map[string]keySignature{}
+	}
+	key.keys[keyFile] = signature
+	return keyFile, nil
+}
+
+func (key *mockKeyType) load(keyFile string) (ssh.Signer, error) {
+	result, ok := key.keys[keyFile]
+	if !ok {
+		return nil, errors.New("")
+	}
+	return mockSigner{result}, nil
+}
+
+func (key *mockKeyType) verifyDefaultKeys(dataDir string, t *testing.T) {
+	expectedKeys := map[string]keySignature{
+		path.Join(dataDir, "host_rsa_key"):     rsa_key,
+		path.Join(dataDir, "host_ecdsa_key"):   ecdsa_key,
+		path.Join(dataDir, "host_ed25519_key"): ed25519_key,
+	}
+	if !reflect.DeepEqual(key.keys, expectedKeys) {
+		t.Fatalf("keys=%v, want %v", key.keys, expectedKeys)
+	}
+	for file, signature := range key.keys {
+		signer, err := key.load(file)
+		if err != nil {
+			t.Fatalf("Failed to load key: %v", err)
+		}
+		expectedKeyType := signature.String()
+		if signer.PublicKey().Type() != expectedKeyType {
+			t.Errorf("signer.PublicKey().Type()=%v, want %v", signer.PublicKey().Type(), expectedKeyType)
+		}
+	}
+}
+
+type mockFile struct {
+	closed bool
+}
+
+func (file *mockFile) Write(p []byte) (n int, err error) {
+	return 0, errors.New("")
+}
+
+func (file *mockFile) Close() error {
+	if file.closed {
+		return errors.New("")
+	}
+	file.closed = true
+	return nil
+}
+
+func verifyConfig(cfg *config, expected *config, t *testing.T) {
+	if cfg.ListenAddress != expected.ListenAddress {
+		t.Errorf("ListenAddress=%v, want %v", cfg.ListenAddress, expected.ListenAddress)
+	}
+	if cfg.LogFile != expected.LogFile {
+		t.Errorf("LogFile=%v, want %v", cfg.LogFile, expected.LogFile)
+	}
+	if cfg.JSONLogging != expected.JSONLogging {
+		t.Errorf("JSONLogging=%v, want %v", cfg.JSONLogging, expected.JSONLogging)
+	}
+	if cfg.RekeyThreshold != expected.RekeyThreshold {
+		t.Errorf("RekeyThreshold=%v, want %v", cfg.RekeyThreshold, expected.RekeyThreshold)
+	}
+	if !reflect.DeepEqual(cfg.KeyExchanges, expected.KeyExchanges) {
+		t.Errorf("KeyExchanges=%v, want %v", cfg.KeyExchanges, expected.KeyExchanges)
+	}
+	if !reflect.DeepEqual(cfg.Ciphers, expected.Ciphers) {
+		t.Errorf("Ciphers=%v, want %v", cfg.Ciphers, expected.Ciphers)
+	}
+	if !reflect.DeepEqual(cfg.MACs, expected.MACs) {
+		t.Errorf("MACs=%v, want %v", cfg.MACs, expected.MACs)
+	}
+	if !reflect.DeepEqual(cfg.HostKeys, expected.HostKeys) {
+		t.Errorf("HostKeys=%v, want %v", cfg.HostKeys, expected.HostKeys)
+	}
+	if cfg.NoClientAuth != expected.NoClientAuth {
+		t.Errorf("NoClientAuth=%v, want %v", cfg.NoClientAuth, expected.NoClientAuth)
+	}
+	if cfg.MaxAuthTries != expected.MaxAuthTries {
+		t.Errorf("MaxAuthTries=%v, want %v", cfg.MaxAuthTries, expected.MaxAuthTries)
+	}
+	if !reflect.DeepEqual(cfg.PasswordAuth, expected.PasswordAuth) {
+		t.Errorf("PasswordAuth=%v, want %v", cfg.PasswordAuth, expected.PasswordAuth)
+	}
+	if !reflect.DeepEqual(cfg.PublicKeyAuth, expected.PublicKeyAuth) {
+		t.Errorf("PublicKeyAuth=%v, want %v", cfg.PublicKeyAuth, expected.PublicKeyAuth)
+	}
+	if !reflect.DeepEqual(cfg.KeyboardInteractiveAuth, expected.KeyboardInteractiveAuth) {
+		t.Errorf("KeyboardInteractiveAuth=%v, want %v", cfg.KeyboardInteractiveAuth, expected.KeyboardInteractiveAuth)
+	}
+	if cfg.ServerVersion != expected.ServerVersion {
+		t.Errorf("ServerVersion=%v, want %v", cfg.ServerVersion, expected.ServerVersion)
+	}
+	if cfg.Banner != expected.Banner {
+		t.Errorf("Banner=%v, want %v", cfg.Banner, expected.Banner)
+	}
+
+	if cfg.sshConfig.RekeyThreshold != expected.RekeyThreshold {
+		t.Errorf("sshConfig.RekeyThreshold=%v, want %v", cfg.sshConfig.RekeyThreshold, expected.RekeyThreshold)
+	}
+	if !reflect.DeepEqual(cfg.sshConfig.KeyExchanges, expected.KeyExchanges) {
+		t.Errorf("sshConfig.KeyExchanges=%v, want %v", cfg.sshConfig.KeyExchanges, expected.KeyExchanges)
+	}
+	if !reflect.DeepEqual(cfg.sshConfig.Ciphers, expected.Ciphers) {
+		t.Errorf("sshConfig.Ciphers=%v, want %v", cfg.sshConfig.Ciphers, expected.Ciphers)
+	}
+	if !reflect.DeepEqual(cfg.sshConfig.MACs, expected.MACs) {
+		t.Errorf("sshConfig.MACs=%v, want %v", cfg.sshConfig.MACs, expected.MACs)
+	}
+	if cfg.sshConfig.NoClientAuth != expected.NoClientAuth {
+		t.Errorf("sshConfig.NoClientAuth=%v, want %v", cfg.sshConfig.NoClientAuth, expected.NoClientAuth)
+	}
+	if cfg.sshConfig.MaxAuthTries != expected.MaxAuthTries {
+		t.Errorf("sshConfig.MaxAuthTries=%v, want %v", cfg.sshConfig.MaxAuthTries, expected.MaxAuthTries)
+	}
+	if (cfg.sshConfig.PasswordCallback != nil) != expected.PasswordAuth.Enabled {
+		t.Errorf("sshConfig.PasswordCallback=%v, want %v", cfg.sshConfig.PasswordCallback != nil, expected.PasswordAuth.Enabled)
+	}
+	if (cfg.sshConfig.PublicKeyCallback != nil) != expected.PublicKeyAuth.Enabled {
+		t.Errorf("sshConfig.PasswordCallback=%v, want %v", cfg.sshConfig.PublicKeyCallback != nil, expected.PublicKeyAuth.Enabled)
+	}
+	if (cfg.sshConfig.KeyboardInteractiveCallback != nil) != expected.KeyboardInteractiveAuth.Enabled {
+		t.Errorf("sshConfig.KeyboardInteractiveCallback=%v, want %v", cfg.sshConfig.KeyboardInteractiveCallback != nil, expected.KeyboardInteractiveAuth.Enabled)
+	}
+	if cfg.sshConfig.AuthLogCallback == nil {
+		t.Errorf("sshConfig.AuthLogCallback=nil, want a callback")
+	}
+	if cfg.sshConfig.ServerVersion != expected.ServerVersion {
+		t.Errorf("sshConfig.ServerVersion=%v, want %v", cfg.sshConfig.ServerVersion, expected.ServerVersion)
+	}
+	if (cfg.sshConfig.BannerCallback != nil) != (expected.Banner != "") {
+		t.Errorf("sshConfig.BannerCallback=%v, want %v", cfg.sshConfig.BannerCallback != nil, expected.Banner != "")
+	}
+	if cfg.sshConfig.GSSAPIWithMICConfig != nil {
+		t.Errorf("sshConfig.GSSAPIWithMICConfig=%v, want nil", cfg.sshConfig.GSSAPIWithMICConfig)
+	}
+	if len(cfg.parsedHostKeys) != len(expected.HostKeys) {
+		t.Errorf("len(parsedHostKeys)=%v, want %v", len(cfg.parsedHostKeys), len(expected.HostKeys))
+	}
+
+	if expected.LogFile == "" {
+		if logrus.StandardLogger().Out != os.Stdout {
+			t.Errorf("logrus.StandardLogger().Out=%v, want %v (os.Stdout)", logrus.StandardLogger().Out, os.Stdout)
+		}
+		if cfg.logFileHandle != nil {
+			t.Errorf("logFileHandle=%v, want nil", cfg.logFileHandle)
+		}
+	} else {
+		if logrus.StandardLogger().Out == os.Stdout {
+			t.Errorf("logrus.StandardLogger().Out=%v (os.Stdout), want a file", logrus.StandardLogger().Out)
+		}
+		if cfg.logFileHandle != logrus.StandardLogger().Out {
+			t.Errorf("logFileHandle=%v, want %v", cfg.logFileHandle, logrus.StandardLogger().Out)
+		}
+	}
+	if expected.JSONLogging {
+		if _, ok := logrus.StandardLogger().Formatter.(*logrus.JSONFormatter); !ok {
+			t.Errorf("Type of logrus.StandardLogger().Formatter=%T, want *logrus.JSONFormatter", logrus.StandardLogger().Formatter)
+		}
+	} else {
+		if _, ok := logrus.StandardLogger().Formatter.(*logrus.TextFormatter); !ok {
+			t.Errorf("Type of logrus.StandardLogger().Formatter=%T, want *logrus.TextFormatter", logrus.StandardLogger().Formatter)
+		}
+	}
+}
+
 func TestDefaultConfig(t *testing.T) {
-	dataDir := t.TempDir()
-	cfg, err := getConfig("", dataDir)
+	dataDir := "test"
+	key := &mockKeyType{}
+	log.SetOutput(ioutil.Discard)
+	cfg, err := getConfig("", dataDir, key)
+	log.SetOutput(os.Stderr)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
-	expectedConfig := config{
+	expectedConfig := &config{
 		ListenAddress: "127.0.0.1:2022",
 		HostKeys: []string{
 			path.Join(dataDir, "host_rsa_key"),
@@ -27,113 +234,27 @@ func TestDefaultConfig(t *testing.T) {
 			path.Join(dataDir, "host_ed25519_key"),
 		},
 		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "This is an SSH honeypot. Everything is logged and monitored.\r\n",
+		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
 	}
 	expectedConfig.PasswordAuth.Enabled = true
 	expectedConfig.PasswordAuth.Accepted = true
 	expectedConfig.PublicKeyAuth.Enabled = true
-	if !reflect.DeepEqual(*cfg, expectedConfig) {
-		t.Fatalf("Default getConfig() = %+v, want %+v", *cfg, expectedConfig)
-	}
-	for _, hostKeyFileName := range cfg.HostKeys {
-		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
-		if err != nil {
-			t.Fatalf("Failed to read host key %v: %v", hostKeyFileName, err)
-		}
-		signer, err := ssh.ParsePrivateKey(hostKeyBytes)
-		if err != nil {
-			t.Fatalf("Failed to parse host key %v: %v", hostKeyFileName, err)
-		}
-		expectedKeyType, ok := map[string]string{"host_rsa_key": "ssh-rsa", "host_ecdsa_key": "ecdsa-sha2-nistp256", "host_ed25519_key": "ssh-ed25519"}[path.Base(hostKeyFileName)]
-		if !ok {
-			t.Fatalf("Unexpected key file name %v", hostKeyFileName)
-		}
-		if signer.PublicKey().Type() != expectedKeyType {
-			t.Fatalf("host key type = %v, want %v", signer.PublicKey().Type(), expectedKeyType)
-		}
-	}
-
-	sshServerConfig, err := cfg.createSSHServerConfig()
-	if err != nil {
-		t.Fatalf("Failed to create SSH server config: %v", err)
-	}
-	if sshServerConfig.AuthLogCallback == nil {
-		t.Fatalf("sshServerConfig.AuthLogCallback = nil, want a callback")
-	}
-	if sshServerConfig.BannerCallback == nil {
-		t.Fatalf("sshServerConfig.BannerCallback = nil, want a callback")
-	}
-	if len(sshServerConfig.Ciphers) != 0 {
-		t.Fatalf("len(sshServerConfig.Ciphers) = %v, want 0", len(sshServerConfig.Ciphers))
-	}
-	if sshServerConfig.GSSAPIWithMICConfig != nil {
-		t.Fatalf("sshServerConfig.GSSAPIWithMICConfig = %+v, want nil", sshServerConfig.GSSAPIWithMICConfig)
-	}
-	if len(sshServerConfig.KeyExchanges) != 0 {
-		t.Fatalf("len(sshServerConfig.KeyExchanges) = %v, want 0", len(sshServerConfig.KeyExchanges))
-	}
-	if sshServerConfig.KeyboardInteractiveCallback != nil {
-		t.Fatalf("sshServerConfig.KeyboardInteractiveCallback != nil, want nil")
-	}
-	if len(sshServerConfig.MACs) != 0 {
-		t.Fatalf("len(sshServerConfig.MACs) = %v, want 0", len(sshServerConfig.MACs))
-	}
-	if sshServerConfig.MaxAuthTries != 0 {
-		t.Fatalf("sshServerConfig.MaxAuthTries = %v, want 0", sshServerConfig.MaxAuthTries)
-	}
-	if sshServerConfig.NoClientAuth == true {
-		t.Fatalf("sshServerConfig.NoClientAuth = true, want false")
-	}
-	if sshServerConfig.PasswordCallback == nil {
-		t.Fatalf("sshServerConfig.PasswordCallback = nil, want a callback")
-	}
-	if sshServerConfig.PublicKeyCallback == nil {
-		t.Fatalf("sshServerConfig.PublicKeyCallback = nil, want a callback")
-	}
-	if sshServerConfig.Rand != nil {
-		t.Fatalf("sshServerConfig.Rand = %v, want a nil", sshServerConfig.Rand)
-	}
-	if sshServerConfig.RekeyThreshold != 0 {
-		t.Fatalf("sshServerConfig.RekeyThreshold = %v, want 0", sshServerConfig.RekeyThreshold)
-	}
-	if sshServerConfig.ServerVersion != "SSH-2.0-sshesame" {
-		t.Fatalf("sshServerConfig.ServerVersion = %v, want SSH-2.0-sshesame", sshServerConfig.ServerVersion)
-	}
-	if len(cfg.hostKeys) != 3 {
-		t.Fatalf("len(cfg.hostKeys) = %v, want 3", len(cfg.hostKeys))
-	}
-
-	logFile, err := cfg.setupLogging()
-	if err != nil {
-		t.Fatalf("Failed to setup logging: %v", err)
-	}
-	if logFile != nil {
-		defer logFile.Close()
-		t.Fatalf("cfg.setupLogging() = %v, want nil", logFile)
-	}
-	if logrus.StandardLogger().Out != os.Stdout {
-		t.Fatalf("logrus.StandardLogger().Out = %v, want %v", logrus.StandardLogger().Out, os.Stdout)
-	}
-	if _, ok := logrus.StandardLogger().Formatter.(*logrus.TextFormatter); !ok {
-		t.Fatalf("Type of logrus.StandardLogger().Formatter = %T, want *logrus.TextFormatter", logrus.StandardLogger().Formatter)
-	}
+	verifyConfig(cfg, expectedConfig, t)
+	key.verifyDefaultKeys(dataDir, t)
 }
 
-func TestUserConfigNoKeys(t *testing.T) {
-	configFileName := path.Join(t.TempDir(), "no_keys.yaml")
-	logFileName := path.Join(t.TempDir(), "sshesame.log")
-	if err := ioutil.WriteFile(configFileName, []byte(fmt.Sprintf(`
+func TestUserConfigDefaultKeys(t *testing.T) {
+	logFile := path.Join(t.TempDir(), "test.log")
+	cfgString := fmt.Sprintf(`
 listenaddress: 0.0.0.0:22
-jsonlogging: true
 logfile: %v
+jsonlogging: true
 rekeythreshold: 123
 keyexchanges: [kex]
 ciphers: [cipher]
 macs: [mac]
 noclientauth: true
 maxauthtries: 234
-serverversion: SSH-2.0-test
-banner:
 passwordauth:
   enabled: false
   accepted: false
@@ -143,225 +264,144 @@ publickeyauth:
 keyboardinteractiveauth:
   enabled: true
   accepted: true
-  instruction: instruction1
+  instruction: instruction
   questions:
   - text: q1
     echo: true
   - text: q2
-    echo: false`, logFileName)), 0644); err != nil {
-		t.Fatalf("Failed to write config file: %v", err)
-	}
-	dataDir := path.Join(t.TempDir(), "subdir")
-	cfg, err := getConfig(configFileName, dataDir)
+    echo: false
+serverversion: SSH-2.0-test
+banner:
+`, logFile)
+	dataDir := "test"
+	key := &mockKeyType{}
+	log.SetOutput(ioutil.Discard)
+	cfg, err := getConfig(cfgString, dataDir, key)
+	log.SetOutput(os.Stderr)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
-	expectedConfig := config{
-		ListenAddress: "0.0.0.0:22",
-		HostKeys: []string{
-			path.Join(dataDir, "host_rsa_key"),
-			path.Join(dataDir, "host_ecdsa_key"),
-			path.Join(dataDir, "host_ed25519_key"),
-		},
+	expectedConfig := &config{
+		ListenAddress:  "0.0.0.0:22",
+		LogFile:        logFile,
 		JSONLogging:    true,
-		LogFile:        logFileName,
 		RekeyThreshold: 123,
 		KeyExchanges:   []string{"kex"},
 		Ciphers:        []string{"cipher"},
 		MACs:           []string{"mac"},
 		NoClientAuth:   true,
-		MaxAuthTries:   234,
-		ServerVersion:  "SSH-2.0-test",
-		Banner:         "",
+		HostKeys: []string{
+			path.Join(dataDir, "host_rsa_key"),
+			path.Join(dataDir, "host_ecdsa_key"),
+			path.Join(dataDir, "host_ed25519_key"),
+		},
+		MaxAuthTries:  234,
+		ServerVersion: "SSH-2.0-test",
 	}
 	expectedConfig.PublicKeyAuth.Accepted = true
-	expectedConfig.KeyboardInteractiveAuth.Enabled = true
 	expectedConfig.KeyboardInteractiveAuth.Accepted = true
-	expectedConfig.KeyboardInteractiveAuth.Instruction = "instruction1"
-	expectedConfig.KeyboardInteractiveAuth.Questions = make([]struct {
-		Text string
-		Echo bool
-	}, 2)
-	expectedConfig.KeyboardInteractiveAuth.Questions[0].Text = "q1"
-	expectedConfig.KeyboardInteractiveAuth.Questions[0].Echo = true
-	expectedConfig.KeyboardInteractiveAuth.Questions[1].Text = "q2"
-	expectedConfig.KeyboardInteractiveAuth.Questions[1].Echo = false
-	if !reflect.DeepEqual(*cfg, expectedConfig) {
-		t.Fatalf("Default getConfig() = %+v, want %+v", *cfg, expectedConfig)
+	expectedConfig.KeyboardInteractiveAuth.Enabled = true
+	expectedConfig.KeyboardInteractiveAuth.Instruction = "instruction"
+	expectedConfig.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+		{"q1", true},
+		{"q2", false},
 	}
-	for _, hostKeyFileName := range cfg.HostKeys {
-		hostKeyBytes, err := ioutil.ReadFile(hostKeyFileName)
-		if err != nil {
-			t.Fatalf("Failed to read host key %v: %v", hostKeyFileName, err)
-		}
-		signer, err := ssh.ParsePrivateKey(hostKeyBytes)
-		if err != nil {
-			t.Fatalf("Failed to parse host key %v: %v", hostKeyFileName, err)
-		}
-		expectedKeyType, ok := map[string]string{"host_rsa_key": "ssh-rsa", "host_ecdsa_key": "ecdsa-sha2-nistp256", "host_ed25519_key": "ssh-ed25519"}[path.Base(hostKeyFileName)]
-		if !ok {
-			t.Fatalf("Unexpected key file name %v", hostKeyFileName)
-		}
-		if signer.PublicKey().Type() != expectedKeyType {
-			t.Fatalf("host key type = %v, want %v", signer.PublicKey().Type(), expectedKeyType)
-		}
-	}
-
-	sshServerConfig, err := cfg.createSSHServerConfig()
-	if err != nil {
-		t.Fatalf("Failed to create SSH server config: %v", err)
-	}
-	if sshServerConfig.AuthLogCallback == nil {
-		t.Fatalf("sshServerConfig.AuthLogCallback = nil, want a callback")
-	}
-	if sshServerConfig.BannerCallback != nil {
-		t.Fatalf("sshServerConfig.BannerCallback != nil, want nil")
-	}
-	if !reflect.DeepEqual(sshServerConfig.Ciphers, []string{"cipher"}) {
-		t.Fatalf("sshServerConfig.Ciphers = %v, want %v", sshServerConfig.Ciphers, []string{"cipher1"})
-	}
-	if sshServerConfig.GSSAPIWithMICConfig != nil {
-		t.Fatalf("sshServerConfig.GSSAPIWithMICConfig = %+v, want nil", sshServerConfig.GSSAPIWithMICConfig)
-	}
-	if !reflect.DeepEqual(sshServerConfig.KeyExchanges, []string{"kex"}) {
-		t.Fatalf("sshServerConfig.KeyExchanges = %v, want %v", len(sshServerConfig.KeyExchanges), []string{"kex1"})
-	}
-	if sshServerConfig.KeyboardInteractiveCallback == nil {
-		t.Fatalf("sshServerConfig.KeyboardInteractiveCallback = nil, want a callback")
-	}
-	if !reflect.DeepEqual(sshServerConfig.MACs, []string{"mac"}) {
-		t.Fatalf("sshServerConfig.MACs = %v, want %v", len(sshServerConfig.MACs), []string{"mac1"})
-	}
-	if sshServerConfig.MaxAuthTries != 234 {
-		t.Fatalf("sshServerConfig.MaxAuthTries = %v, want 234", sshServerConfig.MaxAuthTries)
-	}
-	if sshServerConfig.NoClientAuth == false {
-		t.Fatalf("sshServerConfig.NoClientAuth = false, want true")
-	}
-	if sshServerConfig.PasswordCallback != nil {
-		t.Fatalf("sshServerConfig.PasswordCallback != nil, want nil")
-	}
-	if sshServerConfig.PublicKeyCallback != nil {
-		t.Fatalf("sshServerConfig.PublicKeyCallback != nil, want nil")
-	}
-	if sshServerConfig.Rand != nil {
-		t.Fatalf("sshServerConfig.Rand = %v, want a nil", sshServerConfig.Rand)
-	}
-	if sshServerConfig.RekeyThreshold != 123 {
-		t.Fatalf("sshServerConfig.RekeyThreshold = %v, want 123", sshServerConfig.RekeyThreshold)
-	}
-	if sshServerConfig.ServerVersion != "SSH-2.0-test" {
-		t.Fatalf("sshServerConfig.ServerVersion = %v, want SSH-2.0-test", sshServerConfig.ServerVersion)
-	}
-	if len(cfg.hostKeys) != 3 {
-		t.Fatalf("len(cfg.hostKeys) = %v, want 3", len(cfg.hostKeys))
-	}
-
-	logFile, err := cfg.setupLogging()
-	if err != nil {
-		t.Fatalf("Failed to setup logging: %v", err)
-	}
-	if logFile == nil {
-		t.Fatalf("cfg.setupLogging() = nil, want a file")
-	}
-	defer logFile.Close()
-	if logrus.StandardLogger().Out != logFile {
-		t.Fatalf("logrus.StandardLogger().Out = %v, want %v", logrus.StandardLogger().Out, os.Stdout)
-	}
-	if _, ok := logrus.StandardLogger().Formatter.(*logrus.JSONFormatter); !ok {
-		t.Fatalf("Type of logrus.StandardLogger().Formatter = %T, want *logrus.JSONFormatter", logrus.StandardLogger().Formatter)
-	}
+	verifyConfig(cfg, expectedConfig, t)
+	key.verifyDefaultKeys(dataDir, t)
 }
 
-func TestUserConfigWithKeys(t *testing.T) {
-	configFileName := path.Join(t.TempDir(), "no_keys.yaml")
-	if err := ioutil.WriteFile(configFileName, []byte(`
-hostkeys: [/some/key, /some/other/key]
-banner: |-
-  Hey
-  Yo!`), 0644); err != nil {
-		t.Fatalf("Failed to write config file: %v", err)
-	}
-	dataDir := t.TempDir()
-	cfg, err := getConfig(configFileName, dataDir)
+func TestUserConfigCustomKeys(t *testing.T) {
+	keyFile := "rsa.key"
+	cfgString := fmt.Sprintf(`
+hostkeys: [%v]
+`, keyFile)
+	dataDir := "test"
+	key := &mockKeyType{map[string]keySignature{keyFile: rsa_key}}
+	cfg, err := getConfig(cfgString, dataDir, key)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
-	expectedConfig := config{
+	expectedConfig := &config{
 		ListenAddress: "127.0.0.1:2022",
-		HostKeys:      []string{"/some/key", "/some/other/key"},
+		HostKeys:      []string{keyFile},
 		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "Hey\r\nYo!\r\n",
+		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
 	}
 	expectedConfig.PasswordAuth.Enabled = true
 	expectedConfig.PasswordAuth.Accepted = true
 	expectedConfig.PublicKeyAuth.Enabled = true
-	if !reflect.DeepEqual(*cfg, expectedConfig) {
-		t.Fatalf("Default getConfig() = %+v, want %+v", *cfg, expectedConfig)
+	verifyConfig(cfg, expectedConfig, t)
+	expectedKeys := map[string]keySignature{
+		keyFile: rsa_key,
 	}
-	files, err := ioutil.ReadDir(dataDir)
-	if err != nil {
-		t.Fatalf("Failed to list directory %v: %v", dataDir, err)
-	}
-	if len(files) != 0 {
-		t.Fatalf("number of files in the data directory = %v, want 0", len(files))
-	}
-
-	sshServerConfig, err := cfg.createSSHServerConfig()
-	if err == nil {
-		log.Fatalf("SSH server config creation expected to fail (host keys don't exist) but didn't. Config: %+v", sshServerConfig)
-	}
-
-	logFile, err := cfg.setupLogging()
-	if err != nil {
-		t.Fatalf("Failed to setup logging: %v", err)
-	}
-	if logFile != nil {
-		defer logFile.Close()
-		t.Fatalf("cfg.setupLogging() = %v, want nil", logFile)
-	}
-	if logrus.StandardLogger().Out != os.Stdout {
-		t.Fatalf("logrus.StandardLogger().Out = %v, want %v", logrus.StandardLogger().Out, os.Stdout)
-	}
-	if _, ok := logrus.StandardLogger().Formatter.(*logrus.TextFormatter); !ok {
-		t.Fatalf("Type of logrus.StandardLogger().Formatter = %T, want *logrus.TextFormatter", logrus.StandardLogger().Formatter)
+	if !reflect.DeepEqual(key.keys, expectedKeys) {
+		t.Errorf("key.keys=%v, want %v", key.keys, expectedKeys)
 	}
 }
 
-func TestNewLogFile(t *testing.T) {
-	logFileName := path.Join(t.TempDir(), "new.log")
-	if _, err := os.Stat(logFileName); err == nil {
-		t.Fatalf("os.Stat(logFile) = %v, want an error", err)
+func TestSetupLoggingOldHandleClosed(t *testing.T) {
+	file := &mockFile{}
+	cfg := &config{logFileHandle: file}
+	if err := cfg.setupLogging(); err != nil {
+		t.Fatalf("Failed to set up logging: %v", err)
 	}
-	cfg := config{LogFile: logFileName}
-	logFile, err := cfg.setupLogging()
-	if err != nil {
-		t.Fatalf("Failed to setup logging: %v", err)
-	}
-	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
-	logrus.Infoln("test")
-	logFile.Close()
-	logs, err := ioutil.ReadFile(logFileName)
-	if err != nil || string(logs) != "level=info msg=test\n" {
-		t.Fatalf("ioutil.ReadFile(logFileName) = %v, %v, want \"level=info msg=test\n\", nil", string(logs), err)
+	if !file.closed {
+		t.Errorf("file.closed=false, want true")
 	}
 }
 
-func TestExistingLogFile(t *testing.T) {
-	logFileName := path.Join(t.TempDir(), "existing.log")
-	if err := ioutil.WriteFile(logFileName, []byte("previous_test\n"), 0644); err != nil {
-		t.Fatalf("Failed to write config file: %v", err)
+func TestPKCS8fileKey(t *testing.T) {
+	baseDir := t.TempDir()
+	for signature, keyType := range map[keySignature]string{
+		rsa_key:     "ssh-rsa",
+		ecdsa_key:   "ecdsa-sha2-nistp256",
+		ed25519_key: "ssh-ed25519",
+	} {
+		dataDir := path.Join(baseDir, keyType)
+		log.SetOutput(ioutil.Discard)
+		keyFile, err := pkcs8fileKey{}.generate(dataDir, signature)
+		log.SetOutput(os.Stderr)
+		if err != nil {
+			t.Fatalf("Failed to generate key: %v", err)
+		}
+		signer, err := pkcs8fileKey{}.load(keyFile)
+		if err != nil {
+			t.Fatalf("Failed to load key: %v", err)
+		}
+		files, err := ioutil.ReadDir(dataDir)
+		if err != nil {
+			t.Fatalf("Failed to list directory: %v", err)
+		}
+		if len(files) != 1 {
+			t.Errorf("len(files)=%v, want 1", len(files))
+		}
+		if signer.PublicKey().Type() != keyType {
+			t.Errorf("signer.PublicKey().Type()=%v, want %v", signer.PublicKey().Type(), keyType)
+		}
 	}
-	cfg := config{LogFile: logFileName}
-	logFile, err := cfg.setupLogging()
+}
+
+func TestExistingPKCS8fileKey(t *testing.T) {
+	dataDir := t.TempDir()
+	log.SetOutput(ioutil.Discard)
+	oldKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
+	log.SetOutput(os.Stderr)
 	if err != nil {
-		t.Fatalf("Failed to setup logging: %v", err)
+		t.Fatalf("Failed to generate key: %v", err)
 	}
-	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
-	logrus.Infoln("test")
-	logFile.Close()
-	logs, err := ioutil.ReadFile(logFileName)
-	if err != nil || string(logs) != "previous_test\nlevel=info msg=test\n" {
-		t.Fatalf("ioutil.ReadFile(logFileName) = %v, %v, want \"level=info msg=test\n\", nil", string(logs), err)
+	oldKey, err := ioutil.ReadFile(oldKeyFile)
+	if err != nil {
+		t.Fatalf("Failed to read key: %v", err)
+	}
+	newKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+	newKey, err := ioutil.ReadFile(newKeyFile)
+	if err != nil {
+		t.Fatalf("Failed to read key: %v", err)
+	}
+	if !reflect.DeepEqual(oldKey, newKey) {
+		t.Errorf("oldKey!=newKey")
 	}
 }
