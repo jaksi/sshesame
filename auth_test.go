@@ -227,7 +227,6 @@ func TestKeyboardInteractiveCallbackError(t *testing.T) {
 		return nil, errors.New("")
 	})
 	log.SetOutput(os.Stderr)
-
 	logs := logBuffer.String()
 	if err == nil {
 		t.Errorf("err=nil, want an error")
