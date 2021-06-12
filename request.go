@@ -28,7 +28,7 @@ func (payload tcpipRequestPayload) String() string {
 
 var globalRequestPayloadParsers = map[string]requestPayloadParser{
 	"tcpip-forward": func(data []byte) (requestPayload, error) {
-		payload := tcpipRequestPayload{}
+		payload := &tcpipRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
@@ -214,13 +214,13 @@ func (payload signalRequestPayload) String() string {
 
 var channelRequestPayloadParsers = map[string]requestPayloadParser{
 	"pty-req": func(data []byte) (requestPayload, error) {
-		payload := ptyRequestPayload{}
+		payload := &ptyRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
-		parsedPayload := parsedPTYRequestPayload{payload, map[uint8]uint32{}}
+		parsedPayload := parsedPTYRequestPayload{*payload, map[uint8]uint32{}}
 		modeBytes := []byte(payload.Modes)
-		for i := 0; i < len(modeBytes); i += 5 {
+		for i := 0; i+4 < len(modeBytes); i += 5 {
 			opcode := modeBytes[i]
 			if opcode >= 160 {
 				break
@@ -232,42 +232,42 @@ var channelRequestPayloadParsers = map[string]requestPayloadParser{
 	},
 	"shell": func(data []byte) (requestPayload, error) { return nil, nil },
 	"x11-req": func(data []byte) (requestPayload, error) {
-		payload := x11RequestPayload{}
+		payload := &x11RequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
 	"env": func(data []byte) (requestPayload, error) {
-		payload := envRequestPayload{}
+		payload := &envRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
 	"exec": func(data []byte) (requestPayload, error) {
-		payload := execRequestPayload{}
+		payload := &execRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
 	"subsystem": func(data []byte) (requestPayload, error) {
-		payload := subsystemRequestPayload{}
+		payload := &subsystemRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
 	"window-change": func(data []byte) (requestPayload, error) {
-		payload := windowChangeRequestPayload{}
+		payload := &windowChangeRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
 	"signal": func(data []byte) (requestPayload, error) {
-		payload := signalRequestPayload{}
+		payload := &signalRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}

@@ -383,7 +383,9 @@ func TestPKCS8fileKey(t *testing.T) {
 
 func TestExistingPKCS8fileKey(t *testing.T) {
 	dataDir := t.TempDir()
+	log.SetOutput(ioutil.Discard)
 	oldKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
+	log.SetOutput(os.Stderr)
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
 	}
