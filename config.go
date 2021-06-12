@@ -22,36 +22,37 @@ import (
 )
 
 type authConfig struct {
-	Enabled, Accepted bool
+	Enabled  bool `yaml:"enabled"`
+	Accepted bool `yaml:"accepted"`
 }
 
 type keyboardInteractiveAuthQuestion struct {
-	Text string
-	Echo bool
+	Text string `yaml:"text"`
+	Echo bool   `yaml:"echo"`
 }
 
 type keyboardInteractiveAuthConfig struct {
 	authConfig  `yaml:",inline"`
-	Instruction string
-	Questions   []keyboardInteractiveAuthQuestion
+	Instruction string                            `yaml:"instruction"`
+	Questions   []keyboardInteractiveAuthQuestion `yaml:"questions"`
 }
 
 type config struct {
-	ListenAddress           string
-	LogFile                 string
-	JSONLogging             bool
-	RekeyThreshold          uint64
-	KeyExchanges            []string
-	Ciphers                 []string
-	MACs                    []string
-	HostKeys                []string
-	NoClientAuth            bool
-	MaxAuthTries            int
-	PasswordAuth            authConfig
-	PublicKeyAuth           authConfig
-	KeyboardInteractiveAuth keyboardInteractiveAuthConfig
-	ServerVersion           string
-	Banner                  string
+	ListenAddress           string                        `yaml:"listen_address"`
+	LogFile                 string                        `yaml:"log_file"`
+	JSONLogging             bool                          `yaml:"json_logging"`
+	RekeyThreshold          uint64                        `yaml:"rekey_threshold"`
+	KeyExchanges            []string                      `yaml:"key_exchanges"`
+	Ciphers                 []string                      `yaml:"ciphers"`
+	MACs                    []string                      `yaml:"macs"`
+	HostKeys                []string                      `yaml:"host_keys"`
+	NoClientAuth            bool                          `yaml:"no_client_auth"`
+	MaxAuthTries            int                           `yaml:"max_auth_tries"`
+	PasswordAuth            authConfig                    `yaml:"password_auth"`
+	PublicKeyAuth           authConfig                    `yaml:"public_key_auth"`
+	KeyboardInteractiveAuth keyboardInteractiveAuthConfig `yaml:"keyboard_interactive_auth"`
+	ServerVersion           string                        `yaml:"server_version"`
+	Banner                  string                        `yaml:"banner"`
 
 	parsedHostKeys []ssh.Signer
 	sshConfig      *ssh.ServerConfig
@@ -67,7 +68,6 @@ func getDefaultConfig() *config {
 	cfg.PasswordAuth.Enabled = true
 	cfg.PasswordAuth.Accepted = true
 	cfg.PublicKeyAuth.Enabled = true
-	cfg.PublicKeyAuth.Accepted = false
 	return cfg
 }
 
