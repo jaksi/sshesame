@@ -11,7 +11,7 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 ### From source
 
 ```
-go get github.com/jaksi/sshesame
+go install github.com/jaksi/sshesame
 ```
 
 ## Usage
