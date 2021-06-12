@@ -246,22 +246,22 @@ func TestDefaultConfig(t *testing.T) {
 func TestUserConfigDefaultKeys(t *testing.T) {
 	logFile := path.Join(t.TempDir(), "test.log")
 	cfgString := fmt.Sprintf(`
-listenaddress: 0.0.0.0:22
-logfile: %v
-jsonlogging: true
-rekeythreshold: 123
-keyexchanges: [kex]
+listen_address: 0.0.0.0:22
+log_file: %v
+json_logging: true
+rekey_threshold: 123
+key_exchanges: [kex]
 ciphers: [cipher]
 macs: [mac]
-noclientauth: true
-maxauthtries: 234
-passwordauth:
+no_client_auth: true
+max_auth_tries: 234
+password_auth:
   enabled: false
   accepted: false
-publickeyauth:
+public_key_auth:
   enabled: false
   accepted: true
-keyboardinteractiveauth:
+keyboard_interactive_auth:
   enabled: true
   accepted: true
   instruction: instruction
@@ -270,7 +270,7 @@ keyboardinteractiveauth:
     echo: true
   - text: q2
     echo: false
-serverversion: SSH-2.0-test
+server_version: SSH-2.0-test
 banner:
 `, logFile)
 	dataDir := "test"
@@ -313,7 +313,7 @@ banner:
 func TestUserConfigCustomKeys(t *testing.T) {
 	keyFile := "rsa.key"
 	cfgString := fmt.Sprintf(`
-hostkeys: [%v]
+host_keys: [%v]
 `, keyFile)
 	dataDir := "test"
 	key := &mockKeyType{map[string]keySignature{keyFile: rsa_key}}

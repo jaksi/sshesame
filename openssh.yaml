@@ -1,2 +1,2 @@
-serverversion: SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2
+server_version: SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2
 banner:
