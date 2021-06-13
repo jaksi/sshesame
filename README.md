@@ -6,18 +6,21 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 [![asciicast](https://asciinema.org/a/V099PxjofAz16XwRxdqUDWAJv.svg)](https://asciinema.org/a/V099PxjofAz16XwRxdqUDWAJv)
 
-## Installation
+## Installation and usage
 
 ### From source
 
 ```
 go get github.com/jaksi/sshesame
-```
-
-## Usage
-
-```
 sshesame [-config sshesame.yaml] [-data_dir /etc/sshesame]
+```
+
+### Docker
+
+Images are automatically pushed to [Docker Hub](https://hub.docker.com/repository/docker/jaksi/sshesame).
+
+```
+docker run -it --rm -p 2022:2022 -v sshesame-data:/data [-v $PWD/sshesame.yaml:/config.yaml] jaksi/sshesame
 ```
 
 ### Configuration
