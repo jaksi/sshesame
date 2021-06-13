@@ -34,6 +34,13 @@ var globalRequestPayloadParsers = map[string]requestPayloadParser{
 		}
 		return payload, nil
 	},
+	"cancel-tcpip-forward": func(data []byte) (requestPayload, error) {
+		payload := &tcpipRequestPayload{}
+		if err := ssh.Unmarshal(data, payload); err != nil {
+			return nil, err
+		}
+		return payload, nil
+	},
 }
 
 func handleGlobalRequests(requests <-chan *ssh.Request, metadata connMetadata) {
@@ -66,9 +73,9 @@ func handleGlobalRequests(requests <-chan *ssh.Request, metadata connMetadata) {
 
 		if request.WantReply {
 			var response []byte
-			switch payload := payload.(type) {
-			case *tcpipRequestPayload:
-				if payload.Port == 0 {
+			switch request.Type {
+			case "tcpip-forward":
+				if payload.(*tcpipRequestPayload).Port == 0 {
 					response = ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
 				}
 			}
