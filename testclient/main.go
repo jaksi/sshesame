@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
-	"errors"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -10,25 +8,6 @@ import (
 
 	"golang.org/x/crypto/ssh"
 )
-
-func UnmarshalStrings(data []byte) ([]string, error) {
-	result := make([]string, 0)
-	for {
-		if len(data) == 0 {
-			return result, nil
-		}
-		if len(data) < 4 {
-			return nil, errors.New("ran out of bytes")
-		}
-		size := binary.BigEndian.Uint32(data[:4])
-		current := &struct{ Content string }{}
-		if err := ssh.Unmarshal(data[:size+4], current); err != nil {
-			return nil, err
-		}
-		result = append(result, current.Content)
-		data = data[size+4:]
-	}
-}
 
 func main() {
 	addr := flag.String("addr", "127.0.0.1:22", "")
@@ -39,9 +18,16 @@ func main() {
 	flag.Parse()
 
 	config := &ssh.ClientConfig{
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		User:            *user,
-		ClientVersion:   *clientVersion,
+		User: *user,
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			log.Printf("host key\n  %#v\n  %#v\n  %#v\n", hostname, remote, key)
+			return nil
+		},
+		BannerCallback: func(message string) error {
+			log.Printf("banner\n  %#v\n", message)
+			return nil
+		},
+		ClientVersion: *clientVersion,
 	}
 	if *password != "" {
 		config.Auth = append(config.Auth, ssh.Password(*password))
@@ -70,27 +56,19 @@ func main() {
 	}
 	defer sshClientConn.Close()
 
+	if _, _, err := sshClientConn.SendRequest("no-more-sessions@openssh.com", false, nil); err != nil {
+		log.Panicln(err)
+	}
+
 	go func() {
 		for request := range requests {
-			log.Printf("Global request received: %+v\n", request)
-			switch request.Type {
-			case "hostkeys-00@openssh.com":
-				hostKeys, err := UnmarshalStrings(request.Payload)
-				if err != nil {
-					log.Panicln(err)
-				}
-				for _, hostKey := range hostKeys {
-					publicKey, err := ssh.ParsePublicKey([]byte(hostKey))
-					if err != nil {
-						log.Panicln(err)
-					}
-					log.Printf("Host key: %+v\n", publicKey)
-				}
-			}
+			log.Printf("global request\n  %#v\n  %#v\n  %#v\n", request.Type, request.WantReply, request.Payload)
 		}
 	}()
 
-	for channel := range channels {
-		log.Printf("New channel requested: %+v\n", channel)
-	}
+	go func() {
+		for channel := range channels {
+			log.Printf("channel\n  %#v\n", channel)
+		}
+	}()
 }
