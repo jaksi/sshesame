@@ -7,11 +7,10 @@ on:
       - master
   pull_request:
 jobs:
-  build:
+  test:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-  test:
     name: test
     runs-on: ${{ matrix.os }}
     steps:
