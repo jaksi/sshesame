@@ -17,13 +17,13 @@ go get github.com/jaksi/sshesame
 ## Usage
 
 ```
-sshesame [-config sshesame.yaml]
+sshesame [-config sshesame.yaml] [-data_dir /etc/sshesame]
 ```
 
 ### Configuration
 
 A configuration file can optionally be passed using the `-config` flag.
-Without using one, sane defaults will be used and RSA, ECDSA and Ed25519 host keys will be generated and stored.
+Without specifying one, sane defaults will be used and RSA, ECDSA and Ed25519 host keys will be generated and stored in the directory specified in the `-data_dir` flag.
 
 A [sample configuration file](sshesame.yaml) with explanations for the configuration options is included.
 A [minimal configuration file](openssh.yaml) which tries to mimic an OpenSSH server is also included.

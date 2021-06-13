@@ -5,4 +5,4 @@ RUN go get -d
 RUN go build -o /go/bin/sshesame
 FROM gcr.io/distroless/base
 COPY --from=build-env /go/bin/sshesame /
-CMD ["/sshesame"]
+CMD ["/sshesame", "-data_dir", "/data"]

@@ -12,6 +12,7 @@ import (
 
 func main() {
 	configFile := flag.String("config", "", "config file")
+	dataDir := flag.String("data_dir", path.Join(xdg.DataHome, "sshesame"), "data directory")
 	flag.Parse()
 
 	configString := ""
@@ -23,7 +24,7 @@ func main() {
 		configString = string(configBytes)
 	}
 
-	cfg, err := getConfig(configString, path.Join(xdg.DataHome, "sshesame"), pkcs8fileKey{})
+	cfg, err := getConfig(configString, *dataDir, pkcs8fileKey{})
 	if err != nil {
 		log.Fatalln("Failed to get config:", err)
 	}
