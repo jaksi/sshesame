@@ -278,6 +278,9 @@ banner:
 	log.SetOutput(ioutil.Discard)
 	cfg, err := getConfig(cfgString, dataDir, key)
 	log.SetOutput(os.Stderr)
+	if cfg.logFileHandle != nil {
+		cfg.logFileHandle.Close()
+	}
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
