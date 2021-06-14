@@ -10,6 +10,19 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type channelMetadata struct {
+	connMetadata
+	channelID   int
+	channelType string
+}
+
+func (metadata channelMetadata) getLogEntry() *logrus.Entry {
+	return metadata.connMetadata.getLogEntry().WithFields(logrus.Fields{
+		"channel_id":   metadata.channelID,
+		"channel_type": metadata.channelType,
+	})
+}
+
 type channelData fmt.Stringer
 
 type channelDataParser func(data []byte) (channelData, error)
@@ -57,7 +70,6 @@ func handleNewChannel(newChannel ssh.NewChannel, metadata channelMetadata) {
 		channelDataString = base64.RawStdEncoding.EncodeToString(newChannel.ExtraData())
 	}
 	metadata.getLogEntry().WithFields(logrus.Fields{
-		"channel_type":       newChannel.ChannelType(),
 		"channel_extra_data": channelDataString,
 		"accepted":           accept,
 	}).Infoln("New channel requested")

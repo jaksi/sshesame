@@ -219,66 +219,68 @@ func (payload signalRequestPayload) String() string {
 	return payload.Signal
 }
 
-var channelRequestPayloadParsers = map[string]requestPayloadParser{
-	"pty-req": func(data []byte) (requestPayload, error) {
-		payload := &ptyRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		parsedPayload := parsedPTYRequestPayload{*payload, map[uint8]uint32{}}
-		modeBytes := []byte(payload.Modes)
-		for i := 0; i+4 < len(modeBytes); i += 5 {
-			opcode := modeBytes[i]
-			if opcode >= 160 {
-				break
+var channelRequestPayloadParsers = map[string]map[string]requestPayloadParser{
+	"session": {
+		"pty-req": func(data []byte) (requestPayload, error) {
+			payload := &ptyRequestPayload{}
+			if err := ssh.Unmarshal(data, payload); err != nil {
+				return nil, err
 			}
-			argument := binary.BigEndian.Uint32(modeBytes[i+1 : i+5])
-			parsedPayload.parsedModes[opcode] = argument
-		}
-		return parsedPayload, nil
-	},
-	"shell": func(data []byte) (requestPayload, error) { return nil, nil },
-	"x11-req": func(data []byte) (requestPayload, error) {
-		payload := &x11RequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"env": func(data []byte) (requestPayload, error) {
-		payload := &envRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"exec": func(data []byte) (requestPayload, error) {
-		payload := &execRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"subsystem": func(data []byte) (requestPayload, error) {
-		payload := &subsystemRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"window-change": func(data []byte) (requestPayload, error) {
-		payload := &windowChangeRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"signal": func(data []byte) (requestPayload, error) {
-		payload := &signalRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
+			parsedPayload := parsedPTYRequestPayload{*payload, map[uint8]uint32{}}
+			modeBytes := []byte(payload.Modes)
+			for i := 0; i+4 < len(modeBytes); i += 5 {
+				opcode := modeBytes[i]
+				if opcode >= 160 {
+					break
+				}
+				argument := binary.BigEndian.Uint32(modeBytes[i+1 : i+5])
+				parsedPayload.parsedModes[opcode] = argument
+			}
+			return parsedPayload, nil
+		},
+		"shell": func(data []byte) (requestPayload, error) { return nil, nil },
+		"x11-req": func(data []byte) (requestPayload, error) {
+			payload := &x11RequestPayload{}
+			if err := ssh.Unmarshal(data, payload); err != nil {
+				return nil, err
+			}
+			return payload, nil
+		},
+		"env": func(data []byte) (requestPayload, error) {
+			payload := &envRequestPayload{}
+			if err := ssh.Unmarshal(data, payload); err != nil {
+				return nil, err
+			}
+			return payload, nil
+		},
+		"exec": func(data []byte) (requestPayload, error) {
+			payload := &execRequestPayload{}
+			if err := ssh.Unmarshal(data, payload); err != nil {
+				return nil, err
+			}
+			return payload, nil
+		},
+		"subsystem": func(data []byte) (requestPayload, error) {
+			payload := &subsystemRequestPayload{}
+			if err := ssh.Unmarshal(data, payload); err != nil {
+				return nil, err
+			}
+			return payload, nil
+		},
+		"window-change": func(data []byte) (requestPayload, error) {
+			payload := &windowChangeRequestPayload{}
+			if err := ssh.Unmarshal(data, payload); err != nil {
+				return nil, err
+			}
+			return payload, nil
+		},
+		"signal": func(data []byte) (requestPayload, error) {
+			payload := &signalRequestPayload{}
+			if err := ssh.Unmarshal(data, payload); err != nil {
+				return nil, err
+			}
+			return payload, nil
+		},
 	},
 }
 
@@ -286,7 +288,7 @@ func handleChannelRequests(requests <-chan *ssh.Request, metadata channelMetadat
 	for request := range requests {
 		accept := true
 		var payload requestPayload
-		if parser := channelRequestPayloadParsers[request.Type]; parser == nil {
+		if parser := channelRequestPayloadParsers[metadata.channelType][request.Type]; parser == nil {
 			log.Println("Unsupported channel request type", request.Type)
 			accept = false
 		} else {
