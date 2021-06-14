@@ -1,12 +1,26 @@
 package main
 
 import (
+	"encoding/base64"
 	"log"
 	"net"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
+
+type connMetadata struct {
+	ssh.ConnMetadata
+}
+
+func (metadata connMetadata) getLogEntry() *logrus.Entry {
+	return logrus.WithFields(logrus.Fields{
+		"client_version": string(metadata.ClientVersion()),
+		"session_id":     base64.RawStdEncoding.EncodeToString(metadata.SessionID()),
+		"user":           metadata.User(),
+		"remote_address": metadata.RemoteAddr().String(),
+	})
+}
 
 func handleConnection(conn net.Conn, cfg *config) {
 	logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
@@ -32,7 +46,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 
 	channelID := 0
 	for newChannel := range newChannels {
-		go handleNewChannel(newChannel, channelMetadata{metadata, channelID})
+		go handleNewChannel(newChannel, channelMetadata{metadata, channelID, newChannel.ChannelType()})
 		channelID++
 	}
 }
