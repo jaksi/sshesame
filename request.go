@@ -43,48 +43,45 @@ var globalRequestPayloadParsers = map[string]requestPayloadParser{
 	},
 }
 
-func handleGlobalRequests(requests <-chan *ssh.Request, metadata connMetadata) {
-	for request := range requests {
-		accept := true
-		var payload requestPayload
-		if parser := globalRequestPayloadParsers[request.Type]; parser == nil {
-			log.Println("Unsupported global request type", request.Type)
-			accept = false
-		} else {
-			var err error
-			payload, err = parser(request.Payload)
-			if err != nil {
-				log.Println("Failed to parse global request payload", err)
-				accept = false
-			}
-		}
-		var payloadString string
-		if payload != nil {
-			payloadString = fmt.Sprint(payload)
-		} else {
-			payloadString = base64.RawStdEncoding.EncodeToString(request.Payload)
-		}
-		metadata.getLogEntry().WithFields(logrus.Fields{
-			"request_payload":    payloadString,
-			"request_type":       request.Type,
-			"request_want_reply": request.WantReply,
-			"accepted":           accept,
-		}).Infoln("Global request received")
-
-		if request.WantReply {
-			var response []byte
-			switch request.Type {
-			case "tcpip-forward":
-				if payload.(*tcpipRequestPayload).Port == 0 {
-					response = ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
-				}
-			}
-			if err := request.Reply(accept, response); err != nil {
-				log.Println("Failed to reply to global request:", err)
-				continue
-			}
+func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
+	accept := true
+	var payload requestPayload
+	if parser := globalRequestPayloadParsers[request.Type]; parser == nil {
+		log.Println("Unsupported global request type", request.Type)
+		accept = false
+	} else {
+		var err error
+		payload, err = parser(request.Payload)
+		if err != nil {
+			return err
 		}
 	}
+	var payloadString string
+	if payload != nil {
+		payloadString = fmt.Sprint(payload)
+	} else {
+		payloadString = base64.RawStdEncoding.EncodeToString(request.Payload)
+	}
+	metadata.getLogEntry().WithFields(logrus.Fields{
+		"request_payload":    payloadString,
+		"request_type":       request.Type,
+		"request_want_reply": request.WantReply,
+		"accepted":           accept,
+	}).Infoln("Global request received")
+
+	if request.WantReply {
+		var response []byte
+		switch request.Type {
+		case "tcpip-forward":
+			if payload.(*tcpipRequestPayload).Port == 0 {
+				response = ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
+			}
+		}
+		if err := request.Reply(accept, response); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type ptyRequestPayload struct {
@@ -284,48 +281,39 @@ var channelRequestPayloadParsers = map[string]map[string]requestPayloadParser{
 	},
 }
 
-func handleChannelRequests(requests <-chan *ssh.Request, metadata channelMetadata) {
-	for request := range requests {
-		accept := true
-		var payload requestPayload
-		if parser := channelRequestPayloadParsers[metadata.channelType][request.Type]; parser == nil {
-			log.Println("Unsupported channel request type", request.Type)
-			accept = false
-		} else {
-			var err error
-			payload, err = parser(request.Payload)
-			if err != nil {
-				log.Println("Failed to parse channel request payload", err)
-				accept = false
-			}
-		}
-		var payloadString string
-		if payload != nil {
-			payloadString = fmt.Sprint(payload)
-		} else {
-			payloadString = base64.RawStdEncoding.EncodeToString(request.Payload)
-		}
-		metadata.getLogEntry().WithFields(logrus.Fields{
-			"request_payload":    payloadString,
-			"request_type":       request.Type,
-			"request_want_reply": request.WantReply,
-			"accepted":           accept,
-		}).Infoln("Channel request received")
-
-		if request.WantReply {
-			var response []byte
-			switch payload := payload.(type) {
-			case *tcpipRequestPayload:
-				if payload.Port == 0 {
-					response = ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
-				}
-			}
-			if err := request.Reply(accept, response); err != nil {
-				log.Println("Failed to reply to channel request:", err)
-				continue
-			}
+func handleChannelRequest(request *ssh.Request, metadata channelMetadata) error {
+	accept := true
+	var payload requestPayload
+	if parser := channelRequestPayloadParsers[metadata.channelType][request.Type]; parser == nil {
+		log.Println("Unsupported channel request type", request.Type)
+		accept = false
+	} else {
+		var err error
+		payload, err = parser(request.Payload)
+		if err != nil {
+			return err
 		}
 	}
+	var payloadString string
+	if payload != nil {
+		payloadString = fmt.Sprint(payload)
+	} else {
+		payloadString = base64.RawStdEncoding.EncodeToString(request.Payload)
+	}
+	metadata.getLogEntry().WithFields(logrus.Fields{
+		"request_payload":    payloadString,
+		"request_type":       request.Type,
+		"request_want_reply": request.WantReply,
+		"accepted":           accept,
+	}).Infoln("Channel request received")
+
+	if request.WantReply {
+		var response []byte
+		if err := request.Reply(accept, response); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func createHostkeysRequestPayload(keys []ssh.Signer) []byte {

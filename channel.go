@@ -89,7 +89,14 @@ func handleNewChannel(newChannel ssh.NewChannel, metadata channelMetadata) {
 	defer channel.Close()
 	defer metadata.getLogEntry().Infoln("Channel closed")
 
-	go handleChannelRequests(requests, metadata)
+	go func() {
+		for request := range requests {
+			if err := handleChannelRequest(request, metadata); err != nil {
+				log.Println("Failed to handle channel request:", err)
+				channel.Close()
+			}
+		}
+	}()
 
 	channelInput := make(chan string)
 	defer close(channelInput)
