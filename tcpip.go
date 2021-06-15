@@ -1,17 +1,41 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"net/http/httputil"
+	"io"
+	"net"
+	"time"
 
+	"github.com/valyala/fasthttp"
 	"golang.org/x/crypto/ssh"
 )
 
+type channelConn struct {
+	ssh.Channel
+}
+
+func (conn channelConn) LocalAddr() net.Addr {
+	return &net.IPAddr{IP: net.IPv4(127, 0, 0, 1)}
+}
+
+func (conn channelConn) RemoteAddr() net.Addr {
+	return &net.IPAddr{IP: net.IPv4(127, 0, 0, 1)}
+}
+
+func (conn channelConn) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (conn channelConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (conn channelConn) SetWriteDeadline(t time.Time) error {
+	return nil
+}
+
 type server interface {
-	handle(channel ssh.Channel, input chan<- string) error
+	handle(conn channelConn, input chan<- string) error
 }
 
 var servers = map[uint32]server{
@@ -23,25 +47,27 @@ func handleTCPIPChannel(channel ssh.Channel, port uint32, input chan<- string) e
 	if server == nil {
 		return fmt.Errorf("unsupported port %v", port)
 	}
-	return server.handle(channel, input)
+	return server.handle(channelConn{channel}, input)
 }
 
 type httpServer struct{}
 
-func (httpServer) handle(channel ssh.Channel, input chan<- string) error {
-	request, err := http.ReadRequest(bufio.NewReader(channel))
-	if err != nil {
-		return err
+func (httpServer) handle(conn channelConn, input chan<- string) error {
+	server := fasthttp.Server{
+		Handler: func(ctx *fasthttp.RequestCtx) {
+			input <- ctx.Request.String()
+			ctx.SetStatusCode(404)
+		},
+		NoDefaultServerHeader: true,
+		NoDefaultDate:         true,
+		NoDefaultContentType:  true,
 	}
-	requestBytes, err := httputil.DumpRequest(request, true)
-	if err != nil {
-		return err
+	for {
+		if err := server.ServeConn(conn); err != nil {
+			if err != io.EOF {
+				return err
+			}
+			return nil
+		}
 	}
-	input <- string(requestBytes)
-	responseRecorder := httptest.NewRecorder()
-	http.NotFound(responseRecorder, request)
-	if err := responseRecorder.Result().Write(channel); err != nil {
-		return err
-	}
-	return nil
 }

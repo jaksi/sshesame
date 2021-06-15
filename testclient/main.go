@@ -162,5 +162,5 @@ func main() {
 	}
 	log.Printf(">direct-tcpip data <HTTP request>\n")
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(5 * time.Second)
 }
