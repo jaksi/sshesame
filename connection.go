@@ -53,7 +53,12 @@ func handleConnection(conn net.Conn, cfg *config) {
 
 	channelID := 0
 	for newChannel := range newChannels {
-		go handleNewChannel(newChannel, channelMetadata{metadata, channelID, newChannel.ChannelType()})
+		go func() {
+			if err := handleNewChannel(newChannel, channelMetadata{metadata, channelID, newChannel.ChannelType()}); err != nil {
+				log.Println("Failed to handle new channel:", err)
+				serverConn.Close()
+			}
+		}()
 		channelID++
 	}
 }
