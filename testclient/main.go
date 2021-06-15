@@ -123,6 +123,13 @@ func main() {
 	}
 	log.Printf(">request cancel-tcpip-forward\n")
 
+	/*time.Sleep(100 * time.Millisecond)
+	_, _, err = sshClientConn.OpenChannel("direct-tcpip", []byte("nope"))
+	if err == nil {
+		log.Panicln(err)
+	}
+	log.Printf(">channel direct-tcpip nope\n")*/
+
 	time.Sleep(100 * time.Millisecond)
 	tcpChannel, tcpRequests, err := sshClientConn.OpenChannel("direct-tcpip", ssh.Marshal(struct {
 		address           string

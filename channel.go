@@ -49,7 +49,7 @@ var channelDataParsers = map[string]channelDataParser{
 	},
 }
 
-func handleNewChannel(newChannel ssh.NewChannel, metadata channelMetadata) {
+func handleNewChannel(newChannel ssh.NewChannel, metadata channelMetadata) error {
 	accept := true
 	var data channelData
 	if parser := channelDataParsers[newChannel.ChannelType()]; parser == nil {
@@ -59,8 +59,7 @@ func handleNewChannel(newChannel ssh.NewChannel, metadata channelMetadata) {
 		var err error
 		data, err = parser(newChannel.ExtraData())
 		if err != nil {
-			log.Println("Failed to parse channel data:", err)
-			accept = false
+			return err
 		}
 	}
 	var channelDataString string
@@ -75,16 +74,12 @@ func handleNewChannel(newChannel ssh.NewChannel, metadata channelMetadata) {
 	}).Infoln("New channel requested")
 
 	if !accept {
-		if err := newChannel.Reject(ssh.Prohibited, ""); err != nil {
-			log.Println("Failed to reject new channel:", err)
-		}
-		return
+		return newChannel.Reject(ssh.Prohibited, "")
 	}
 
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
-		log.Println("Failed to accept new channel:", err)
-		return
+		return err
 	}
 	defer channel.Close()
 	defer metadata.getLogEntry().Infoln("Channel closed")
@@ -112,12 +107,6 @@ func handleNewChannel(newChannel ssh.NewChannel, metadata channelMetadata) {
 		err = handleTCPIPChannel(channel, data.(*tcpipChannelData).Port, channelInput)
 	case "session":
 		err = handleSessionChannel(channel, channelInput)
-	default:
-		log.Println("Unsupported channel type", newChannel.ChannelType())
-		return
 	}
-	if err != nil {
-		log.Println("Failed to read from channel:", err)
-		return
-	}
+	return err
 }
