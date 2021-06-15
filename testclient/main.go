@@ -62,7 +62,7 @@ func main() {
 	if _, _, err := sshClientConn.SendRequest("no-more-sessions@openssh.com", false, nil); err != nil {
 		log.Panicln(err)
 	}
-	log.Printf(">no-more-sessions")
+	log.Printf(">no-more-sessions\n")
 
 	go func() {
 		for request := range requests {
@@ -85,6 +85,13 @@ func main() {
 		log.Panicln(err)
 	}
 	log.Printf(">request nope\n  %#v\n  %#v\n", accepted, reply)
+
+	/*time.Sleep(100 * time.Millisecond)
+	_, _, err = sshClientConn.SendRequest("tcpip-forward", true, []byte("nope"))
+	if err != io.EOF {
+		log.Panicln(err)
+	}
+	log.Printf(">request tcpip-forward nope\n")*/
 
 	time.Sleep(100 * time.Millisecond)
 	accepted, reply, err = sshClientConn.SendRequest("tcpip-forward", true, ssh.Marshal(struct {

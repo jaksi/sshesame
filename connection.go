@@ -42,7 +42,14 @@ func handleConnection(conn net.Conn, cfg *config) {
 		return
 	}
 
-	go handleGlobalRequests(requests, metadata)
+	go func() {
+		for request := range requests {
+			if err := handleGlobalRequest(request, metadata); err != nil {
+				log.Println("Failed to handle global request:", err)
+				serverConn.Close()
+			}
+		}
+	}()
 
 	channelID := 0
 	for newChannel := range newChannels {
