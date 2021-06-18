@@ -2,14 +2,116 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"flag"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"time"
 
 	"golang.org/x/crypto/ssh"
 )
+
+type sshChannel struct {
+	ssh.Channel
+	name string
+}
+
+func sendGlobalRequset(conn ssh.Conn, name string, wantReply bool, payload []byte) {
+	time.Sleep(500 * time.Millisecond)
+	accepted, response, err := conn.SendRequest(name, wantReply, payload)
+	fmt.Printf(">global request %v\n  %#v\n  %#v\n", name, accepted, response)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChannel {
+	time.Sleep(500 * time.Millisecond)
+	channel, requests, err := conn.OpenChannel(name, data)
+	fmt.Printf(">channel %v\n", name)
+	if success {
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		if err == nil {
+			panic(err)
+		}
+		return nil
+	}
+	if err != nil {
+		if success {
+			panic(err)
+		} else {
+			return nil
+		}
+	}
+	go func() {
+		for request := range requests {
+			fmt.Printf("<channel %v request\n  %#v\n  %#v\n  %#v\n", name, request.Type, request.WantReply, request.Payload)
+			if request.WantReply {
+				panic("WantReply")
+			}
+		}
+		fmt.Printf("<close channel %v requests\n", name)
+	}()
+	go func() {
+		scanner := bufio.NewScanner(channel)
+		for scanner.Scan() {
+			fmt.Printf("<channel %v stdout\n  %#v\n", name, scanner.Text())
+		}
+		fmt.Printf("<close channel %v stdout\n", name)
+		if err := scanner.Err(); err != nil {
+			panic(err)
+		}
+	}()
+	go func() {
+		scanner := bufio.NewScanner(channel.Stderr())
+		for scanner.Scan() {
+			fmt.Printf("<channel %v stderr\n  %#v\n", name, scanner.Text())
+		}
+		fmt.Printf("<close channel %v stderr\n", name)
+		if err := scanner.Err(); err != nil {
+			panic(err)
+		}
+	}()
+	return &sshChannel{channel, name}
+}
+
+func (channel *sshChannel) sendRequset(name string, wantReply bool, payload []byte) {
+	time.Sleep(500 * time.Millisecond)
+	accepted, err := channel.SendRequest(name, wantReply, payload)
+	fmt.Printf(">channel %v request %v\n  %#v\n", channel.name, name, accepted)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (channel *sshChannel) write(data string, close bool) {
+	time.Sleep(500 * time.Millisecond)
+	_, err := channel.Write([]byte(data))
+	fmt.Printf(">channel %v data\n  %#v\n", channel.name, data)
+	if err != nil {
+		panic(err)
+	}
+	if close {
+		err = channel.CloseWrite()
+		fmt.Printf(">closewrite channel %v\n", channel.name)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (channel *sshChannel) close() {
+	time.Sleep(500 * time.Millisecond)
+	err := channel.Close()
+	fmt.Printf(">close channel %v\n", channel.name)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 	addr := flag.String("addr", "127.0.0.1:22", "")
@@ -22,11 +124,11 @@ func main() {
 	config := &ssh.ClientConfig{
 		User: *user,
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			log.Printf("<host key\n  %#v\n", key)
+			fmt.Printf("<host key\n  %#v\n", key)
 			return nil
 		},
 		BannerCallback: func(message string) error {
-			log.Printf("<banner\n  %#v\n", message)
+			fmt.Printf("<banner\n  %#v\n", message)
 			return nil
 		},
 		ClientVersion: *clientVersion,
@@ -37,144 +139,132 @@ func main() {
 	if *key != "" {
 		keyBytes, err := ioutil.ReadFile(*key)
 		if err != nil {
-			log.Panicln(err)
+			panic(err)
 		}
 		signer, err := ssh.ParsePrivateKey(keyBytes)
 		if err != nil {
-			log.Panicln(err)
+			panic(err)
 		}
 		config.Auth = append(config.Auth, ssh.PublicKeys(signer))
 	}
 
 	conn, err := net.Dial("tcp", *addr)
 	if err != nil {
-		log.Panicln(err)
+		panic(err)
 	}
 	defer conn.Close()
 
 	sshClientConn, channels, requests, err := ssh.NewClientConn(conn, *addr, config)
 	if err != nil {
-		log.Panicln(err)
+		panic(err)
 	}
 	defer sshClientConn.Close()
-	log.Printf(">connect\n  %#v\n", string(sshClientConn.ServerVersion()))
-
-	if _, _, err := sshClientConn.SendRequest("no-more-sessions@openssh.com", false, nil); err != nil {
-		log.Panicln(err)
-	}
-	log.Printf(">no-more-sessions\n")
+	fmt.Printf(">connect\n  %#v\n", string(sshClientConn.ServerVersion()))
 
 	go func() {
 		for request := range requests {
-			log.Printf("<global request\n  %#v\n  %#v\n  %#v\n", request.Type, request.WantReply, request.Payload)
+			fmt.Printf("<global request\n  %#v\n  %#v\n  %#v\n", request.Type, request.WantReply, request.Payload)
 			if request.WantReply {
-				log.Panicln("WantReply")
+				panic("WantReply")
 			}
 		}
+		fmt.Printf("<close global requests\n")
 	}()
 
 	go func() {
 		for channel := range channels {
-			log.Panicf("<channel\n  %#v\n", channel)
+			panic(channel)
 		}
+		fmt.Printf("<close channels\n")
 	}()
 
-	time.Sleep(100 * time.Millisecond)
-	accepted, reply, err := sshClientConn.SendRequest("nope", true, nil)
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.Printf(">request nope\n  %#v\n  %#v\n", accepted, reply)
+	sendGlobalRequset(sshClientConn, "nope", true, []byte("nope"))
 
-	/*time.Sleep(100 * time.Millisecond)
-	_, _, err = sshClientConn.SendRequest("tcpip-forward", true, []byte("nope"))
-	if err != io.EOF {
-		log.Panicln(err)
-	}
-	log.Printf(">request tcpip-forward nope\n")*/
+	// Causes the connection to close
+	// sendGlobalRequset(sshClientConn, "tcpip-forward", true, []byte("nope"))
 
-	time.Sleep(100 * time.Millisecond)
-	accepted, reply, err = sshClientConn.SendRequest("tcpip-forward", true, ssh.Marshal(struct {
+	sendGlobalRequset(sshClientConn, "tcpip-forward", true, ssh.Marshal(struct {
 		string
 		uint32
 	}{"127.0.0.1", 1234}))
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.Printf(">request tcpip-forward\n  %#v\n  %#v\n", accepted, reply)
 
-	time.Sleep(100 * time.Millisecond)
-	accepted, reply, err = sshClientConn.SendRequest("tcpip-forward", true, ssh.Marshal(struct {
+	sendGlobalRequset(sshClientConn, "tcpip-forward", true, ssh.Marshal(struct {
 		string
 		uint32
 	}{"127.0.0.1", 0}))
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.Printf(">request tcpip-forward 0\n  %#v\n  %#v\n", accepted, reply)
 
-	time.Sleep(100 * time.Millisecond)
-	_, _, err = sshClientConn.SendRequest("cancel-tcpip-forward", false, ssh.Marshal(struct {
-		address string
-		port    uint32
+	sendGlobalRequset(sshClientConn, "cancel-tcpip-forward", true, ssh.Marshal(struct {
+		string
+		uint32
 	}{"127.0.0.1", 1234}))
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.Printf(">request cancel-tcpip-forward\n")
 
-	/*time.Sleep(100 * time.Millisecond)
-	_, _, err = sshClientConn.OpenChannel("direct-tcpip", []byte("nope"))
-	if err == nil {
-		log.Panicln(err)
-	}
-	log.Printf(">channel direct-tcpip nope\n")*/
+	openChannel(sshClientConn, "nope", []byte("nope"), false)
 
-	time.Sleep(100 * time.Millisecond)
-	tcpChannel, tcpRequests, err := sshClientConn.OpenChannel("direct-tcpip", ssh.Marshal(struct {
+	// Causes the connection to close
+	// openChannel(sshClientConn, "direct-tcpip", []byte("nope"), false)
+
+	tcpipChannel := openChannel(sshClientConn, "direct-tcpip", ssh.Marshal(struct {
 		address           string
 		port              uint32
 		originatorAddress string
 		originatorPort    uint32
-	}{"github.com", 80, "127.0.0.1", 8080}))
+	}{"github.com", 80, "127.0.0.1", 8080}), true)
+
+	tcpipChannel.sendRequset("shell", true, nil)
+
+	tcpipChannel.write("GET / HTTP/1.1\r\nHost: github.com\r\n\r\n", false)
+
+	tcpipChannel.close()
+
+	sessionChannel := openChannel(sshClientConn, "session", nil, true)
+
+	// Blocks indefinitely
+	// sessionChannel.write("foo")
+
+	sessionChannel.sendRequset("nope", true, []byte("nope"))
+
+	// Causes the connection to close
+	// sessionChannel.sendRequset("exec", true, []byte("nope"))
+
+	sessionChannel.sendRequset("exec", true, ssh.Marshal(struct {
+		command string
+	}{"true"}))
+
+	sessionChannel = openChannel(sshClientConn, "session", nil, true)
+
+	sessionChannel.sendRequset("shell", true, nil)
+
+	sessionChannel.write("true\nfalse\nuname", true)
+
+	sessionChannel = openChannel(sshClientConn, "session", nil, true)
+
+	terminalModes, err := base64.RawStdEncoding.DecodeString("gQAAJYCAAAAlgAEAAAADAgAAABwDAAAAfwQAAAAVBQAAAAQGAAAA/wcAAAD/CAAAABEJAAAAEwoAAAAaCwAAABkMAAAAEg0AAAAXDgAAABYRAAAAFBIAAAAPHgAAAAAfAAAAACAAAAAAIQAAAAAiAAAAACMAAAAAJAAAAAEmAAAAACcAAAABKAAAAAApAAAAASoAAAABMgAAAAEzAAAAATUAAAABNgAAAAE3AAAAADgAAAAAOQAAAAA6AAAAADsAAAABPAAAAAE9AAAAAT4AAAAARgAAAAFIAAAAAUkAAAAASgAAAABLAAAAAFoAAAABWwAAAAFcAAAAAF0AAAAAAA")
 	if err != nil {
-		log.Panicln(err)
+		panic(err)
 	}
-	defer tcpChannel.Close()
-	log.Printf(">channel direct-tcpip\n")
+	sessionChannel.sendRequset("pty-req", true, ssh.Marshal(struct {
+		Term                                   string
+		Width, Height, PixelWidth, PixelHeight uint32
+		Modes                                  string
+	}{"xterm-256color", 120, 80, 0, 0, string(terminalModes)}))
 
-	go func() {
-		for request := range tcpRequests {
-			log.Printf("<direct-tcpip request\n  %#v\n  %#v\n  %#v\n", request.Type, request.WantReply, request.Payload)
-			if request.WantReply {
-				log.Panicln("WantReply")
-			}
-		}
-		log.Printf("<direct-tcpip requests done\n")
-	}()
-	go func() {
-		scanner := bufio.NewScanner(tcpChannel)
-		for scanner.Scan() {
-			log.Printf("<direct-tcpip data\n  %#v\n", scanner.Text())
-		}
-		if err := scanner.Err(); err != nil {
-			log.Panicln(err)
-		}
-		log.Printf("<direct-tcpip data done\n")
-	}()
+	sessionChannel.sendRequset("shell", true, nil)
 
-	time.Sleep(100 * time.Millisecond)
-	accepted, err = tcpChannel.SendRequest("shell", true, nil)
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.Printf(">direct-tcpip request shell\n  %#v\n", accepted)
+	sessionChannel.sendRequset("pty-req", true, ssh.Marshal(struct {
+		Term                                   string
+		Width, Height, PixelWidth, PixelHeight uint32
+		Modes                                  string
+	}{"xterm-256color", 120, 80, 0, 0, string(terminalModes)}))
 
-	time.Sleep(100 * time.Millisecond)
-	if _, err := tcpChannel.Write([]byte("GET / HTTP/1.1\r\nHost: github.com\r\n\r\n")); err != nil {
-		log.Panicln(err)
-	}
-	log.Printf(">direct-tcpip data <HTTP request>\n")
+	sessionChannel.sendRequset("exec", true, ssh.Marshal(struct {
+		command string
+	}{"true"}))
+
+	sessionChannel.write("true\nfalse\nuname\n", true)
+
+	sendGlobalRequset(sshClientConn, "no-more-sessions@openssh.com", false, nil)
+
+	openChannel(sshClientConn, "session", nil, false)
 
 	time.Sleep(5 * time.Second)
 }

@@ -208,14 +208,6 @@ func (payload windowChangeRequestPayload) String() string {
 	return fmt.Sprintf("%vx%v (%vx%v px)", payload.Width, payload.Height, payload.PixelWidth, payload.PixelHeight)
 }
 
-type signalRequestPayload struct {
-	Signal string
-}
-
-func (payload signalRequestPayload) String() string {
-	return payload.Signal
-}
-
 var channelRequestPayloadParsers = map[string]map[string]requestPayloadParser{
 	"session": {
 		"pty-req": func(data []byte) (requestPayload, error) {
@@ -266,13 +258,6 @@ var channelRequestPayloadParsers = map[string]map[string]requestPayloadParser{
 		},
 		"window-change": func(data []byte) (requestPayload, error) {
 			payload := &windowChangeRequestPayload{}
-			if err := ssh.Unmarshal(data, payload); err != nil {
-				return nil, err
-			}
-			return payload, nil
-		},
-		"signal": func(data []byte) (requestPayload, error) {
-			payload := &signalRequestPayload{}
 			if err := ssh.Unmarshal(data, payload); err != nil {
 				return nil, err
 			}
