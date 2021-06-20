@@ -22,9 +22,27 @@ func (metadata connMetadata) getLogEntry() *logrus.Entry {
 	})
 }
 
+type channelMetadata struct {
+	connMetadata
+	channelID   int
+	channelType string
+}
+
+func (metadata channelMetadata) getLogEntry() *logrus.Entry {
+	return metadata.connMetadata.getLogEntry().WithFields(logrus.Fields{
+		"channel_id":   metadata.channelID,
+		"channel_type": metadata.channelType,
+	})
+}
+
+var channelHandlers = map[string]func(newChannel ssh.NewChannel, metadata channelMetadata) error{
+	"session":      handleSessionChannel,
+	"direct-tcpip": handleDirectTCPIPChannel,
+}
+
 func handleConnection(conn net.Conn, cfg *config) {
-	logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
 	defer conn.Close()
+	logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
 	defer logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection closed")
 	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
@@ -32,7 +50,6 @@ func handleConnection(conn net.Conn, cfg *config) {
 		return
 	}
 	defer serverConn.Close()
-
 	metadata := connMetadata{serverConn}
 	metadata.getLogEntry().Infoln("SSH connection established")
 	defer metadata.getLogEntry().Infoln("SSH connection closed")
@@ -53,8 +70,18 @@ func handleConnection(conn net.Conn, cfg *config) {
 
 	channelID := 0
 	for newChannel := range newChannels {
+		channelType := newChannel.ChannelType()
+		handler := channelHandlers[channelType]
+		if handler == nil {
+			log.Println("Unsupported channel type", channelType)
+			if err := newChannel.Reject(ssh.UnknownChannelType, "open failed"); err != nil {
+				log.Println("Failed to reject channel:", err)
+				break
+			}
+			continue
+		}
 		go func() {
-			if err := handleNewChannel(newChannel, channelMetadata{metadata, channelID, newChannel.ChannelType()}); err != nil {
+			if err := handler(newChannel, channelMetadata{metadata, channelID, channelType}); err != nil {
 				log.Println("Failed to handle new channel:", err)
 				serverConn.Close()
 			}

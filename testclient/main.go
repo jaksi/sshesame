@@ -177,6 +177,16 @@ func main() {
 	// Causes the connection to close (data expected, invalid data sent)
 	// sendGlobalRequset(sshClientConn, "tcpip-forward", true, []byte("nope"))
 
+	sendGlobalRequset(sshClientConn, "tcpip-forward", false, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 1234}))
+
+	sendGlobalRequset(sshClientConn, "tcpip-forward", false, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 0}))
+
 	sendGlobalRequset(sshClientConn, "tcpip-forward", true, ssh.Marshal(struct {
 		string
 		uint32
@@ -269,6 +279,8 @@ func main() {
 	}{"xterm-256color", 120, 80, 0, 0, string(terminalModes)}))
 	sessionChannel.sendRequset("shell", true, nil)
 	sessionChannel.write("true\rfalse\runame\r", true)
+
+	sendGlobalRequset(sshClientConn, "no-more-sessions@openssh.com", true, nil)
 
 	sendGlobalRequset(sshClientConn, "no-more-sessions@openssh.com", false, nil)
 
