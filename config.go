@@ -21,7 +21,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type authConfig struct {
+type serverConfig struct {
+	ListenAddress string   `yaml:"listen_address"`
+	HostKeys      []string `yaml:"host_keys"`
+}
+
+type loggingConfig struct {
+	File string `yaml:"file"`
+	JSON bool   `yaml:"json"`
+}
+
+type commonAuthConfig struct {
 	Enabled  bool `yaml:"enabled"`
 	Accepted bool `yaml:"accepted"`
 }
@@ -32,27 +42,33 @@ type keyboardInteractiveAuthQuestion struct {
 }
 
 type keyboardInteractiveAuthConfig struct {
-	authConfig  `yaml:",inline"`
-	Instruction string                            `yaml:"instruction"`
-	Questions   []keyboardInteractiveAuthQuestion `yaml:"questions"`
+	commonAuthConfig `yaml:",inline"`
+	Instruction      string                            `yaml:"instruction"`
+	Questions        []keyboardInteractiveAuthQuestion `yaml:"questions"`
+}
+
+type authConfig struct {
+	MaxTries                int                           `yaml:"max_tries"`
+	NoAuth                  bool                          `yaml:"no_auth"`
+	PasswordAuth            commonAuthConfig              `yaml:"password_auth"`
+	PublicKeyAuth           commonAuthConfig              `yaml:"public_key_auth"`
+	KeyboardInteractiveAuth keyboardInteractiveAuthConfig `yaml:"keyboard_interactive_auth"`
+}
+
+type sshProtoConfig struct {
+	Version        string   `yaml:"version"`
+	Banner         string   `yaml:"banner"`
+	RekeyThreshold uint64   `yaml:"rekey_threshold"`
+	KeyExchanges   []string `yaml:"key_exchanges"`
+	Ciphers        []string `yaml:"ciphers"`
+	MACs           []string `yaml:"macs"`
 }
 
 type config struct {
-	ListenAddress           string                        `yaml:"listen_address"`
-	LogFile                 string                        `yaml:"log_file"`
-	JSONLogging             bool                          `yaml:"json_logging"`
-	RekeyThreshold          uint64                        `yaml:"rekey_threshold"`
-	KeyExchanges            []string                      `yaml:"key_exchanges"`
-	Ciphers                 []string                      `yaml:"ciphers"`
-	MACs                    []string                      `yaml:"macs"`
-	HostKeys                []string                      `yaml:"host_keys"`
-	NoClientAuth            bool                          `yaml:"no_client_auth"`
-	MaxAuthTries            int                           `yaml:"max_auth_tries"`
-	PasswordAuth            authConfig                    `yaml:"password_auth"`
-	PublicKeyAuth           authConfig                    `yaml:"public_key_auth"`
-	KeyboardInteractiveAuth keyboardInteractiveAuthConfig `yaml:"keyboard_interactive_auth"`
-	ServerVersion           string                        `yaml:"server_version"`
-	Banner                  string                        `yaml:"banner"`
+	Server   serverConfig   `yaml:"server"`
+	Logging  loggingConfig  `yaml:"logging"`
+	Auth     authConfig     `yaml:"auth"`
+	SSHProto sshProtoConfig `yaml:"ssh_proto"`
 
 	parsedHostKeys []ssh.Signer
 	sshConfig      *ssh.ServerConfig
@@ -60,14 +76,13 @@ type config struct {
 }
 
 func getDefaultConfig() *config {
-	cfg := &config{
-		ListenAddress: "127.0.0.1:2022",
-		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
-	}
-	cfg.PasswordAuth.Enabled = true
-	cfg.PasswordAuth.Accepted = true
-	cfg.PublicKeyAuth.Enabled = true
+	cfg := &config{}
+	cfg.Server.ListenAddress = "127.0.0.1:2022"
+	cfg.Auth.PasswordAuth.Enabled = true
+	cfg.Auth.PasswordAuth.Accepted = true
+	cfg.Auth.PublicKeyAuth.Enabled = true
+	cfg.SSHProto.Version = "SSH-2.0-sshesame"
+	cfg.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
 	return cfg
 }
 
@@ -149,13 +164,13 @@ func (cfg *config) setDefaultHostKeys(dataDir string, key keyType, signatures []
 		if err != nil {
 			return err
 		}
-		cfg.HostKeys = append(cfg.HostKeys, keyFile)
+		cfg.Server.HostKeys = append(cfg.Server.HostKeys, keyFile)
 	}
 	return nil
 }
 
 func (cfg *config) parseHostKeys(key keyType) error {
-	for _, keyFile := range cfg.HostKeys {
+	for _, keyFile := range cfg.Server.HostKeys {
 		signer, err := key.load(keyFile)
 		if err != nil {
 			return err
@@ -168,18 +183,18 @@ func (cfg *config) parseHostKeys(key keyType) error {
 func (cfg *config) setupSSHConfig(key keyType) error {
 	sshConfig := &ssh.ServerConfig{
 		Config: ssh.Config{
-			RekeyThreshold: cfg.RekeyThreshold,
-			KeyExchanges:   cfg.KeyExchanges,
-			Ciphers:        cfg.Ciphers,
-			MACs:           cfg.MACs,
+			RekeyThreshold: cfg.SSHProto.RekeyThreshold,
+			KeyExchanges:   cfg.SSHProto.KeyExchanges,
+			Ciphers:        cfg.SSHProto.Ciphers,
+			MACs:           cfg.SSHProto.MACs,
 		},
-		NoClientAuth:                cfg.NoClientAuth,
-		MaxAuthTries:                cfg.MaxAuthTries,
-		AuthLogCallback:             authLogCallback,
-		ServerVersion:               cfg.ServerVersion,
+		NoClientAuth:                cfg.Auth.NoAuth,
+		MaxAuthTries:                cfg.Auth.MaxTries,
 		PasswordCallback:            cfg.getPasswordCallback(),
 		PublicKeyCallback:           cfg.getPublicKeyCallback(),
 		KeyboardInteractiveCallback: cfg.getKeyboardInteractiveCallback(),
+		AuthLogCallback:             authLogCallback,
+		ServerVersion:               cfg.SSHProto.Version,
 		BannerCallback:              cfg.getBannerCallback(),
 	}
 	if err := cfg.parseHostKeys(key); err != nil {
@@ -196,8 +211,8 @@ func (cfg *config) setupLogging() error {
 	if cfg.logFileHandle != nil {
 		cfg.logFileHandle.Close()
 	}
-	if cfg.LogFile != "" {
-		logFile, err := os.OpenFile(cfg.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if cfg.Logging.File != "" {
+		logFile, err := os.OpenFile(cfg.Logging.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
@@ -207,7 +222,7 @@ func (cfg *config) setupLogging() error {
 		logrus.SetOutput(os.Stdout)
 		cfg.logFileHandle = nil
 	}
-	if cfg.JSONLogging {
+	if cfg.Logging.JSON {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	} else {
 		logrus.SetFormatter(&logrus.TextFormatter{})
@@ -222,7 +237,7 @@ func getConfig(configString string, dataDir string, key keyType) (*config, error
 		return nil, err
 	}
 
-	if len(cfg.HostKeys) == 0 {
+	if len(cfg.Server.HostKeys) == 0 {
 		log.Println("No host keys configured, using keys at", dataDir)
 		if err := cfg.setDefaultHostKeys(dataDir, key, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
 			return nil, err

@@ -29,7 +29,7 @@ func main() {
 		log.Fatalln("Failed to get config:", err)
 	}
 
-	listener, err := net.Listen("tcp", cfg.ListenAddress)
+	listener, err := net.Listen("tcp", cfg.Server.ListenAddress)
 	if err != nil {
 		log.Fatalln("Failed to listen for connections:", err)
 	}

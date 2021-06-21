@@ -102,96 +102,63 @@ func (file *mockFile) Close() error {
 }
 
 func verifyConfig(cfg *config, expected *config, t *testing.T) {
-	if cfg.ListenAddress != expected.ListenAddress {
-		t.Errorf("ListenAddress=%v, want %v", cfg.ListenAddress, expected.ListenAddress)
+	if !reflect.DeepEqual(cfg.Server, expected.Server) {
+		t.Errorf("Server=%v, want %v", cfg.Server, expected.Server)
 	}
-	if cfg.LogFile != expected.LogFile {
-		t.Errorf("LogFile=%v, want %v", cfg.LogFile, expected.LogFile)
+	if !reflect.DeepEqual(cfg.Logging, expected.Logging) {
+		t.Errorf("Logging=%v, want %v", cfg.Logging, expected.Logging)
 	}
-	if cfg.JSONLogging != expected.JSONLogging {
-		t.Errorf("JSONLogging=%v, want %v", cfg.JSONLogging, expected.JSONLogging)
+	if !reflect.DeepEqual(cfg.Auth, expected.Auth) {
+		t.Errorf("Auth=%v, want %v", cfg.Auth, expected.Auth)
 	}
-	if cfg.RekeyThreshold != expected.RekeyThreshold {
-		t.Errorf("RekeyThreshold=%v, want %v", cfg.RekeyThreshold, expected.RekeyThreshold)
-	}
-	if !reflect.DeepEqual(cfg.KeyExchanges, expected.KeyExchanges) {
-		t.Errorf("KeyExchanges=%v, want %v", cfg.KeyExchanges, expected.KeyExchanges)
-	}
-	if !reflect.DeepEqual(cfg.Ciphers, expected.Ciphers) {
-		t.Errorf("Ciphers=%v, want %v", cfg.Ciphers, expected.Ciphers)
-	}
-	if !reflect.DeepEqual(cfg.MACs, expected.MACs) {
-		t.Errorf("MACs=%v, want %v", cfg.MACs, expected.MACs)
-	}
-	if !reflect.DeepEqual(cfg.HostKeys, expected.HostKeys) {
-		t.Errorf("HostKeys=%v, want %v", cfg.HostKeys, expected.HostKeys)
-	}
-	if cfg.NoClientAuth != expected.NoClientAuth {
-		t.Errorf("NoClientAuth=%v, want %v", cfg.NoClientAuth, expected.NoClientAuth)
-	}
-	if cfg.MaxAuthTries != expected.MaxAuthTries {
-		t.Errorf("MaxAuthTries=%v, want %v", cfg.MaxAuthTries, expected.MaxAuthTries)
-	}
-	if !reflect.DeepEqual(cfg.PasswordAuth, expected.PasswordAuth) {
-		t.Errorf("PasswordAuth=%v, want %v", cfg.PasswordAuth, expected.PasswordAuth)
-	}
-	if !reflect.DeepEqual(cfg.PublicKeyAuth, expected.PublicKeyAuth) {
-		t.Errorf("PublicKeyAuth=%v, want %v", cfg.PublicKeyAuth, expected.PublicKeyAuth)
-	}
-	if !reflect.DeepEqual(cfg.KeyboardInteractiveAuth, expected.KeyboardInteractiveAuth) {
-		t.Errorf("KeyboardInteractiveAuth=%v, want %v", cfg.KeyboardInteractiveAuth, expected.KeyboardInteractiveAuth)
-	}
-	if cfg.ServerVersion != expected.ServerVersion {
-		t.Errorf("ServerVersion=%v, want %v", cfg.ServerVersion, expected.ServerVersion)
-	}
-	if cfg.Banner != expected.Banner {
-		t.Errorf("Banner=%v, want %v", cfg.Banner, expected.Banner)
+	if !reflect.DeepEqual(cfg.SSHProto, expected.SSHProto) {
+		t.Errorf("SSHProto=%v, want %v", cfg.SSHProto, expected.SSHProto)
 	}
 
-	if cfg.sshConfig.RekeyThreshold != expected.RekeyThreshold {
-		t.Errorf("sshConfig.RekeyThreshold=%v, want %v", cfg.sshConfig.RekeyThreshold, expected.RekeyThreshold)
+	if cfg.sshConfig.RekeyThreshold != expected.SSHProto.RekeyThreshold {
+		t.Errorf("sshConfig.RekeyThreshold=%v, want %v", cfg.sshConfig.RekeyThreshold, expected.SSHProto.RekeyThreshold)
 	}
-	if !reflect.DeepEqual(cfg.sshConfig.KeyExchanges, expected.KeyExchanges) {
-		t.Errorf("sshConfig.KeyExchanges=%v, want %v", cfg.sshConfig.KeyExchanges, expected.KeyExchanges)
+	if !reflect.DeepEqual(cfg.sshConfig.KeyExchanges, expected.SSHProto.KeyExchanges) {
+		t.Errorf("sshConfig.KeyExchanges=%v, want %v", cfg.sshConfig.KeyExchanges, expected.SSHProto.KeyExchanges)
 	}
-	if !reflect.DeepEqual(cfg.sshConfig.Ciphers, expected.Ciphers) {
-		t.Errorf("sshConfig.Ciphers=%v, want %v", cfg.sshConfig.Ciphers, expected.Ciphers)
+	if !reflect.DeepEqual(cfg.sshConfig.Ciphers, expected.SSHProto.Ciphers) {
+		t.Errorf("sshConfig.Ciphers=%v, want %v", cfg.sshConfig.Ciphers, expected.SSHProto.Ciphers)
 	}
-	if !reflect.DeepEqual(cfg.sshConfig.MACs, expected.MACs) {
-		t.Errorf("sshConfig.MACs=%v, want %v", cfg.sshConfig.MACs, expected.MACs)
+	if !reflect.DeepEqual(cfg.sshConfig.MACs, expected.SSHProto.MACs) {
+		t.Errorf("sshConfig.MACs=%v, want %v", cfg.sshConfig.MACs, expected.SSHProto.MACs)
 	}
-	if cfg.sshConfig.NoClientAuth != expected.NoClientAuth {
-		t.Errorf("sshConfig.NoClientAuth=%v, want %v", cfg.sshConfig.NoClientAuth, expected.NoClientAuth)
+	if cfg.sshConfig.NoClientAuth != expected.Auth.NoAuth {
+		t.Errorf("sshConfig.NoClientAuth=%v, want %v", cfg.sshConfig.NoClientAuth, expected.Auth.NoAuth)
 	}
-	if cfg.sshConfig.MaxAuthTries != expected.MaxAuthTries {
-		t.Errorf("sshConfig.MaxAuthTries=%v, want %v", cfg.sshConfig.MaxAuthTries, expected.MaxAuthTries)
+	if cfg.sshConfig.MaxAuthTries != expected.Auth.MaxTries {
+		t.Errorf("sshConfig.MaxAuthTries=%v, want %v", cfg.sshConfig.MaxAuthTries, expected.Auth.MaxTries)
 	}
-	if (cfg.sshConfig.PasswordCallback != nil) != expected.PasswordAuth.Enabled {
-		t.Errorf("sshConfig.PasswordCallback=%v, want %v", cfg.sshConfig.PasswordCallback != nil, expected.PasswordAuth.Enabled)
+	if (cfg.sshConfig.PasswordCallback != nil) != expected.Auth.PasswordAuth.Enabled {
+		t.Errorf("sshConfig.PasswordCallback=%v, want %v", cfg.sshConfig.PasswordCallback != nil, expected.Auth.PasswordAuth.Enabled)
 	}
-	if (cfg.sshConfig.PublicKeyCallback != nil) != expected.PublicKeyAuth.Enabled {
-		t.Errorf("sshConfig.PasswordCallback=%v, want %v", cfg.sshConfig.PublicKeyCallback != nil, expected.PublicKeyAuth.Enabled)
+	if (cfg.sshConfig.PublicKeyCallback != nil) != expected.Auth.PublicKeyAuth.Enabled {
+		t.Errorf("sshConfig.PasswordCallback=%v, want %v", cfg.sshConfig.PublicKeyCallback != nil, expected.Auth.PublicKeyAuth.Enabled)
 	}
-	if (cfg.sshConfig.KeyboardInteractiveCallback != nil) != expected.KeyboardInteractiveAuth.Enabled {
-		t.Errorf("sshConfig.KeyboardInteractiveCallback=%v, want %v", cfg.sshConfig.KeyboardInteractiveCallback != nil, expected.KeyboardInteractiveAuth.Enabled)
+	if (cfg.sshConfig.KeyboardInteractiveCallback != nil) != expected.Auth.KeyboardInteractiveAuth.Enabled {
+		t.Errorf("sshConfig.KeyboardInteractiveCallback=%v, want %v", cfg.sshConfig.KeyboardInteractiveCallback != nil, expected.Auth.KeyboardInteractiveAuth.Enabled)
 	}
 	if cfg.sshConfig.AuthLogCallback == nil {
 		t.Errorf("sshConfig.AuthLogCallback=nil, want a callback")
 	}
-	if cfg.sshConfig.ServerVersion != expected.ServerVersion {
-		t.Errorf("sshConfig.ServerVersion=%v, want %v", cfg.sshConfig.ServerVersion, expected.ServerVersion)
+	if cfg.sshConfig.ServerVersion != expected.SSHProto.Version {
+		t.Errorf("sshConfig.ServerVersion=%v, want %v", cfg.sshConfig.ServerVersion, expected.SSHProto.Version)
 	}
-	if (cfg.sshConfig.BannerCallback != nil) != (expected.Banner != "") {
-		t.Errorf("sshConfig.BannerCallback=%v, want %v", cfg.sshConfig.BannerCallback != nil, expected.Banner != "")
+	if (cfg.sshConfig.BannerCallback != nil) != (expected.SSHProto.Banner != "") {
+		t.Errorf("sshConfig.BannerCallback=%v, want %v", cfg.sshConfig.BannerCallback != nil, expected.SSHProto.Banner != "")
 	}
 	if cfg.sshConfig.GSSAPIWithMICConfig != nil {
 		t.Errorf("sshConfig.GSSAPIWithMICConfig=%v, want nil", cfg.sshConfig.GSSAPIWithMICConfig)
 	}
-	if len(cfg.parsedHostKeys) != len(expected.HostKeys) {
-		t.Errorf("len(parsedHostKeys)=%v, want %v", len(cfg.parsedHostKeys), len(expected.HostKeys))
+	if len(cfg.parsedHostKeys) != len(expected.Server.HostKeys) {
+		t.Errorf("len(parsedHostKeys)=%v, want %v", len(cfg.parsedHostKeys), len(expected.Server.HostKeys))
 	}
 
-	if expected.LogFile == "" {
+	if expected.Logging.File == "" {
 		if logrus.StandardLogger().Out != os.Stdout {
 			t.Errorf("logrus.StandardLogger().Out=%v, want %v (os.Stdout)", logrus.StandardLogger().Out, os.Stdout)
 		}
@@ -206,7 +173,7 @@ func verifyConfig(cfg *config, expected *config, t *testing.T) {
 			t.Errorf("logFileHandle=%v, want %v", cfg.logFileHandle, logrus.StandardLogger().Out)
 		}
 	}
-	if expected.JSONLogging {
+	if expected.Logging.JSON {
 		if _, ok := logrus.StandardLogger().Formatter.(*logrus.JSONFormatter); !ok {
 			t.Errorf("Type of logrus.StandardLogger().Formatter=%T, want *logrus.JSONFormatter", logrus.StandardLogger().Formatter)
 		}
@@ -226,19 +193,18 @@ func TestDefaultConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
-	expectedConfig := &config{
-		ListenAddress: "127.0.0.1:2022",
-		HostKeys: []string{
-			path.Join(dataDir, "host_rsa_key"),
-			path.Join(dataDir, "host_ecdsa_key"),
-			path.Join(dataDir, "host_ed25519_key"),
-		},
-		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
+	expectedConfig := &config{}
+	expectedConfig.Server.ListenAddress = "127.0.0.1:2022"
+	expectedConfig.Server.HostKeys = []string{
+		path.Join(dataDir, "host_rsa_key"),
+		path.Join(dataDir, "host_ecdsa_key"),
+		path.Join(dataDir, "host_ed25519_key"),
 	}
-	expectedConfig.PasswordAuth.Enabled = true
-	expectedConfig.PasswordAuth.Accepted = true
-	expectedConfig.PublicKeyAuth.Enabled = true
+	expectedConfig.Auth.PasswordAuth.Enabled = true
+	expectedConfig.Auth.PasswordAuth.Accepted = true
+	expectedConfig.Auth.PublicKeyAuth.Enabled = true
+	expectedConfig.SSHProto.Version = "SSH-2.0-sshesame"
+	expectedConfig.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
 	verifyConfig(cfg, expectedConfig, t)
 	key.verifyDefaultKeys(dataDir, t)
 }
@@ -246,69 +212,72 @@ func TestDefaultConfig(t *testing.T) {
 func TestUserConfigDefaultKeys(t *testing.T) {
 	logFile := path.Join(t.TempDir(), "test.log")
 	cfgString := fmt.Sprintf(`
-listen_address: 0.0.0.0:22
-log_file: %v
-json_logging: true
-rekey_threshold: 123
-key_exchanges: [kex]
-ciphers: [cipher]
-macs: [mac]
-no_client_auth: true
-max_auth_tries: 234
-password_auth:
-  enabled: false
-  accepted: false
-public_key_auth:
-  enabled: false
-  accepted: true
-keyboard_interactive_auth:
-  enabled: true
-  accepted: true
-  instruction: instruction
-  questions:
-  - text: q1
-    echo: true
-  - text: q2
-    echo: false
-server_version: SSH-2.0-test
-banner:
+server:
+  listen_address: 0.0.0.0:22
+logging:
+  file: %v
+  json: true
+auth:
+  max_tries: 234
+  no_auth: true
+  password_auth:
+    enabled: false
+    accepted: false
+  public_key_auth:
+    enabled: false
+    accepted: true
+  keyboard_interactive_auth:
+    enabled: true
+    accepted: true
+    instruction: instruction
+    questions:
+    - text: q1
+      echo: true
+    - text: q2
+      echo: false
+ssh_proto:
+  version: SSH-2.0-test
+  banner:
+  rekey_threshold: 123
+  key_exchanges: [kex]
+  ciphers: [cipher]
+  macs: [mac]
 `, logFile)
 	dataDir := "test"
 	key := &mockKeyType{}
 	log.SetOutput(ioutil.Discard)
 	cfg, err := getConfig(cfgString, dataDir, key)
+	if err != nil {
+		t.Fatalf("Failed to get config: %v", err)
+	}
 	log.SetOutput(os.Stderr)
 	if cfg.logFileHandle != nil {
 		cfg.logFileHandle.Close()
 	}
-	if err != nil {
-		t.Fatalf("Failed to get config: %v", err)
+	expectedConfig := &config{}
+	expectedConfig.Server.ListenAddress = "0.0.0.0:22"
+	expectedConfig.Server.HostKeys = []string{
+		path.Join(dataDir, "host_rsa_key"),
+		path.Join(dataDir, "host_ecdsa_key"),
+		path.Join(dataDir, "host_ed25519_key"),
 	}
-	expectedConfig := &config{
-		ListenAddress:  "0.0.0.0:22",
-		LogFile:        logFile,
-		JSONLogging:    true,
-		RekeyThreshold: 123,
-		KeyExchanges:   []string{"kex"},
-		Ciphers:        []string{"cipher"},
-		MACs:           []string{"mac"},
-		NoClientAuth:   true,
-		HostKeys: []string{
-			path.Join(dataDir, "host_rsa_key"),
-			path.Join(dataDir, "host_ecdsa_key"),
-			path.Join(dataDir, "host_ed25519_key"),
-		},
-		MaxAuthTries:  234,
-		ServerVersion: "SSH-2.0-test",
-	}
-	expectedConfig.PublicKeyAuth.Accepted = true
-	expectedConfig.KeyboardInteractiveAuth.Accepted = true
-	expectedConfig.KeyboardInteractiveAuth.Enabled = true
-	expectedConfig.KeyboardInteractiveAuth.Instruction = "instruction"
-	expectedConfig.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+	expectedConfig.Logging.File = logFile
+	expectedConfig.Logging.JSON = true
+	expectedConfig.Auth.MaxTries = 234
+	expectedConfig.Auth.NoAuth = true
+	expectedConfig.Auth.PublicKeyAuth.Accepted = true
+	expectedConfig.Auth.KeyboardInteractiveAuth.Enabled = true
+	expectedConfig.Auth.KeyboardInteractiveAuth.Accepted = true
+	expectedConfig.Auth.KeyboardInteractiveAuth.Instruction = "instruction"
+	expectedConfig.Auth.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
 		{"q1", true},
 		{"q2", false},
 	}
+	expectedConfig.SSHProto.Version = "SSH-2.0-test"
+	expectedConfig.SSHProto.RekeyThreshold = 123
+	expectedConfig.SSHProto.KeyExchanges = []string{"kex"}
+	expectedConfig.SSHProto.Ciphers = []string{"cipher"}
+	expectedConfig.SSHProto.MACs = []string{"mac"}
 	verifyConfig(cfg, expectedConfig, t)
 	key.verifyDefaultKeys(dataDir, t)
 }
@@ -316,7 +285,8 @@ banner:
 func TestUserConfigCustomKeys(t *testing.T) {
 	keyFile := "rsa.key"
 	cfgString := fmt.Sprintf(`
-host_keys: [%v]
+server:
+  host_keys: [%v]
 `, keyFile)
 	dataDir := "test"
 	key := &mockKeyType{map[string]keySignature{keyFile: rsa_key}}
@@ -324,15 +294,14 @@ host_keys: [%v]
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
-	expectedConfig := &config{
-		ListenAddress: "127.0.0.1:2022",
-		HostKeys:      []string{keyFile},
-		ServerVersion: "SSH-2.0-sshesame",
-		Banner:        "This is an SSH honeypot. Everything is logged and monitored.",
-	}
-	expectedConfig.PasswordAuth.Enabled = true
-	expectedConfig.PasswordAuth.Accepted = true
-	expectedConfig.PublicKeyAuth.Enabled = true
+	expectedConfig := &config{}
+	expectedConfig.Server.ListenAddress = "127.0.0.1:2022"
+	expectedConfig.Server.HostKeys = []string{keyFile}
+	expectedConfig.Auth.PasswordAuth.Enabled = true
+	expectedConfig.Auth.PasswordAuth.Accepted = true
+	expectedConfig.Auth.PublicKeyAuth.Enabled = true
+	expectedConfig.SSHProto.Version = "SSH-2.0-sshesame"
+	expectedConfig.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
 	verifyConfig(cfg, expectedConfig, t)
 	expectedKeys := map[string]keySignature{
 		keyFile: rsa_key,
