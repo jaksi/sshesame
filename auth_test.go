@@ -70,7 +70,7 @@ func TestAuthLogCallbackFail(t *testing.T) {
 
 func TestPasswordCallbackDisabled(t *testing.T) {
 	cfg := &config{}
-	cfg.PasswordAuth.Enabled = false
+	cfg.Auth.PasswordAuth.Enabled = false
 	callback := cfg.getPasswordCallback()
 	if callback != nil {
 		t.Errorf("callback=%p, want nil", callback)
@@ -79,8 +79,8 @@ func TestPasswordCallbackDisabled(t *testing.T) {
 
 func TestPasswordCallbackFail(t *testing.T) {
 	cfg := &config{}
-	cfg.PasswordAuth.Enabled = true
-	cfg.PasswordAuth.Accepted = false
+	cfg.Auth.PasswordAuth.Enabled = true
+	cfg.Auth.PasswordAuth.Accepted = false
 	callback := cfg.getPasswordCallback()
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
@@ -103,8 +103,8 @@ func TestPasswordCallbackFail(t *testing.T) {
 
 func TestPasswordCallbackSuccess(t *testing.T) {
 	cfg := &config{}
-	cfg.PasswordAuth.Enabled = true
-	cfg.PasswordAuth.Accepted = true
+	cfg.Auth.PasswordAuth.Enabled = true
+	cfg.Auth.PasswordAuth.Accepted = true
 	callback := cfg.getPasswordCallback()
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
@@ -127,7 +127,7 @@ func TestPasswordCallbackSuccess(t *testing.T) {
 
 func TestPublicKeyCallbackDisabled(t *testing.T) {
 	cfg := &config{}
-	cfg.PublicKeyAuth.Enabled = false
+	cfg.Auth.PublicKeyAuth.Enabled = false
 	callback := cfg.getPublicKeyCallback()
 	if callback != nil {
 		t.Errorf("callback=%p, want nil", callback)
@@ -136,8 +136,8 @@ func TestPublicKeyCallbackDisabled(t *testing.T) {
 
 func TestPublicKeyCallbackFail(t *testing.T) {
 	cfg := &config{}
-	cfg.PublicKeyAuth.Enabled = true
-	cfg.PublicKeyAuth.Accepted = false
+	cfg.Auth.PublicKeyAuth.Enabled = true
+	cfg.Auth.PublicKeyAuth.Accepted = false
 	callback := cfg.getPublicKeyCallback()
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
@@ -160,8 +160,8 @@ func TestPublicKeyCallbackFail(t *testing.T) {
 
 func TestPublicKeyCallbackSuccess(t *testing.T) {
 	cfg := &config{}
-	cfg.PublicKeyAuth.Enabled = true
-	cfg.PublicKeyAuth.Accepted = true
+	cfg.Auth.PublicKeyAuth.Enabled = true
+	cfg.Auth.PublicKeyAuth.Accepted = true
 	callback := cfg.getPublicKeyCallback()
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
@@ -184,9 +184,9 @@ func TestPublicKeyCallbackSuccess(t *testing.T) {
 
 func TestKeyboardInteractiveCallbackDisabled(t *testing.T) {
 	cfg := &config{}
-	cfg.KeyboardInteractiveAuth.Enabled = false
-	cfg.KeyboardInteractiveAuth.Instruction = "inst"
-	cfg.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+	cfg.Auth.KeyboardInteractiveAuth.Enabled = false
+	cfg.Auth.KeyboardInteractiveAuth.Instruction = "inst"
+	cfg.Auth.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
 		{"q1", true},
 		{"q2", false},
 	}
@@ -198,10 +198,10 @@ func TestKeyboardInteractiveCallbackDisabled(t *testing.T) {
 
 func TestKeyboardInteractiveCallbackError(t *testing.T) {
 	cfg := &config{}
-	cfg.KeyboardInteractiveAuth.Enabled = true
-	cfg.KeyboardInteractiveAuth.Accepted = false
-	cfg.KeyboardInteractiveAuth.Instruction = "inst"
-	cfg.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
+	cfg.Auth.KeyboardInteractiveAuth.Accepted = false
+	cfg.Auth.KeyboardInteractiveAuth.Instruction = "inst"
+	cfg.Auth.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
 		{"q1", true},
 		{"q2", false},
 	}
@@ -242,10 +242,10 @@ func TestKeyboardInteractiveCallbackError(t *testing.T) {
 
 func TestKeyboardInteractiveCallbackFail(t *testing.T) {
 	cfg := &config{}
-	cfg.KeyboardInteractiveAuth.Enabled = true
-	cfg.KeyboardInteractiveAuth.Accepted = false
-	cfg.KeyboardInteractiveAuth.Instruction = "inst"
-	cfg.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
+	cfg.Auth.KeyboardInteractiveAuth.Accepted = false
+	cfg.Auth.KeyboardInteractiveAuth.Instruction = "inst"
+	cfg.Auth.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
 		{"q1", true},
 		{"q2", false},
 	}
@@ -273,10 +273,10 @@ func TestKeyboardInteractiveCallbackFail(t *testing.T) {
 
 func TestKeyboardInteractiveCallbackSuccess(t *testing.T) {
 	cfg := &config{}
-	cfg.KeyboardInteractiveAuth.Enabled = true
-	cfg.KeyboardInteractiveAuth.Accepted = true
-	cfg.KeyboardInteractiveAuth.Instruction = "inst"
-	cfg.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
+	cfg.Auth.KeyboardInteractiveAuth.Accepted = true
+	cfg.Auth.KeyboardInteractiveAuth.Instruction = "inst"
+	cfg.Auth.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
 		{"q1", true},
 		{"q2", false},
 	}
@@ -303,7 +303,8 @@ func TestKeyboardInteractiveCallbackSuccess(t *testing.T) {
 }
 
 func TestBannerCallbackDisabled(t *testing.T) {
-	cfg := &config{Banner: ""}
+	cfg := &config{}
+	cfg.SSHProto.Banner = ""
 	callback := cfg.getBannerCallback()
 	if callback != nil {
 		t.Errorf("callback=%p, want nil", callback)
@@ -311,7 +312,8 @@ func TestBannerCallbackDisabled(t *testing.T) {
 }
 
 func TestBannerCallback(t *testing.T) {
-	cfg := &config{Banner: "Lorem\nIpsum\r\nDolor\n\nSit Amet"}
+	cfg := &config{}
+	cfg.SSHProto.Banner = "Lorem\nIpsum\r\nDolor\n\nSit Amet"
 	callback := cfg.getBannerCallback()
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
