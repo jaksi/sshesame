@@ -74,7 +74,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 		handler := channelHandlers[channelType]
 		if handler == nil {
 			log.Println("Unsupported channel type", channelType)
-			if err := newChannel.Reject(ssh.UnknownChannelType, "open failed"); err != nil {
+			if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
 				log.Println("Failed to reject channel:", err)
 				break
 			}

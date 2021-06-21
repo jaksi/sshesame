@@ -54,6 +54,7 @@ func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChan
 				panic("WantReply")
 			}
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channel %v requests\n", name)
 	}()
 	go func() {
@@ -61,6 +62,7 @@ func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChan
 		for scanner.Scan() {
 			fmt.Printf("<channel %v stdout\n  %#v\n", name, scanner.Text())
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channel %v stdout\n", name)
 		if err := scanner.Err(); err != nil {
 			panic(err)
@@ -71,6 +73,7 @@ func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChan
 		for scanner.Scan() {
 			fmt.Printf("<channel %v stderr\n  %#v\n", name, scanner.Text())
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channel %v stderr\n", name)
 		if err := scanner.Err(); err != nil {
 			panic(err)
@@ -159,6 +162,7 @@ func main() {
 				panic("WantReply")
 			}
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close global requests\n")
 	}()
 
@@ -166,6 +170,7 @@ func main() {
 		for channel := range channels {
 			panic(channel)
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channels\n")
 	}()
 
@@ -181,6 +186,10 @@ func main() {
 		string
 		uint32
 	}{"127.0.0.1", 1234}))
+	sendGlobalRequset(sshClientConn, "cancel-tcpip-forward", false, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 1234}))
 
 	sendGlobalRequset(sshClientConn, "tcpip-forward", false, ssh.Marshal(struct {
 		string
@@ -191,16 +200,15 @@ func main() {
 		string
 		uint32
 	}{"127.0.0.1", 1234}))
+	sendGlobalRequset(sshClientConn, "cancel-tcpip-forward", true, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 1234}))
 
 	sendGlobalRequset(sshClientConn, "tcpip-forward", true, ssh.Marshal(struct {
 		string
 		uint32
 	}{"127.0.0.1", 0}))
-
-	sendGlobalRequset(sshClientConn, "cancel-tcpip-forward", true, ssh.Marshal(struct {
-		string
-		uint32
-	}{"127.0.0.1", 1234}))
 
 	openChannel(sshClientConn, "nope", []byte("nope"), false)
 
