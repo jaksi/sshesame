@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"time"
 
@@ -42,12 +43,54 @@ var servers = map[uint32]server{
 	80: httpServer{},
 }
 
-func handleTCPIPChannel(channel ssh.Channel, port uint32, input chan<- string) error {
-	server := servers[port]
-	if server == nil {
-		return fmt.Errorf("unsupported port %v", port)
+type tcpipChannelData struct {
+	Address           string
+	Port              uint32
+	OriginatorAddress string
+	OriginatorPort    uint32
+}
+
+func (data tcpipChannelData) String() string {
+	return fmt.Sprintf("%v -> %v", net.JoinHostPort(data.OriginatorAddress, fmt.Sprint(data.OriginatorPort)), net.JoinHostPort(data.Address, fmt.Sprint(data.Port)))
+}
+
+func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadata) error {
+	channelData := &tcpipChannelData{}
+	if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
+		return err
 	}
-	return server.handle(channelConn{channel}, input)
+	channel, requests, err := newChannel.Accept()
+	if err != nil {
+		return err
+	}
+	defer channel.Close()
+	metadata.getLogEntry().WithField("channel_extra_data", channelData).Infoln("New channel accepted")
+	defer metadata.getLogEntry().Infoln("Channel closed")
+
+	go func() {
+		for request := range requests {
+			if request.WantReply {
+				if err := request.Reply(false, nil); err != nil {
+					log.Println("Failed to reject direct-tcpip request:", err)
+					channel.Close()
+					return
+				}
+			}
+		}
+	}()
+
+	server := servers[channelData.Port]
+	if server == nil {
+		return fmt.Errorf("unsupported port %v", channelData.Port)
+	}
+	inputChan := make(chan string)
+	defer close(inputChan)
+	go func() {
+		for input := range inputChan {
+			metadata.getLogEntry().WithField("input", input).Infoln("Channel input received")
+		}
+	}()
+	return server.handle(channelConn{channel}, inputChan)
 }
 
 type httpServer struct{}

@@ -29,13 +29,13 @@ func sendGlobalRequset(conn ssh.Conn, name string, wantReply bool, payload []byt
 func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChannel {
 	time.Sleep(500 * time.Millisecond)
 	channel, requests, err := conn.OpenChannel(name, data)
-	fmt.Printf(">channel %v\n", name)
+	fmt.Printf(">channel %v\n  %#v\n", name, err)
 	if success {
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		if err == nil {
+		if _, ok := err.(*ssh.OpenChannelError); !ok {
 			panic(err)
 		}
 		return nil
@@ -54,6 +54,7 @@ func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChan
 				panic("WantReply")
 			}
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channel %v requests\n", name)
 	}()
 	go func() {
@@ -61,6 +62,7 @@ func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChan
 		for scanner.Scan() {
 			fmt.Printf("<channel %v stdout\n  %#v\n", name, scanner.Text())
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channel %v stdout\n", name)
 		if err := scanner.Err(); err != nil {
 			panic(err)
@@ -71,6 +73,7 @@ func openChannel(conn ssh.Conn, name string, data []byte, success bool) *sshChan
 		for scanner.Scan() {
 			fmt.Printf("<channel %v stderr\n  %#v\n", name, scanner.Text())
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channel %v stderr\n", name)
 		if err := scanner.Err(); err != nil {
 			panic(err)
@@ -101,15 +104,6 @@ func (channel *sshChannel) write(data string, close bool) {
 		if err != nil {
 			panic(err)
 		}
-	}
-}
-
-func (channel *sshChannel) close() {
-	time.Sleep(500 * time.Millisecond)
-	err := channel.Close()
-	fmt.Printf(">close channel %v\n", channel.name)
-	if err != nil {
-		panic(err)
 	}
 }
 
@@ -168,6 +162,7 @@ func main() {
 				panic("WantReply")
 			}
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close global requests\n")
 	}()
 
@@ -175,15 +170,37 @@ func main() {
 		for channel := range channels {
 			panic(channel)
 		}
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("<close channels\n")
 	}()
 
 	sendGlobalRequset(sshClientConn, "nope", true, []byte("nope"))
 
-	// Causes the connection to close
+	// Causes the connection to close (data expected, nil sent)
+	// sendGlobalRequset(sshClientConn, "tcpip-forward", true, nil)
+
+	// Causes the connection to close (data expected, invalid data sent)
 	// sendGlobalRequset(sshClientConn, "tcpip-forward", true, []byte("nope"))
 
+	sendGlobalRequset(sshClientConn, "tcpip-forward", false, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 1234}))
+	sendGlobalRequset(sshClientConn, "cancel-tcpip-forward", false, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 1234}))
+
+	sendGlobalRequset(sshClientConn, "tcpip-forward", false, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 0}))
+
 	sendGlobalRequset(sshClientConn, "tcpip-forward", true, ssh.Marshal(struct {
+		string
+		uint32
+	}{"127.0.0.1", 1234}))
+	sendGlobalRequset(sshClientConn, "cancel-tcpip-forward", true, ssh.Marshal(struct {
 		string
 		uint32
 	}{"127.0.0.1", 1234}))
@@ -193,14 +210,12 @@ func main() {
 		uint32
 	}{"127.0.0.1", 0}))
 
-	sendGlobalRequset(sshClientConn, "cancel-tcpip-forward", true, ssh.Marshal(struct {
-		string
-		uint32
-	}{"127.0.0.1", 1234}))
-
 	openChannel(sshClientConn, "nope", []byte("nope"), false)
 
-	// Causes the connection to close
+	// Causes the connection to close (data expected, nil sent)
+	// openChannel(sshClientConn, "direct-tcpip", nil, false)
+
+	// Causes the connection to close (data expected, invalid data sent)
 	// openChannel(sshClientConn, "direct-tcpip", []byte("nope"), false)
 
 	tcpipChannel := openChannel(sshClientConn, "direct-tcpip", ssh.Marshal(struct {
@@ -209,35 +224,41 @@ func main() {
 		originatorAddress string
 		originatorPort    uint32
 	}{"github.com", 80, "127.0.0.1", 8080}), true)
-
 	tcpipChannel.sendRequset("shell", true, nil)
+	tcpipChannel.sendRequset("shell", true, []byte("nope"))
+	tcpipChannel.sendRequset("exec", true, ssh.Marshal(struct {
+		command string
+	}{"true"}))
+	tcpipChannel.sendRequset("exec", true, nil)
+	tcpipChannel.sendRequset("exec", true, []byte("nope"))
+	tcpipChannel.write("GET / HTTP/1.1\r\nHost: github.com\r\n\r\n", true)
 
-	tcpipChannel.write("GET / HTTP/1.1\r\nHost: github.com\r\n\r\n", false)
-
-	tcpipChannel.close()
+	// Causes the connection to close (nil expected, data sent)
+	// openChannel(sshClientConn, "session", []byte("nope"), false)
 
 	sessionChannel := openChannel(sshClientConn, "session", nil, true)
-
 	// Blocks indefinitely
 	// sessionChannel.write("foo")
-
 	sessionChannel.sendRequset("nope", true, []byte("nope"))
-
-	// Causes the connection to close
+	// Causes the connection to close (data expected, nil sent)
+	// sessionChannel.sendRequset("exec", true, nil)
+	// Causes the connection to close (data expected, invalid data sent)
 	// sessionChannel.sendRequset("exec", true, []byte("nope"))
-
+	// Causes the connection to close (nil expected, data sent)
+	// sessionChannel.sendRequset("shell", true, []byte("nope"))
 	sessionChannel.sendRequset("exec", true, ssh.Marshal(struct {
 		command string
 	}{"true"}))
 
 	sessionChannel = openChannel(sshClientConn, "session", nil, true)
-
 	sessionChannel.sendRequset("shell", true, nil)
-
-	sessionChannel.write("true\nfalse\nuname", true)
+	sessionChannel.write("true\nfalse\nuname\n\x04", false)
 
 	sessionChannel = openChannel(sshClientConn, "session", nil, true)
+	sessionChannel.sendRequset("shell", true, nil)
+	sessionChannel.write("true\nfalse\nuname\n", true)
 
+	sessionChannel = openChannel(sshClientConn, "session", nil, true)
 	terminalModes, err := base64.RawStdEncoding.DecodeString("gQAAJYCAAAAlgAEAAAADAgAAABwDAAAAfwQAAAAVBQAAAAQGAAAA/wcAAAD/CAAAABEJAAAAEwoAAAAaCwAAABkMAAAAEg0AAAAXDgAAABYRAAAAFBIAAAAPHgAAAAAfAAAAACAAAAAAIQAAAAAiAAAAACMAAAAAJAAAAAEmAAAAACcAAAABKAAAAAApAAAAASoAAAABMgAAAAEzAAAAATUAAAABNgAAAAE3AAAAADgAAAAAOQAAAAA6AAAAADsAAAABPAAAAAE9AAAAAT4AAAAARgAAAAFIAAAAAUkAAAAASgAAAABLAAAAAFoAAAABWwAAAAFcAAAAAF0AAAAAAA")
 	if err != nil {
 		panic(err)
@@ -247,24 +268,32 @@ func main() {
 		Width, Height, PixelWidth, PixelHeight uint32
 		Modes                                  string
 	}{"xterm-256color", 120, 80, 0, 0, string(terminalModes)}))
-
 	sessionChannel.sendRequset("shell", true, nil)
-
 	sessionChannel.sendRequset("pty-req", true, ssh.Marshal(struct {
 		Term                                   string
 		Width, Height, PixelWidth, PixelHeight uint32
 		Modes                                  string
 	}{"xterm-256color", 120, 80, 0, 0, string(terminalModes)}))
-
 	sessionChannel.sendRequset("exec", true, ssh.Marshal(struct {
 		command string
 	}{"true"}))
+	sessionChannel.write("true\rfalse\runame\r\x04", false)
 
-	sessionChannel.write("true\nfalse\nuname\n", true)
+	sessionChannel = openChannel(sshClientConn, "session", nil, true)
+	sessionChannel.sendRequset("pty-req", true, ssh.Marshal(struct {
+		Term                                   string
+		Width, Height, PixelWidth, PixelHeight uint32
+		Modes                                  string
+	}{"xterm-256color", 120, 80, 0, 0, string(terminalModes)}))
+	sessionChannel.sendRequset("shell", true, nil)
+	sessionChannel.write("true\rfalse\runame\r", true)
+
+	sendGlobalRequset(sshClientConn, "no-more-sessions@openssh.com", true, nil)
 
 	sendGlobalRequset(sshClientConn, "no-more-sessions@openssh.com", false, nil)
 
-	openChannel(sshClientConn, "session", nil, false)
+	// Causes the connection to close
+	// openChannel(sshClientConn, "session", nil, false)
 
 	time.Sleep(5 * time.Second)
 }
