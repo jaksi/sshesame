@@ -248,32 +248,32 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 				requests = nil
 				continue
 			}
-				parser := requestParsers[request.Type]
-				if parser == nil {
-					log.Println("Unsupported session request type", request.Type)
-					if request.WantReply {
-						if err := request.Reply(false, nil); err != nil {
-							return err
-						}
-					}
-					continue
-				}
-				payload, err := parser(request.Payload)
-				if err != nil {
-					return err
-				}
-				metadata.getLogEntry().WithFields(logrus.Fields{
-					"request_payload":    payload,
-					"request_type":       request.Type,
-					"request_want_reply": request.WantReply,
-				}).Infoln("Channel request accepted")
+			parser := requestParsers[request.Type]
+			if parser == nil {
+				log.Println("Unsupported session request type", request.Type)
 				if request.WantReply {
-					if err := request.Reply(true, nil); err != nil {
+					if err := request.Reply(false, nil); err != nil {
 						return err
 					}
 				}
+				continue
+			}
+			payload, err := parser(request.Payload)
+			if err != nil {
+				return err
+			}
+			metadata.getLogEntry().WithFields(logrus.Fields{
+				"request_payload":    payload,
+				"request_type":       request.Type,
+				"request_want_reply": request.WantReply,
+			}).Infoln("Channel request accepted")
+			if request.WantReply {
+				if err := request.Reply(true, nil); err != nil {
+					return err
+				}
 			}
 		}
+	}
 
 	return nil
 }
