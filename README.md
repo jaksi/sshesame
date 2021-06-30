@@ -17,10 +17,10 @@ sshesame [-config sshesame.yaml] [-data_dir /etc/sshesame]
 
 ### Docker
 
-Images are automatically pushed to [Docker Hub](https://hub.docker.com/r/jaksi/sshesame).
+Images are automatically published to [GitHub Packages](https://github.com/jaksi/sshesame/pkgs/container/sshesame).
 
 ```
-docker run -it --rm -p 127.0.0.1:2022:2022 -v sshesame-data:/data [-v $PWD/sshesame.yaml:/config.yaml] jaksi/sshesame
+docker run -it --rm -p 127.0.0.1:2022:2022 -v sshesame-data:/data [-v $PWD/sshesame.yaml:/config.yaml] ghcr.io/jaksi/sshesame
 ```
 
 ### Configuration
