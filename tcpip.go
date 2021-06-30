@@ -67,30 +67,50 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	metadata.getLogEntry().WithField("channel_extra_data", channelData).Infoln("New channel accepted")
 	defer metadata.getLogEntry().Infoln("Channel closed")
 
+	server := servers[channelData.Port]
+	if server == nil {
+		log.Println("Unsupported port", channelData.Port)
+		return nil
+	}
+
+	inputChan := make(chan string)
+	errorChan := make(chan error)
 	go func() {
-		for request := range requests {
+		defer close(inputChan)
+		defer close(errorChan)
+		errorChan <- server.handle(channelConn{channel}, inputChan)
+	}()
+
+	for errorChan != nil || inputChan != nil || requests != nil {
+		select {
+		case input, ok := <-inputChan:
+			if !ok {
+				inputChan = nil
+				continue
+			}
+			metadata.getLogEntry().WithField("input", input).Infoln("Channel input received")
+		case err, ok := <-errorChan:
+			if !ok {
+				errorChan = nil
+				continue
+			}
+			if err != nil {
+				return err
+			}
+		case request, ok := <-requests:
+			if !ok {
+				requests = nil
+				continue
+			}
 			if request.WantReply {
 				if err := request.Reply(false, nil); err != nil {
-					log.Println("Failed to reject direct-tcpip request:", err)
-					channel.Close()
-					return
+					return err
 				}
 			}
 		}
-	}()
-
-	server := servers[channelData.Port]
-	if server == nil {
-		return fmt.Errorf("unsupported port %v", channelData.Port)
 	}
-	inputChan := make(chan string)
-	defer close(inputChan)
-	go func() {
-		for input := range inputChan {
-			metadata.getLogEntry().WithField("input", input).Infoln("Channel input received")
-		}
-	}()
-	return server.handle(channelConn{channel}, inputChan)
+
+	return nil
 }
 
 type httpServer struct{}
