@@ -214,46 +214,66 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 	defer channel.Close()
 	metadata.getLogEntry().Infoln("New channel accepted")
 	defer metadata.getLogEntry().Infoln("Channel closed")
+
+	inputChan := make(chan string)
+	errorChan := make(chan error)
 	go func() {
-		if err := func() error {
-			for request := range requests {
-				parser := requestParsers[request.Type]
-				if parser == nil {
-					log.Println("Unsupported session request type", request.Type)
-					if request.WantReply {
-						if err := request.Reply(false, nil); err != nil {
-							return err
-						}
-					}
-					continue
-				}
-				payload, err := parser(request.Payload)
-				if err != nil {
-					return err
-				}
-				metadata.getLogEntry().WithFields(logrus.Fields{
-					"request_payload":    payload,
-					"request_type":       request.Type,
-					"request_want_reply": request.WantReply,
-				}).Infoln("Channel request accepted")
+		defer close(inputChan)
+		defer close(errorChan)
+		scanner := bufio.NewScanner(channel)
+		for scanner.Scan() {
+			inputChan <- scanner.Text()
+		}
+		errorChan <- scanner.Err()
+	}()
+
+	for errorChan != nil || inputChan != nil || requests != nil {
+		select {
+		case input, ok := <-inputChan:
+			if !ok {
+				inputChan = nil
+				continue
+			}
+			metadata.getLogEntry().WithField("input", input).Infoln("Channel input received")
+		case err, ok := <-errorChan:
+			if !ok {
+				errorChan = nil
+				continue
+			}
+			if err != nil {
+				return err
+			}
+		case request, ok := <-requests:
+			if !ok {
+				requests = nil
+				continue
+			}
+			parser := requestParsers[request.Type]
+			if parser == nil {
+				log.Println("Unsupported session request type", request.Type)
 				if request.WantReply {
-					if err := request.Reply(true, nil); err != nil {
+					if err := request.Reply(false, nil); err != nil {
 						return err
 					}
 				}
+				continue
 			}
-			return nil
-		}(); err != nil {
-			log.Println("Failed to handle session request:", err)
-			channel.Close()
+			payload, err := parser(request.Payload)
+			if err != nil {
+				return err
+			}
+			metadata.getLogEntry().WithFields(logrus.Fields{
+				"request_payload":    payload,
+				"request_type":       request.Type,
+				"request_want_reply": request.WantReply,
+			}).Infoln("Channel request accepted")
+			if request.WantReply {
+				if err := request.Reply(true, nil); err != nil {
+					return err
+				}
+			}
 		}
-	}()
-	scanner := bufio.NewScanner(channel)
-	for scanner.Scan() {
-		metadata.getLogEntry().WithField("input", scanner.Text()).Infoln("Channel input received")
 	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
+
 	return nil
 }
