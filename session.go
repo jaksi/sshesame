@@ -5,11 +5,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/term"
 )
 
 type ptyRequestPayload struct {
@@ -148,7 +150,7 @@ var requestParsers = map[string]requestPayloadParser{
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
-		parsedPayload := parsedPTYRequestPayload{*payload, map[uint8]uint32{}}
+		parsedPayload := &parsedPTYRequestPayload{*payload, map[uint8]uint32{}}
 		modeBytes := []byte(payload.Modes)
 		for i := 0; i+4 < len(modeBytes); i += 5 {
 			opcode := modeBytes[i]
@@ -203,6 +205,55 @@ var requestParsers = map[string]requestPayloadParser{
 	},
 }
 
+type sessionChannel struct {
+	ssh.Channel
+	inputChan chan string
+	errorChan chan error
+	active    bool
+	pty       bool
+}
+
+func (channel *sessionChannel) handleRequest(request requestPayload) (bool, error) {
+	switch request.(type) {
+	case *parsedPTYRequestPayload:
+		if channel.pty {
+			return false, errors.New("a pty-req request was already sent on this session channel")
+		}
+		channel.pty = true
+	case *shellRequestPayload, *execRequestPayload, *subsystemRequestPayload:
+		if channel.active {
+			log.Println("the session channel is already active")
+			return false, nil
+		}
+		channel.active = true
+		go func() {
+			defer close(channel.inputChan)
+			defer close(channel.errorChan)
+			defer channel.Close()
+			var err error
+			if channel.pty {
+				terminal := term.NewTerminal(channel, "$ ")
+				var line string
+				for err == nil {
+					line, err = terminal.ReadLine()
+					channel.inputChan <- line
+				}
+				if err == io.EOF {
+					err = nil
+				}
+			} else {
+				scanner := bufio.NewScanner(channel)
+				for scanner.Scan() {
+					channel.inputChan <- scanner.Text()
+				}
+				err = scanner.Err()
+			}
+			channel.errorChan <- err
+		}()
+	}
+	return true, nil
+}
+
 func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) error {
 	if len(newChannel.ExtraData()) != 0 {
 		return errors.New("invalid channel data")
@@ -217,15 +268,8 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 
 	inputChan := make(chan string)
 	errorChan := make(chan error)
-	go func() {
-		defer close(inputChan)
-		defer close(errorChan)
-		scanner := bufio.NewScanner(channel)
-		for scanner.Scan() {
-			inputChan <- scanner.Text()
-		}
-		errorChan <- scanner.Err()
-	}()
+
+	session := sessionChannel{channel, inputChan, errorChan, false, false}
 
 	for errorChan != nil || inputChan != nil || requests != nil {
 		select {
@@ -261,6 +305,15 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 			payload, err := parser(request.Payload)
 			if err != nil {
 				return err
+			}
+			accept, err := session.handleRequest(payload)
+			if err != nil {
+				return err
+			}
+			if !accept && request.WantReply {
+				if err := request.Reply(false, nil); err != nil {
+					return err
+				}
 			}
 			metadata.getLogEntry().WithFields(logrus.Fields{
 				"request_payload":    payload,
