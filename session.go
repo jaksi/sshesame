@@ -14,14 +14,14 @@ import (
 	"golang.org/x/term"
 )
 
-type ptyRequestPayload struct {
+type rawPTYRequestPayload struct {
 	Term                                   string
 	Width, Height, PixelWidth, PixelHeight uint32
 	Modes                                  string
 }
 
-type parsedPTYRequestPayload struct {
-	ptyRequestPayload
+type ptyRequestPayload struct {
+	rawPTYRequestPayload
 	parsedModes map[uint8]uint32
 }
 
@@ -84,7 +84,7 @@ var opcodeStrings = map[uint8]string{
 	129: "TTY_OP_OSPEED",
 }
 
-func (payload parsedPTYRequestPayload) String() string {
+func (payload ptyRequestPayload) String() string {
 	terminalModes := []string{}
 	for opcode, argument := range payload.parsedModes {
 		opcodeString := opcodeStrings[opcode]
@@ -146,11 +146,11 @@ func (payload windowChangeRequestPayload) String() string {
 
 var requestParsers = map[string]requestPayloadParser{
 	"pty-req": func(data []byte) (requestPayload, error) {
-		payload := &ptyRequestPayload{}
+		payload := &rawPTYRequestPayload{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
-		parsedPayload := &parsedPTYRequestPayload{*payload, map[uint8]uint32{}}
+		parsedPayload := &ptyRequestPayload{*payload, map[uint8]uint32{}}
 		modeBytes := []byte(payload.Modes)
 		for i := 0; i+4 < len(modeBytes); i += 5 {
 			opcode := modeBytes[i]
@@ -215,7 +215,7 @@ type sessionChannel struct {
 
 func (channel *sessionChannel) handleRequest(request requestPayload) (bool, error) {
 	switch request.(type) {
-	case *parsedPTYRequestPayload:
+	case *ptyRequestPayload:
 		if channel.pty {
 			return false, errors.New("a pty-req request was already sent on this session channel")
 		}
@@ -229,7 +229,6 @@ func (channel *sessionChannel) handleRequest(request requestPayload) (bool, erro
 		go func() {
 			defer close(channel.inputChan)
 			defer close(channel.errorChan)
-			defer channel.Close()
 			var err error
 			if channel.pty {
 				terminal := term.NewTerminal(channel, "$ ")
@@ -248,6 +247,23 @@ func (channel *sessionChannel) handleRequest(request requestPayload) (bool, erro
 				}
 				err = scanner.Err()
 			}
+			if err == nil && channel.pty {
+				_, err = channel.Write([]byte("\r\n"))
+			}
+			if err == nil {
+				_, err = channel.SendRequest("exit-status", false, ssh.Marshal(struct {
+					ExitStatus uint32
+				}{0}))
+			}
+			if err == nil && channel.pty {
+				_, err = channel.SendRequest("eow@openssh.com", false, nil)
+			}
+			if err == nil {
+				err = channel.CloseWrite()
+			}
+			if err == nil {
+				err = channel.Close()
+			}
 			channel.errorChan <- err
 		}()
 	}
@@ -262,16 +278,14 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 	if err != nil {
 		return err
 	}
-	defer channel.Close()
 	metadata.getLogEntry().Infoln("New channel accepted")
 	defer metadata.getLogEntry().Infoln("Channel closed")
 
 	inputChan := make(chan string)
 	errorChan := make(chan error)
-
 	session := sessionChannel{channel, inputChan, errorChan, false, false}
 
-	for errorChan != nil || inputChan != nil || requests != nil {
+	for inputChan != nil || errorChan != nil || requests != nil {
 		select {
 		case input, ok := <-inputChan:
 			if !ok {
