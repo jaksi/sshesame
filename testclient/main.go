@@ -317,6 +317,8 @@ func main() {
 		sshClientConn.ptyShellTest()
 	case "pty_exec":
 		sshClientConn.ptyExecTest()
+	default:
+		panic(*test)
 	}
 
 	time.Sleep(5 * time.Second)
