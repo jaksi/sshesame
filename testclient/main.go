@@ -240,6 +240,7 @@ func main() {
 	user := flag.String("user", "root", "")
 	password := flag.String("password", "", "")
 	key := flag.String("key", "", "")
+	test := flag.String("test", "pty_shell", "one of tcp, raw_shell, raw_exec, pty_shell, pty_exec")
 	flag.Parse()
 
 	config := &ssh.ClientConfig{
@@ -305,11 +306,18 @@ func main() {
 
 	sshClientConn := sshConn{clientConn}
 
-	//sshClientConn.tcpTest()
-	//sshClientConn.rawShellTest() // perfect
-	//sshClientConn.rawExecTest() // perfect
-	//sshClientConn.ptyShellTest() // perfect
-	sshClientConn.ptyExecTest() // perfect
+	switch *test {
+	case "tcp":
+		sshClientConn.tcpTest()
+	case "raw_shell":
+		sshClientConn.rawShellTest()
+	case "raw_exec":
+		sshClientConn.rawExecTest()
+	case "pty_shell":
+		sshClientConn.ptyShellTest()
+	case "pty_exec":
+		sshClientConn.ptyExecTest()
+	}
 
 	time.Sleep(5 * time.Second)
 }

@@ -12,11 +12,11 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type server interface {
-	handle(channel ssh.Channel, input chan<- string) error
+type tcpipServer interface {
+	serve(channel ssh.Channel, input chan<- string) error
 }
 
-var servers = map[uint32]server{
+var servers = map[uint32]tcpipServer{
 	80: httpServer{},
 }
 
@@ -54,7 +54,7 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	go func() {
 		defer close(inputChan)
 		defer close(errorChan)
-		errorChan <- server.handle(channel, inputChan)
+		errorChan <- server.serve(channel, inputChan)
 	}()
 
 	for inputChan != nil || errorChan != nil || requests != nil {
@@ -91,25 +91,24 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 
 type httpServer struct{}
 
-func (httpServer) handle(channel ssh.Channel, input chan<- string) error {
+func (httpServer) serveRequest(channel ssh.Channel, input chan<- string) error {
+	request, err := http.ReadRequest(bufio.NewReader(channel))
+	if err != nil {
+		return err
+	}
+	requestBytes, err := httputil.DumpRequest(request, true)
+	if err != nil {
+		return err
+	}
+	input <- string(requestBytes)
+	_, err = channel.Write([]byte("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"))
+	return err
+}
+
+func (server httpServer) serve(channel ssh.Channel, input chan<- string) error {
 	var err error
-	for {
-		request, err1 := http.ReadRequest(bufio.NewReader(channel))
-		if err1 != nil {
-			err = err1
-			break
-		}
-		requestBytes, err1 := httputil.DumpRequest(request, true)
-		if err1 != nil {
-			err = err1
-			break
-		}
-		input <- string(requestBytes)
-		_, err1 = channel.Write([]byte("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"))
-		if err1 != nil {
-			err = err1
-			break
-		}
+	for err == nil {
+		err = server.serveRequest(channel, input)
 	}
 	if err != nil && err != io.EOF {
 		return err
