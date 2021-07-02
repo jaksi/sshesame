@@ -1,42 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"net"
-	"time"
+	"net/http"
+	"net/http/httputil"
 
-	"github.com/valyala/fasthttp"
 	"golang.org/x/crypto/ssh"
 )
 
-type channelConn struct {
-	ssh.Channel
-}
-
-func (conn channelConn) LocalAddr() net.Addr {
-	return &net.IPAddr{IP: net.IPv4(127, 0, 0, 1)}
-}
-
-func (conn channelConn) RemoteAddr() net.Addr {
-	return &net.IPAddr{IP: net.IPv4(127, 0, 0, 1)}
-}
-
-func (conn channelConn) SetDeadline(t time.Time) error {
-	return nil
-}
-
-func (conn channelConn) SetReadDeadline(t time.Time) error {
-	return nil
-}
-
-func (conn channelConn) SetWriteDeadline(t time.Time) error {
-	return nil
-}
-
 type server interface {
-	handle(conn channelConn, input chan<- string) error
+	handle(channel ssh.Channel, input chan<- string) error
 }
 
 var servers = map[uint32]server{
@@ -63,7 +40,6 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	if err != nil {
 		return err
 	}
-	defer channel.Close()
 	metadata.getLogEntry().WithField("channel_extra_data", channelData).Infoln("New channel accepted")
 	defer metadata.getLogEntry().Infoln("Channel closed")
 
@@ -78,10 +54,10 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	go func() {
 		defer close(inputChan)
 		defer close(errorChan)
-		errorChan <- server.handle(channelConn{channel}, inputChan)
+		errorChan <- server.handle(channel, inputChan)
 	}()
 
-	for errorChan != nil || inputChan != nil || requests != nil {
+	for inputChan != nil || errorChan != nil || requests != nil {
 		select {
 		case input, ok := <-inputChan:
 			if !ok {
@@ -115,22 +91,31 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 
 type httpServer struct{}
 
-func (httpServer) handle(conn channelConn, input chan<- string) error {
-	server := fasthttp.Server{
-		Handler: func(ctx *fasthttp.RequestCtx) {
-			input <- ctx.Request.String()
-			ctx.SetStatusCode(404)
-		},
-		NoDefaultServerHeader: true,
-		NoDefaultDate:         true,
-		NoDefaultContentType:  true,
-	}
+func (httpServer) handle(channel ssh.Channel, input chan<- string) error {
+	var err error
 	for {
-		if err := server.ServeConn(conn); err != nil {
-			if err != io.EOF {
-				return err
-			}
-			return nil
+		request, err1 := http.ReadRequest(bufio.NewReader(channel))
+		if err1 != nil {
+			err = err1
+			break
+		}
+		requestBytes, err1 := httputil.DumpRequest(request, true)
+		if err1 != nil {
+			err = err1
+			break
+		}
+		input <- string(requestBytes)
+		_, err1 = channel.Write([]byte("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"))
+		if err1 != nil {
+			err = err1
+			break
 		}
 	}
+	if err != nil && err != io.EOF {
+		return err
+	}
+	if err = channel.CloseWrite(); err != nil {
+		return err
+	}
+	return channel.Close()
 }
