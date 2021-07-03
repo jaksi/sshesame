@@ -16,7 +16,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )
@@ -121,7 +120,7 @@ func (pkcs8fileKey) generate(dataDir string, signature keySignature) (string, er
 	} else if !os.IsNotExist(err) {
 		return "", err
 	}
-	log.Println("Host key", keyFile, "not found, generating it")
+	infoLogger.Printf("Host key %q not found, generating it", keyFile)
 	if _, err := os.Stat(path.Dir(keyFile)); os.IsNotExist(err) {
 		if err := os.MkdirAll(path.Dir(keyFile), 0755); err != nil {
 			return "", err
@@ -193,7 +192,7 @@ func (cfg *config) setupSSHConfig(key keyType) error {
 		PasswordCallback:            cfg.getPasswordCallback(),
 		PublicKeyCallback:           cfg.getPublicKeyCallback(),
 		KeyboardInteractiveCallback: cfg.getKeyboardInteractiveCallback(),
-		AuthLogCallback:             authLogCallback,
+		AuthLogCallback:             cfg.getAuthLogCallback(),
 		ServerVersion:               cfg.SSHProto.Version,
 		BannerCallback:              cfg.getBannerCallback(),
 	}
@@ -216,16 +215,16 @@ func (cfg *config) setupLogging() error {
 		if err != nil {
 			return err
 		}
-		logrus.SetOutput(logFile)
+		log.SetOutput(logFile)
 		cfg.logFileHandle = logFile
 	} else {
-		logrus.SetOutput(os.Stdout)
+		log.SetOutput(os.Stdout)
 		cfg.logFileHandle = nil
 	}
 	if cfg.Logging.JSON {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
+		log.SetFlags(0)
 	} else {
-		logrus.SetFormatter(&logrus.TextFormatter{})
+		log.SetFlags(log.LstdFlags)
 	}
 	return nil
 }
@@ -238,7 +237,7 @@ func getConfig(configString string, dataDir string, key keyType) (*config, error
 	}
 
 	if len(cfg.Server.HostKeys) == 0 {
-		log.Println("No host keys configured, using keys at", dataDir)
+		infoLogger.Printf("No host keys configured, using keys at %q", dataDir)
 		if err := cfg.setDefaultHostKeys(dataDir, key, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
 			return nil, err
 		}

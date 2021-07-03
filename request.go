@@ -1,38 +1,68 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"math/rand"
 	"net"
+	"strconv"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 
-type requestPayload fmt.Stringer
+type globalRequestPayload interface {
+	reply() []byte
+	logEntry() logEntry
+}
 
-type requestPayloadParser func(data []byte) (requestPayload, error)
+type globalRequestPayloadParser func(data []byte) (globalRequestPayload, error)
 
-type tcpipRequestPayload struct {
+type channelRequestPayload interface {
+	reply() []byte
+	logEntry(channelID int) logEntry
+}
+
+type channelRequestPayloadParser func(data []byte) (channelRequestPayload, error)
+
+type tcpipRequest struct {
 	Address string
 	Port    uint32
 }
 
-func (payload tcpipRequestPayload) String() string {
-	return net.JoinHostPort(payload.Address, fmt.Sprint(payload.Port))
+func (request tcpipRequest) reply() []byte {
+	if request.Port != 0 {
+		return nil
+	}
+	return ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
+}
+func (request tcpipRequest) logEntry() logEntry {
+	return tcpipForwardLog{
+		Address: net.JoinHostPort(request.Address, strconv.Itoa(int(request.Port))),
+	}
 }
 
-var globalRequestPayloadParsers = map[string]requestPayloadParser{
-	"tcpip-forward": func(data []byte) (requestPayload, error) {
-		payload := &tcpipRequestPayload{}
+type cancelTCPIPRequest struct {
+	Address string
+	Port    uint32
+}
+
+func (request cancelTCPIPRequest) reply() []byte {
+	return nil
+}
+func (request cancelTCPIPRequest) logEntry() logEntry {
+	return cancelTCPIPForwardLog{
+		Address: net.JoinHostPort(request.Address, strconv.Itoa(int(request.Port))),
+	}
+}
+
+var globalRequestPayloads = map[string]globalRequestPayloadParser{
+	"tcpip-forward": func(data []byte) (globalRequestPayload, error) {
+		payload := &tcpipRequest{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
-	"cancel-tcpip-forward": func(data []byte) (requestPayload, error) {
-		payload := &tcpipRequestPayload{}
+	"cancel-tcpip-forward": func(data []byte) (globalRequestPayload, error) {
+		payload := &cancelTCPIPRequest{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
@@ -41,10 +71,9 @@ var globalRequestPayloadParsers = map[string]requestPayloadParser{
 }
 
 func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
-	var payload requestPayload
-	parser := globalRequestPayloadParsers[request.Type]
+	parser := globalRequestPayloads[request.Type]
 	if parser == nil {
-		log.Println("Unsupported global request type", request.Type)
+		warningLogger.Printf("Unsupported global request type %v", request.Type)
 		if request.WantReply {
 			if err := request.Reply(false, nil); err != nil {
 				return err
@@ -56,23 +85,12 @@ func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
 	if err != nil {
 		return err
 	}
-	metadata.getLogEntry().WithFields(logrus.Fields{
-		"request_payload":    payload,
-		"request_type":       request.Type,
-		"request_want_reply": request.WantReply,
-	}).Infoln("Global request accepted")
 	if request.WantReply {
-		var response []byte
-		switch request.Type {
-		case "tcpip-forward":
-			if payload.(*tcpipRequestPayload).Port == 0 {
-				response = ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
-			}
-		}
-		if err := request.Reply(true, response); err != nil {
+		if err := request.Reply(true, payload.reply()); err != nil {
 			return err
 		}
 	}
+	metadata.logEvent(payload.logEntry())
 	return nil
 }
 
