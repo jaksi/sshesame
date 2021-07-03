@@ -282,7 +282,7 @@ func (entry windowChangeLog) eventType() string {
 	return "window_change"
 }
 
-func (metadata connMetadata) logEvent(entry logEntry) error {
+func (metadata connMetadata) logEvent(entry logEntry) {
 	if metadata.cfg.Logging.JSON {
 		logBytes, err := json.Marshal(struct {
 			Time      string   `json:"time"`
@@ -291,11 +291,11 @@ func (metadata connMetadata) logEvent(entry logEntry) error {
 			Event     logEntry `json:"event"`
 		}{time.Now().Format(time.RFC3339), metadata.RemoteAddr().String(), entry.eventType(), entry})
 		if err != nil {
-			return err
+			warningLogger.Printf("Failed to log event: %v", err)
+			return
 		}
 		log.Print(string(logBytes))
 	} else {
 		log.Printf("%v: %v", metadata.RemoteAddr().String(), entry)
 	}
-	return nil
 }
