@@ -12,15 +12,10 @@ type logEntry interface {
 	eventType() string
 }
 
-type authDecision bool
+type authAccepted bool
 
-const (
-	accepted authDecision = true
-	rejected authDecision = false
-)
-
-func (decision authDecision) String() string {
-	if decision == accepted {
+func (accepted authAccepted) String() string {
+	if accepted {
 		return "accepted"
 	}
 	return "rejected"
@@ -28,7 +23,7 @@ func (decision authDecision) String() string {
 
 type authLog struct {
 	User     string       `json:"user"`
-	Accepted authDecision `json:"accepted"`
+	Accepted authAccepted `json:"accepted"`
 }
 
 type noAuthLog struct {

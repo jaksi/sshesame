@@ -27,7 +27,7 @@ func (cfg *config) getPasswordCallback() func(conn ssh.ConnMetadata, password []
 		connMetadata{conn, cfg}.logEvent(passwordAuthLog{
 			authLog: authLog{
 				User:     conn.User(),
-				Accepted: authDecision(cfg.Auth.PasswordAuth.Accepted),
+				Accepted: authAccepted(cfg.Auth.PasswordAuth.Accepted),
 			},
 			Password: string(password),
 		})
@@ -46,7 +46,7 @@ func (cfg *config) getPublicKeyCallback() func(conn ssh.ConnMetadata, key ssh.Pu
 		connMetadata{conn, cfg}.logEvent(publicKeyAuthLog{
 			authLog: authLog{
 				User:     conn.User(),
-				Accepted: authDecision(cfg.Auth.PublicKeyAuth.Accepted),
+				Accepted: authAccepted(cfg.Auth.PublicKeyAuth.Accepted),
 			},
 			PublicKeyFingerprint: ssh.FingerprintSHA256(key),
 		})
@@ -76,7 +76,7 @@ func (cfg *config) getKeyboardInteractiveCallback() func(conn ssh.ConnMetadata, 
 		connMetadata{conn, cfg}.logEvent(keyboardInteractiveAuthLog{
 			authLog: authLog{
 				User:     conn.User(),
-				Accepted: authDecision(cfg.Auth.KeyboardInteractiveAuth.Accepted),
+				Accepted: authAccepted(cfg.Auth.KeyboardInteractiveAuth.Accepted),
 			},
 			Answers: answers,
 		})
