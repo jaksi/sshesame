@@ -68,7 +68,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 			}
 			continue
 		}
-		go func() {
+		go func(channelID int) {
 			channelChan := make(chan interface{})
 			channels = append(channels, channelChan)
 			defer func() { channelChan <- nil }()
@@ -76,7 +76,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 				warningLogger.Printf("Failed to handle new channel: %v", err)
 				serverConn.Close()
 			}
-		}()
+		}(channelID)
 		channelID++
 	}
 }
