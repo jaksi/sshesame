@@ -125,7 +125,7 @@ type sessionLog struct {
 }
 
 func (entry sessionLog) String() string {
-	return fmt.Sprintf("[channel %04X] session requested", entry.ChannelID)
+	return fmt.Sprintf("[channel %v] session requested", entry.ChannelID)
 }
 func (entry sessionLog) eventType() string {
 	return "session"
@@ -136,7 +136,7 @@ type sessionCloseLog struct {
 }
 
 func (entry sessionCloseLog) String() string {
-	return fmt.Sprintf("[channel %04X] closed", entry.ChannelID)
+	return fmt.Sprintf("[channel %v] closed", entry.ChannelID)
 }
 func (entry sessionCloseLog) eventType() string {
 	return "session_close"
@@ -148,7 +148,7 @@ type sessionInputLog struct {
 }
 
 func (entry sessionInputLog) String() string {
-	return fmt.Sprintf("[channel %04X] input: %q", entry.ChannelID, entry.Input)
+	return fmt.Sprintf("[channel %v] input: %q", entry.ChannelID, entry.Input)
 }
 func (entry sessionInputLog) eventType() string {
 	return "session_input"
@@ -161,7 +161,7 @@ type directTCPIPLog struct {
 }
 
 func (entry directTCPIPLog) String() string {
-	return fmt.Sprintf("[channel %04X] direct TCP/IP forwarding from %v to %v requested", entry.ChannelID, entry.From, entry.To)
+	return fmt.Sprintf("[channel %v] direct TCP/IP forwarding from %v to %v requested", entry.ChannelID, entry.From, entry.To)
 }
 func (entry directTCPIPLog) eventType() string {
 	return "direct_tcpip"
@@ -172,7 +172,7 @@ type directTCPIPCloseLog struct {
 }
 
 func (entry directTCPIPCloseLog) String() string {
-	return fmt.Sprintf("[channel %04X] closed", entry.ChannelID)
+	return fmt.Sprintf("[channel %v] closed", entry.ChannelID)
 }
 func (entry directTCPIPCloseLog) eventType() string {
 	return "direct_tcpip_close"
@@ -184,7 +184,7 @@ type directTCPIPInputLog struct {
 }
 
 func (entry directTCPIPInputLog) String() string {
-	return fmt.Sprintf("[channel %04X] input: %q", entry.ChannelID, entry.Input)
+	return fmt.Sprintf("[channel %v] input: %q", entry.ChannelID, entry.Input)
 }
 func (entry directTCPIPInputLog) eventType() string {
 	return "direct_tcpip_input"
@@ -198,7 +198,7 @@ type ptyLog struct {
 }
 
 func (entry ptyLog) String() string {
-	return fmt.Sprintf("[channel %04X] PTY using terminal %q (size %vx%v) requested", entry.ChannelID, entry.Terminal, entry.Width, entry.Height)
+	return fmt.Sprintf("[channel %v] PTY using terminal %q (size %vx%v) requested", entry.ChannelID, entry.Terminal, entry.Width, entry.Height)
 }
 func (entry ptyLog) eventType() string {
 	return "pty"
@@ -209,7 +209,7 @@ type shellLog struct {
 }
 
 func (entry shellLog) String() string {
-	return fmt.Sprintf("[channel %04X] shell requested", entry.ChannelID)
+	return fmt.Sprintf("[channel %v] shell requested", entry.ChannelID)
 }
 func (entry shellLog) eventType() string {
 	return "shell"
@@ -221,7 +221,7 @@ type execLog struct {
 }
 
 func (entry execLog) String() string {
-	return fmt.Sprintf("[channel %04X] command %q requested", entry.ChannelID, entry.Command)
+	return fmt.Sprintf("[channel %v] command %q requested", entry.ChannelID, entry.Command)
 }
 func (entry execLog) eventType() string {
 	return "exec"
@@ -233,7 +233,7 @@ type subsystemLog struct {
 }
 
 func (entry subsystemLog) String() string {
-	return fmt.Sprintf("[channel %04X] subsystem %q requested", entry.ChannelID, entry.Subsystem)
+	return fmt.Sprintf("[channel %v] subsystem %q requested", entry.ChannelID, entry.Subsystem)
 }
 func (entry subsystemLog) eventType() string {
 	return "subsystem"
@@ -245,7 +245,7 @@ type x11Log struct {
 }
 
 func (entry x11Log) String() string {
-	return fmt.Sprintf("[channel %04X] X11 forwarding on screen %v requested", entry.ChannelID, entry.Screen)
+	return fmt.Sprintf("[channel %v] X11 forwarding on screen %v requested", entry.ChannelID, entry.Screen)
 }
 func (entry x11Log) eventType() string {
 	return "x11"
@@ -258,7 +258,7 @@ type envLog struct {
 }
 
 func (entry envLog) String() string {
-	return fmt.Sprintf("[channel %04X] environment variable %q with value %q requested", entry.ChannelID, entry.Name, entry.Value)
+	return fmt.Sprintf("[channel %v] environment variable %q with value %q requested", entry.ChannelID, entry.Name, entry.Value)
 }
 func (entry envLog) eventType() string {
 	return "env"
@@ -271,7 +271,7 @@ type windowChangeLog struct {
 }
 
 func (entry windowChangeLog) String() string {
-	return fmt.Sprintf("[channel %04X] window size change to %vx%v requested", entry.ChannelID, entry.Width, entry.Height)
+	return fmt.Sprintf("[channel %v] window size change to %vx%v requested", entry.ChannelID, entry.Width, entry.Height)
 }
 func (entry windowChangeLog) eventType() string {
 	return "window_change"
