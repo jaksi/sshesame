@@ -62,7 +62,7 @@ func TestNoAuthFail(t *testing.T) {
 	logBuffer := setupLogBuffer(cfg)
 	callback(mockConnMetadata{}, "none", errors.New(""))
 	logs := logBuffer.String()
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" without credentials rejected
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" without credentials rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -76,7 +76,7 @@ func TestNoAuthSuccess(t *testing.T) {
 	logBuffer := setupLogBuffer(cfg)
 	callback(mockConnMetadata{}, "none", nil)
 	logs := logBuffer.String()
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" without credentials accepted
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" without credentials accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -109,7 +109,7 @@ func TestPasswordFail(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" with password "hunter2" rejected
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with password "hunter2" rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -133,7 +133,7 @@ func TestPasswordSuccess(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" with password "hunter2" accepted
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with password "hunter2" accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -166,7 +166,7 @@ func TestPublicKeyFail(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" rejected
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -190,7 +190,7 @@ func TestPublicKeySuccess(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" accepted
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -277,7 +277,7 @@ func TestKeyboardInteractiveFail(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" with keyboard interactive answers ["a1" "a2"] rejected
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with keyboard interactive answers ["a1" "a2"] rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -308,7 +308,7 @@ func TestKeyboardInteractiveSuccess(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `127.0.0.1:1234: authentication for user "root" with keyboard interactive answers ["a1" "a2"] accepted
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with keyboard interactive answers ["a1" "a2"] accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
