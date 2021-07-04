@@ -166,7 +166,7 @@ func TestPublicKeyFail(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" rejected
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:9faRaLujz6HiqA3/g5tI2zbfNvqHbBzZ19UI86swh0Q" rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -190,7 +190,7 @@ func TestPublicKeySuccess(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" accepted
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:9faRaLujz6HiqA3/g5tI2zbfNvqHbBzZ19UI86swh0Q" accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)

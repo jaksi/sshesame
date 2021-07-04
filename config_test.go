@@ -21,7 +21,7 @@ func (publicKey mockPublicKey) Type() string {
 }
 
 func (publicKey mockPublicKey) Marshal() []byte {
-	return nil
+	return []byte(publicKey.signature.String())
 }
 
 func (publicKey mockPublicKey) Verify(data []byte, sig *ssh.Signature) error {
