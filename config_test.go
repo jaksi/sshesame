@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
-	"os"
 	"path"
 	"reflect"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -159,27 +156,12 @@ func verifyConfig(cfg *config, expected *config, t *testing.T) {
 	}
 
 	if expected.Logging.File == "" {
-		if logrus.StandardLogger().Out != os.Stdout {
-			t.Errorf("logrus.StandardLogger().Out=%v, want %v (os.Stdout)", logrus.StandardLogger().Out, os.Stdout)
-		}
 		if cfg.logFileHandle != nil {
 			t.Errorf("logFileHandle=%v, want nil", cfg.logFileHandle)
 		}
 	} else {
-		if logrus.StandardLogger().Out == os.Stdout {
-			t.Errorf("logrus.StandardLogger().Out=%v (os.Stdout), want a file", logrus.StandardLogger().Out)
-		}
-		if cfg.logFileHandle != logrus.StandardLogger().Out {
-			t.Errorf("logFileHandle=%v, want %v", cfg.logFileHandle, logrus.StandardLogger().Out)
-		}
-	}
-	if expected.Logging.JSON {
-		if _, ok := logrus.StandardLogger().Formatter.(*logrus.JSONFormatter); !ok {
-			t.Errorf("Type of logrus.StandardLogger().Formatter=%T, want *logrus.JSONFormatter", logrus.StandardLogger().Formatter)
-		}
-	} else {
-		if _, ok := logrus.StandardLogger().Formatter.(*logrus.TextFormatter); !ok {
-			t.Errorf("Type of logrus.StandardLogger().Formatter=%T, want *logrus.TextFormatter", logrus.StandardLogger().Formatter)
+		if cfg.logFileHandle == nil {
+			t.Errorf("logFileHandle=nil, want a file")
 		}
 	}
 }
@@ -187,9 +169,7 @@ func verifyConfig(cfg *config, expected *config, t *testing.T) {
 func TestDefaultConfig(t *testing.T) {
 	dataDir := "test"
 	key := &mockKeyType{}
-	log.SetOutput(ioutil.Discard)
 	cfg, err := getConfig("", dataDir, key)
-	log.SetOutput(os.Stderr)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -245,12 +225,10 @@ ssh_proto:
 `, logFile)
 	dataDir := "test"
 	key := &mockKeyType{}
-	log.SetOutput(ioutil.Discard)
 	cfg, err := getConfig(cfgString, dataDir, key)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
-	log.SetOutput(os.Stderr)
 	if cfg.logFileHandle != nil {
 		cfg.logFileHandle.Close()
 	}
@@ -330,9 +308,7 @@ func TestPKCS8fileKey(t *testing.T) {
 		ed25519_key: "ssh-ed25519",
 	} {
 		dataDir := path.Join(baseDir, keyType)
-		log.SetOutput(ioutil.Discard)
 		keyFile, err := pkcs8fileKey{}.generate(dataDir, signature)
-		log.SetOutput(os.Stderr)
 		if err != nil {
 			t.Fatalf("Failed to generate key: %v", err)
 		}
@@ -355,9 +331,7 @@ func TestPKCS8fileKey(t *testing.T) {
 
 func TestExistingPKCS8fileKey(t *testing.T) {
 	dataDir := t.TempDir()
-	log.SetOutput(ioutil.Discard)
 	oldKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
-	log.SetOutput(os.Stderr)
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
 	}

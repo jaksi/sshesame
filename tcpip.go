@@ -2,12 +2,11 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -27,10 +26,6 @@ type tcpipChannelData struct {
 	OriginatorPort    uint32
 }
 
-func (data tcpipChannelData) String() string {
-	return fmt.Sprintf("%v -> %v", net.JoinHostPort(data.OriginatorAddress, fmt.Sprint(data.OriginatorPort)), net.JoinHostPort(data.Address, fmt.Sprint(data.Port)))
-}
-
 func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadata) error {
 	channelData := &tcpipChannelData{}
 	if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
@@ -40,12 +35,22 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	if err != nil {
 		return err
 	}
-	metadata.getLogEntry().WithField("channel_extra_data", channelData).Infoln("New channel accepted")
-	defer metadata.getLogEntry().Infoln("Channel closed")
+	metadata.logEvent(directTCPIPLog{
+		channelLog: channelLog{
+			ChannelID: metadata.channelID,
+		},
+		From: net.JoinHostPort(channelData.OriginatorAddress, strconv.Itoa(int(channelData.OriginatorPort))),
+		To:   net.JoinHostPort(channelData.Address, strconv.Itoa(int(channelData.Port))),
+	})
+	defer metadata.logEvent(directTCPIPCloseLog{
+		channelLog: channelLog{
+			ChannelID: metadata.channelID,
+		},
+	})
 
 	server := servers[channelData.Port]
 	if server == nil {
-		log.Println("Unsupported port", channelData.Port)
+		warningLogger.Printf("Unsupported port %v", channelData.Port)
 		return nil
 	}
 
@@ -64,7 +69,12 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 				inputChan = nil
 				continue
 			}
-			metadata.getLogEntry().WithField("input", input).Infoln("Channel input received")
+			metadata.logEvent(directTCPIPInputLog{
+				channelLog: channelLog{
+					ChannelID: metadata.channelID,
+				},
+				Input: input,
+			})
 		case err, ok := <-errorChan:
 			if !ok {
 				errorChan = nil

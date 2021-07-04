@@ -1,38 +1,19 @@
 package main
 
 import (
-	"encoding/base64"
-	"log"
 	"net"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 
 type connMetadata struct {
 	ssh.ConnMetadata
-}
-
-func (metadata connMetadata) getLogEntry() *logrus.Entry {
-	return logrus.WithFields(logrus.Fields{
-		"client_version": string(metadata.ClientVersion()),
-		"session_id":     base64.RawStdEncoding.EncodeToString(metadata.SessionID()),
-		"user":           metadata.User(),
-		"remote_address": metadata.RemoteAddr().String(),
-	})
+	cfg *config
 }
 
 type channelMetadata struct {
 	connMetadata
-	channelID   int
-	channelType string
-}
-
-func (metadata channelMetadata) getLogEntry() *logrus.Entry {
-	return metadata.connMetadata.getLogEntry().WithFields(logrus.Fields{
-		"channel_id":   metadata.channelID,
-		"channel_type": metadata.channelType,
-	})
+	channelID int
 }
 
 var channelHandlers = map[string]func(newChannel ssh.NewChannel, metadata channelMetadata) error{
@@ -42,27 +23,29 @@ var channelHandlers = map[string]func(newChannel ssh.NewChannel, metadata channe
 
 func handleConnection(conn net.Conn, cfg *config) {
 	defer conn.Close()
-	logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection accepted")
-	defer logrus.WithField("remote_address", conn.RemoteAddr().String()).Infoln("Connection closed")
 	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
-		log.Println("Failed to establish SSH connection:", err)
+		warningLogger.Printf("Failed to establish SSH connection: %v", err)
 		return
 	}
 	defer serverConn.Close()
-	metadata := connMetadata{serverConn}
-	metadata.getLogEntry().Infoln("SSH connection established")
-	defer metadata.getLogEntry().Infoln("SSH connection closed")
+
+	metadata := connMetadata{serverConn, cfg}
+
+	metadata.logEvent(connectionLog{
+		ClientVersion: string(serverConn.ClientVersion()),
+	})
+	defer metadata.logEvent(connectionCloseLog{})
 
 	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, createHostkeysRequestPayload(cfg.parsedHostKeys)); err != nil {
-		log.Println("Failed to send hostkeys-00@openssh.com request:", err)
+		warningLogger.Printf("Failed to send hostkeys-00@openssh.com request: %v", err)
 		return
 	}
 
 	go func() {
 		for request := range requests {
 			if err := handleGlobalRequest(request, metadata); err != nil {
-				log.Println("Failed to handle global request:", err)
+				warningLogger.Printf("Failed to handle global request: %v", err)
 				serverConn.Close()
 			}
 		}
@@ -73,16 +56,16 @@ func handleConnection(conn net.Conn, cfg *config) {
 		channelType := newChannel.ChannelType()
 		handler := channelHandlers[channelType]
 		if handler == nil {
-			log.Println("Unsupported channel type", channelType)
+			warningLogger.Printf("Unsupported channel type %v", channelType)
 			if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
-				log.Println("Failed to reject channel:", err)
+				warningLogger.Printf("Failed to reject channel: %v", err)
 				break
 			}
 			continue
 		}
 		go func() {
-			if err := handler(newChannel, channelMetadata{metadata, channelID, channelType}); err != nil {
-				log.Println("Failed to handle new channel:", err)
+			if err := handler(newChannel, channelMetadata{metadata, channelID}); err != nil {
+				warningLogger.Printf("Failed to handle new channel: %v", err)
 				serverConn.Close()
 			}
 		}()

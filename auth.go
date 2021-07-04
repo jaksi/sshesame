@@ -3,18 +3,20 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 
-func authLogCallback(conn ssh.ConnMetadata, method string, err error) {
-	connMetadata{conn}.getLogEntry().WithFields(logrus.Fields{
-		"method":  method,
-		"success": err == nil,
-	}).Infoln("Client attempted to authenticate")
+func (cfg *config) getAuthLogCallback() func(conn ssh.ConnMetadata, method string, err error) {
+	return func(conn ssh.ConnMetadata, method string, err error) {
+		if method == "none" {
+			connMetadata{conn, cfg}.logEvent(noAuthLog{authLog: authLog{
+				User:     conn.User(),
+				Accepted: err == nil,
+			}})
+		}
+	}
 }
 
 func (cfg *config) getPasswordCallback() func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
@@ -22,10 +24,13 @@ func (cfg *config) getPasswordCallback() func(conn ssh.ConnMetadata, password []
 		return nil
 	}
 	return func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-		connMetadata{conn}.getLogEntry().WithFields(logrus.Fields{
-			"password": string(password),
-			"success":  cfg.Auth.PasswordAuth.Accepted,
-		}).Infoln("Password authentication attempted")
+		connMetadata{conn, cfg}.logEvent(passwordAuthLog{
+			authLog: authLog{
+				User:     conn.User(),
+				Accepted: authAccepted(cfg.Auth.PasswordAuth.Accepted),
+			},
+			Password: string(password),
+		})
 		if !cfg.Auth.PasswordAuth.Accepted {
 			return nil, errors.New("")
 		}
@@ -38,10 +43,13 @@ func (cfg *config) getPublicKeyCallback() func(conn ssh.ConnMetadata, key ssh.Pu
 		return nil
 	}
 	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-		connMetadata{conn}.getLogEntry().WithFields(logrus.Fields{
-			"public_key_fingerprint": ssh.FingerprintSHA256(key),
-			"success":                cfg.Auth.PublicKeyAuth.Accepted,
-		}).Infoln("Public key authentication attempted")
+		connMetadata{conn, cfg}.logEvent(publicKeyAuthLog{
+			authLog: authLog{
+				User:     conn.User(),
+				Accepted: authAccepted(cfg.Auth.PublicKeyAuth.Accepted),
+			},
+			PublicKeyFingerprint: ssh.FingerprintSHA256(key),
+		})
 		if !cfg.Auth.PublicKeyAuth.Accepted {
 			return nil, errors.New("")
 		}
@@ -62,13 +70,16 @@ func (cfg *config) getKeyboardInteractiveCallback() func(conn ssh.ConnMetadata, 
 	return func(conn ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
 		answers, err := client(conn.User(), cfg.Auth.KeyboardInteractiveAuth.Instruction, keyboardInteractiveQuestions, keyboardInteractiveEchos)
 		if err != nil {
-			log.Println("Failed to process keyboard interactive authentication:", err)
+			warningLogger.Printf("Failed to process keyboard interactive authentication: %v", err)
 			return nil, errors.New("")
 		}
-		connMetadata{conn}.getLogEntry().WithFields(logrus.Fields{
-			"answers": strings.Join(answers, ", "),
-			"success": cfg.Auth.KeyboardInteractiveAuth.Accepted,
-		}).Infoln("Keyboard interactive authentication attempted")
+		connMetadata{conn, cfg}.logEvent(keyboardInteractiveAuthLog{
+			authLog: authLog{
+				User:     conn.User(),
+				Accepted: authAccepted(cfg.Auth.KeyboardInteractiveAuth.Accepted),
+			},
+			Answers: answers,
+		})
 		if !cfg.Auth.KeyboardInteractiveAuth.Accepted {
 			return nil, errors.New("")
 		}

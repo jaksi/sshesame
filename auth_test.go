@@ -3,14 +3,10 @@ package main
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
 	"log"
 	"net"
-	"os"
 	"reflect"
 	"testing"
-
-	"github.com/sirupsen/logrus"
 )
 
 type mockConnMetadata struct{}
@@ -39,36 +35,55 @@ func (metadata mockConnMetadata) LocalAddr() net.Addr {
 	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2022}
 }
 
-func setupLogBuffer() *bytes.Buffer {
+func setupLogBuffer(cfg *config) *bytes.Buffer {
 	buffer := &bytes.Buffer{}
-	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
-	logrus.SetOutput(buffer)
+	log.SetOutput(buffer)
+	log.SetFlags(0)
 	return buffer
 }
 
-func TestAuthLogCallbackSuccess(t *testing.T) {
-	logBuffer := setupLogBuffer()
-	authLogCallback(mockConnMetadata{}, "some-method", nil)
+func TestAuthLogUninteresting(t *testing.T) {
+	cfg := &config{}
+	cfg.Auth.NoAuth = false
+	callback := cfg.getAuthLogCallback()
+	logBuffer := setupLogBuffer(cfg)
+	callback(mockConnMetadata{}, "password", nil)
 	logs := logBuffer.String()
-	expectedLogs := `level=info msg="Client attempted to authenticate" client_version=SSH-2.0-testclient method=some-method remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=true user=root
+	expectedLogs := ``
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestNoAuthFail(t *testing.T) {
+	cfg := &config{}
+	cfg.Auth.NoAuth = false
+	callback := cfg.getAuthLogCallback()
+	logBuffer := setupLogBuffer(cfg)
+	callback(mockConnMetadata{}, "none", errors.New(""))
+	logs := logBuffer.String()
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" without credentials rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestAuthLogCallbackFail(t *testing.T) {
-	logBuffer := setupLogBuffer()
-	authLogCallback(mockConnMetadata{}, "some-other-method", errors.New(""))
+func TestNoAuthSuccess(t *testing.T) {
+	cfg := &config{}
+	cfg.Auth.NoAuth = false
+	callback := cfg.getAuthLogCallback()
+	logBuffer := setupLogBuffer(cfg)
+	callback(mockConnMetadata{}, "none", nil)
 	logs := logBuffer.String()
-	expectedLogs := `level=info msg="Client attempted to authenticate" client_version=SSH-2.0-testclient method=some-other-method remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=false user=root
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" without credentials accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestPasswordCallbackDisabled(t *testing.T) {
+func TestPasswordDisabled(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.PasswordAuth.Enabled = false
 	callback := cfg.getPasswordCallback()
@@ -77,7 +92,7 @@ func TestPasswordCallbackDisabled(t *testing.T) {
 	}
 }
 
-func TestPasswordCallbackFail(t *testing.T) {
+func TestPasswordFail(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.PasswordAuth.Enabled = true
 	cfg.Auth.PasswordAuth.Accepted = false
@@ -85,7 +100,7 @@ func TestPasswordCallbackFail(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	logBuffer := setupLogBuffer()
+	logBuffer := setupLogBuffer(cfg)
 	permissions, err := callback(mockConnMetadata{}, []byte("hunter2"))
 	logs := logBuffer.String()
 	if err == nil {
@@ -94,14 +109,14 @@ func TestPasswordCallbackFail(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `level=info msg="Password authentication attempted" client_version=SSH-2.0-testclient password=hunter2 remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=false user=root
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with password "hunter2" rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestPasswordCallbackSuccess(t *testing.T) {
+func TestPasswordSuccess(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.PasswordAuth.Enabled = true
 	cfg.Auth.PasswordAuth.Accepted = true
@@ -109,7 +124,7 @@ func TestPasswordCallbackSuccess(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	logBuffer := setupLogBuffer()
+	logBuffer := setupLogBuffer(cfg)
 	permissions, err := callback(mockConnMetadata{}, []byte("hunter2"))
 	logs := logBuffer.String()
 	if err != nil {
@@ -118,14 +133,14 @@ func TestPasswordCallbackSuccess(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `level=info msg="Password authentication attempted" client_version=SSH-2.0-testclient password=hunter2 remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=true user=root
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with password "hunter2" accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestPublicKeyCallbackDisabled(t *testing.T) {
+func TestPublicKeyDisabled(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.PublicKeyAuth.Enabled = false
 	callback := cfg.getPublicKeyCallback()
@@ -134,7 +149,7 @@ func TestPublicKeyCallbackDisabled(t *testing.T) {
 	}
 }
 
-func TestPublicKeyCallbackFail(t *testing.T) {
+func TestPublicKeyFail(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.PublicKeyAuth.Enabled = true
 	cfg.Auth.PublicKeyAuth.Accepted = false
@@ -142,7 +157,7 @@ func TestPublicKeyCallbackFail(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	logBuffer := setupLogBuffer()
+	logBuffer := setupLogBuffer(cfg)
 	permissions, err := callback(mockConnMetadata{}, mockPublicKey{})
 	logs := logBuffer.String()
 	if err == nil {
@@ -151,14 +166,14 @@ func TestPublicKeyCallbackFail(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `level=info msg="Public key authentication attempted" client_version=SSH-2.0-testclient public_key_fingerprint="SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=false user=root
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestPublicKeyCallbackSuccess(t *testing.T) {
+func TestPublicKeySuccess(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.PublicKeyAuth.Enabled = true
 	cfg.Auth.PublicKeyAuth.Accepted = true
@@ -166,7 +181,7 @@ func TestPublicKeyCallbackSuccess(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	logBuffer := setupLogBuffer()
+	logBuffer := setupLogBuffer(cfg)
 	permissions, err := callback(mockConnMetadata{}, mockPublicKey{})
 	logs := logBuffer.String()
 	if err != nil {
@@ -175,14 +190,14 @@ func TestPublicKeyCallbackSuccess(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `level=info msg="Public key authentication attempted" client_version=SSH-2.0-testclient public_key_fingerprint="SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=true user=root
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU" accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestKeyboardInteractiveCallbackDisabled(t *testing.T) {
+func TestKeyboardInteractiveDisabled(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.KeyboardInteractiveAuth.Enabled = false
 	cfg.Auth.KeyboardInteractiveAuth.Instruction = "inst"
@@ -196,7 +211,7 @@ func TestKeyboardInteractiveCallbackDisabled(t *testing.T) {
 	}
 }
 
-func TestKeyboardInteractiveCallbackError(t *testing.T) {
+func TestKeyboardInteractiveError(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
 	cfg.Auth.KeyboardInteractiveAuth.Accepted = false
@@ -209,8 +224,7 @@ func TestKeyboardInteractiveCallbackError(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	logBuffer := setupLogBuffer()
-	log.SetOutput(ioutil.Discard)
+	logBuffer := setupLogBuffer(cfg)
 	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
 		if user != "root" {
 			t.Errorf("user=%v, want root", user)
@@ -226,7 +240,6 @@ func TestKeyboardInteractiveCallbackError(t *testing.T) {
 		}
 		return nil, errors.New("")
 	})
-	log.SetOutput(os.Stderr)
 	logs := logBuffer.String()
 	if err == nil {
 		t.Errorf("err=nil, want an error")
@@ -240,7 +253,7 @@ func TestKeyboardInteractiveCallbackError(t *testing.T) {
 	}
 }
 
-func TestKeyboardInteractiveCallbackFail(t *testing.T) {
+func TestKeyboardInteractiveFail(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
 	cfg.Auth.KeyboardInteractiveAuth.Accepted = false
@@ -253,7 +266,7 @@ func TestKeyboardInteractiveCallbackFail(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	logBuffer := setupLogBuffer()
+	logBuffer := setupLogBuffer(cfg)
 	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
 		return []string{"a1", "a2"}, nil
 	})
@@ -264,14 +277,14 @@ func TestKeyboardInteractiveCallbackFail(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `level=info msg="Keyboard interactive authentication attempted" answers="a1, a2" client_version=SSH-2.0-testclient remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=false user=root
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with keyboard interactive answers ["a1" "a2"] rejected
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestKeyboardInteractiveCallbackSuccess(t *testing.T) {
+func TestKeyboardInteractiveSuccess(t *testing.T) {
 	cfg := &config{}
 	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
 	cfg.Auth.KeyboardInteractiveAuth.Accepted = true
@@ -284,7 +297,7 @@ func TestKeyboardInteractiveCallbackSuccess(t *testing.T) {
 	if callback == nil {
 		t.Fatalf("callback=nil, want a function")
 	}
-	logBuffer := setupLogBuffer()
+	logBuffer := setupLogBuffer(cfg)
 	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
 		return []string{"a1", "a2"}, nil
 	})
@@ -295,14 +308,14 @@ func TestKeyboardInteractiveCallbackSuccess(t *testing.T) {
 	if permissions != nil {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
-	expectedLogs := `level=info msg="Keyboard interactive authentication attempted" answers="a1, a2" client_version=SSH-2.0-testclient remote_address="127.0.0.1:1234" session_id=c29tZXNlc3Npb24 success=true user=root
+	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with keyboard interactive answers ["a1" "a2"] accepted
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
 }
 
-func TestBannerCallbackDisabled(t *testing.T) {
+func TestBannerDisabled(t *testing.T) {
 	cfg := &config{}
 	cfg.SSHProto.Banner = ""
 	callback := cfg.getBannerCallback()
@@ -311,7 +324,7 @@ func TestBannerCallbackDisabled(t *testing.T) {
 	}
 }
 
-func TestBannerCallback(t *testing.T) {
+func TestBanner(t *testing.T) {
 	cfg := &config{}
 	cfg.SSHProto.Banner = "Lorem\nIpsum\r\nDolor\n\nSit Amet"
 	callback := cfg.getBannerCallback()

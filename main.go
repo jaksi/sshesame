@@ -5,10 +5,23 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"os"
 	"path"
 
 	"github.com/adrg/xdg"
 )
+
+var (
+	infoLogger    *log.Logger
+	warningLogger *log.Logger
+	errorLogger   *log.Logger
+)
+
+func init() {
+	infoLogger = log.New(os.Stderr, "INFO ", log.LstdFlags)
+	warningLogger = log.New(os.Stderr, "WARNING ", log.LstdFlags)
+	errorLogger = log.New(os.Stderr, "ERROR ", log.LstdFlags)
+}
 
 func main() {
 	configFile := flag.String("config", "", "config file")
@@ -19,28 +32,28 @@ func main() {
 	if *configFile != "" {
 		configBytes, err := ioutil.ReadFile(*configFile)
 		if err != nil {
-			log.Fatalln("Failed to read config file:", err)
+			errorLogger.Fatalf("Failed to read config file: %v", err)
 		}
 		configString = string(configBytes)
 	}
 
 	cfg, err := getConfig(configString, *dataDir, pkcs8fileKey{})
 	if err != nil {
-		log.Fatalln("Failed to get config:", err)
+		errorLogger.Fatalf("Failed to get config: %v", err)
 	}
 
 	listener, err := net.Listen("tcp", cfg.Server.ListenAddress)
 	if err != nil {
-		log.Fatalln("Failed to listen for connections:", err)
+		errorLogger.Fatalf("Failed to listen for connections: %v", err)
 	}
 	defer listener.Close()
 
-	log.Println("Listening on", listener.Addr())
+	infoLogger.Printf("Listening on %v", listener.Addr())
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Println("Failed to accept connection:", err)
+			warningLogger.Printf("Failed to accept connection: %v", err)
 			continue
 		}
 		go handleConnection(conn, cfg)
