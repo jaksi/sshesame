@@ -299,6 +299,10 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 		case request, ok := <-requests:
 			if !ok {
 				requests = nil
+				if !session.active {
+					close(inputChan)
+					close(errorChan)
+				}
 				continue
 			}
 			parser := sessionRequestParsers[request.Type]
