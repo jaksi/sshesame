@@ -152,7 +152,7 @@ func verifyDefaultKeys(t *testing.T, dataDir string) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	dataDir := "test"
+	dataDir := t.TempDir()
 	cfg, err := getConfig("", dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
@@ -207,7 +207,7 @@ ssh_proto:
   ciphers: [cipher]
   macs: [mac]
 `, logFile)
-	dataDir := "test"
+	dataDir := t.TempDir()
 	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
