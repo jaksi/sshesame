@@ -32,8 +32,8 @@ func handleConnection(conn net.Conn, cfg *config) {
 	metadata := connMetadata{serverConn, cfg}
 	defer func() {
 		serverConn.Close()
-		for _, channel := range channelsDone {
-			<-channel
+		for _, channelDone := range channelsDone {
+			<-channelDone
 		}
 		metadata.logEvent(connectionCloseLog{})
 	}()
