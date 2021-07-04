@@ -31,7 +31,7 @@ Without specifying one, sane defaults will be used and RSA, ECDSA and Ed25519 ho
 A [sample configuration file](sshesame.yaml) with explanations for the configuration options is included.
 A [minimal configuration file](openssh.yaml) which tries to mimic an OpenSSH server is also included.
 
-Debug and error logs are written to standard error. Session (activity) logs by default are written to standard out, unless the `logging.file` config option is set.
+Debug and error logs are written to standard error. Activity logs by default are written to standard out, unless the `logging.file` config option is set.
 
 ## Sample output
 
