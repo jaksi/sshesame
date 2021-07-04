@@ -21,7 +21,9 @@ func TestHandleConnection(t *testing.T) {
 		Server: serverConfig{HostKeys: []string{hostKey}},
 		Auth:   authConfig{NoAuth: true},
 	}
-	cfg.setupSSHConfig(key)
+	if err := cfg.setupSSHConfig(key); err != nil {
+		t.Fatalf("Failed to setup SSH config: %v", err)
+	}
 	cfg.sshConfig.AddHostKey(mockSigner{signature: ecdsa_key})
 	address := path.Join(t.TempDir(), "test.sock")
 	listener, err := net.Listen("unix", address)
