@@ -11,10 +11,29 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func TestHandleConnection(t *testing.T) {
-	dataDir := t.TempDir()
+type request struct {
+	name    string
+	data    []byte
+	success bool
+}
+
+type channelResult int
+
+const (
+	rejected channelResult = iota
+	accepted
+	failed
+)
+
+type channel struct {
+	name   string
+	data   []byte
+	result channelResult
+}
+
+func testConnection(t *testing.T, clientAddress string, clientRequests []request, clientChannels []channel) string {
 	key := pkcs8fileKey{}
-	hostKey, err := key.generate(dataDir, ecdsa_key)
+	hostKey, err := key.generate(t.TempDir(), ecdsa_key)
 	if err != nil {
 		t.Fatalf("Failed to generate host key: %v", err)
 	}
@@ -44,7 +63,6 @@ func TestHandleConnection(t *testing.T) {
 		}
 		handleConnection(serverConn, cfg)
 	}()
-	clientAddress := path.Join(tempDir, "client.sock")
 	clientConn, err := net.DialUnix("unix", &net.UnixAddr{Name: clientAddress, Net: "unix"}, &net.UnixAddr{Name: serverAddress, Net: "unix"})
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
@@ -54,8 +72,7 @@ func TestHandleConnection(t *testing.T) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
-		t.Errorf("Failed to create client connection: %v", err)
-		return
+		t.Fatalf("Failed to create client connection: %v", err)
 	}
 	requestTypes := []string{}
 	channelTypes := []string{}
@@ -73,22 +90,29 @@ func TestHandleConnection(t *testing.T) {
 		}
 		channelsDone <- nil
 	}()
-	_, _, _ = clientSSHConn.SendRequest("test", false, nil)
-	_, _, _ = clientSSHConn.OpenChannel("test", nil)
-	channel, _, err := clientSSHConn.OpenChannel("session", nil)
-	if err != nil {
-		t.Fatalf("Failed to request session channel: %v", err)
-	}
-	if channel.Close() != nil {
-		t.Fatalf("Faield to close session channel: %v", err)
-	}
 	time.Sleep(10 * time.Millisecond)
-	channel, _, err = clientSSHConn.OpenChannel("session", nil)
-	if err != nil {
-		t.Fatalf("Failed to request session channel: %v", err)
+	for _, clientRequest := range clientRequests {
+		_, _, _ = clientSSHConn.SendRequest(clientRequest.name, false, clientRequest.data)
+		if !clientRequest.success {
+			clientSSHConn.Wait()
+			return logBuffer.String()
+		}
 	}
-	if channel.Close() != nil {
-		t.Fatalf("Faield to close session channel: %v", err)
+	for _, clientChannel := range clientChannels {
+		channel, _, err := clientSSHConn.OpenChannel(clientChannel.name, clientChannel.data)
+		switch clientChannel.result {
+		case accepted:
+			if err != nil {
+				t.Fatalf("Failed to request channel: %v", err)
+			}
+			if err := channel.Close(); err != nil {
+				t.Fatalf("Failed to close channel: %v", err)
+			}
+			time.Sleep(10 * time.Millisecond)
+		case failed:
+			clientSSHConn.Wait()
+			return logBuffer.String()
+		}
 	}
 	clientSSHConn.Close()
 	<-resultChan
@@ -101,13 +125,42 @@ func TestHandleConnection(t *testing.T) {
 	if len(channelTypes) != 0 {
 		t.Errorf("len(channelTypes)=%v, want 0", len(channelTypes))
 	}
-	logs := logBuffer.String()
+	return logBuffer.String()
+}
+
+func TestHandleConnection(t *testing.T) {
+	clientAddress := path.Join(t.TempDir(), "client.sock")
+	logs := testConnection(t, clientAddress, []request{{"test", nil, true}}, []channel{{"test", nil, rejected}, {"session", nil, accepted}, {"session", nil, accepted}})
 	expectedLogs := fmt.Sprintf(`[%[1]v] authentication for user "" without credentials accepted
 [%[1]v] connection with client version "SSH-2.0-Go" established
 [%[1]v] [channel 0] session requested
 [%[1]v] [channel 0] closed
 [%[1]v] [channel 1] session requested
 [%[1]v] [channel 1] closed
+[%[1]v] connection closed
+`, clientAddress)
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestFailedRequestHandling(t *testing.T) {
+	clientAddress := path.Join(t.TempDir(), "client.sock")
+	logs := testConnection(t, clientAddress, []request{{"tcpip-forward", nil, false}}, []channel{})
+	expectedLogs := fmt.Sprintf(`[%[1]v] authentication for user "" without credentials accepted
+[%[1]v] connection with client version "SSH-2.0-Go" established
+[%[1]v] connection closed
+`, clientAddress)
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestFailedChannelHandling(t *testing.T) {
+	clientAddress := path.Join(t.TempDir(), "client.sock")
+	logs := testConnection(t, clientAddress, []request{}, []channel{{"direct-tcpip", nil, failed}})
+	expectedLogs := fmt.Sprintf(`[%[1]v] authentication for user "" without credentials accepted
+[%[1]v] connection with client version "SSH-2.0-Go" established
 [%[1]v] connection closed
 `, clientAddress)
 	if logs != expectedLogs {
