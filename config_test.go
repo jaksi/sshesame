@@ -286,7 +286,7 @@ func TestSetupLoggingOldHandleClosed(t *testing.T) {
 	}
 }
 
-func TestExistingPKCS8fileKey(t *testing.T) {
+func TestExistingKey(t *testing.T) {
 	dataDir := t.TempDir()
 	oldKeyFile, err := generateKey(dataDir, ed25519_key)
 	if err != nil {
