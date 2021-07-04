@@ -201,7 +201,9 @@ func (channel *sessionChannel) handleProgram() bool {
 			var line string
 			for err == nil {
 				line, err = terminal.ReadLine()
-				channel.inputChan <- line
+				if err == nil || line != "" {
+					channel.inputChan <- line
+				}
 			}
 			if err == io.EOF {
 				err = nil

@@ -45,7 +45,6 @@ Debug and error logs are written to standard error. Session (activity) logs by d
 2021/07/04 00:37:07 127.0.0.1:64515: channel 0001: environment variable "LANG" with value "en_IE.UTF-8" requested
 2021/07/04 00:37:07 127.0.0.1:64515: channel 0001: shell requested
 2021/07/04 00:37:16 127.0.0.1:64515: channel 0001: input: "cat /etc/passwd"
-2021/07/04 00:37:17 127.0.0.1:64515: channel 0001: input: ""
 2021/07/04 00:37:17 127.0.0.1:64515: channel 0001 closed
 2021/07/04 00:37:17 127.0.0.1:64515: connection closed
 ```
