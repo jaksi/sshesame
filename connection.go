@@ -48,8 +48,8 @@ func handleConnection(conn net.Conn, cfg *config) {
 	}
 
 	go func() {
-		for req := range requests {
-			if err := handleGlobalRequest(sshRequest{req}, metadata); err != nil {
+		for request := range requests {
+			if err := handleGlobalRequest(request, metadata); err != nil {
 				warningLogger.Printf("Failed to handle global request: %v", err)
 				serverConn.Close()
 			}
