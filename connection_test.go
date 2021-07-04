@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"path"
 	"reflect"
@@ -25,8 +26,9 @@ func TestHandleConnection(t *testing.T) {
 		t.Fatalf("Failed to setup SSH config: %v", err)
 	}
 	cfg.sshConfig.AddHostKey(mockSigner{signature: ecdsa_key})
-	address := path.Join(t.TempDir(), "test.sock")
-	listener, err := net.Listen("unix", address)
+	tempDir := t.TempDir()
+	serverAddress := path.Join(tempDir, "server.sock")
+	listener, err := net.Listen("unix", serverAddress)
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
@@ -42,7 +44,8 @@ func TestHandleConnection(t *testing.T) {
 		}
 		handleConnection(serverConn, cfg)
 	}()
-	clientConn, err := net.Dial("unix", address)
+	clientAddress := path.Join(tempDir, "client.sock")
+	clientConn, err := net.DialUnix("unix", &net.UnixAddr{Name: clientAddress, Net: "unix"}, &net.UnixAddr{Name: serverAddress, Net: "unix"})
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
@@ -99,14 +102,14 @@ func TestHandleConnection(t *testing.T) {
 		t.Errorf("len(channelTypes)=%v, want 0", len(channelTypes))
 	}
 	logs := logBuffer.String()
-	expectedLogs := `[] authentication for user "" without credentials accepted
-[] connection with client version "SSH-2.0-Go" established
-[] [channel 0] session requested
-[] [channel 0] closed
-[] [channel 1] session requested
-[] [channel 1] closed
-[] connection closed
-`
+	expectedLogs := fmt.Sprintf(`[%[1]v] authentication for user "" without credentials accepted
+[%[1]v] connection with client version "SSH-2.0-Go" established
+[%[1]v] [channel 0] session requested
+[%[1]v] [channel 0] closed
+[%[1]v] [channel 1] session requested
+[%[1]v] [channel 1] closed
+[%[1]v] connection closed
+`, clientAddress)
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
 	}
