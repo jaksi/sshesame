@@ -106,14 +106,7 @@ func (signature keySignature) String() string {
 	}
 }
 
-type keyType interface {
-	generate(dataDir string, signature keySignature) (string, error)
-	load(keyFile string) (ssh.Signer, error)
-}
-
-type pkcs8fileKey struct{}
-
-func (pkcs8fileKey) generate(dataDir string, signature keySignature) (string, error) {
+func generateKey(dataDir string, signature keySignature) (string, error) {
 	keyFile := path.Join(dataDir, fmt.Sprintf("host_%v_key", signature))
 	if _, err := os.Stat(keyFile); err == nil {
 		return keyFile, nil
@@ -149,7 +142,7 @@ func (pkcs8fileKey) generate(dataDir string, signature keySignature) (string, er
 	return keyFile, nil
 }
 
-func (pkcs8fileKey) load(keyFile string) (ssh.Signer, error) {
+func loadKey(keyFile string) (ssh.Signer, error) {
 	keyBytes, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		return nil, err
@@ -157,9 +150,9 @@ func (pkcs8fileKey) load(keyFile string) (ssh.Signer, error) {
 	return ssh.ParsePrivateKey(keyBytes)
 }
 
-func (cfg *config) setDefaultHostKeys(dataDir string, key keyType, signatures []keySignature) error {
+func (cfg *config) setDefaultHostKeys(dataDir string, signatures []keySignature) error {
 	for _, signature := range signatures {
-		keyFile, err := key.generate(dataDir, signature)
+		keyFile, err := generateKey(dataDir, signature)
 		if err != nil {
 			return err
 		}
@@ -168,9 +161,9 @@ func (cfg *config) setDefaultHostKeys(dataDir string, key keyType, signatures []
 	return nil
 }
 
-func (cfg *config) parseHostKeys(key keyType) error {
+func (cfg *config) parseHostKeys() error {
 	for _, keyFile := range cfg.Server.HostKeys {
-		signer, err := key.load(keyFile)
+		signer, err := loadKey(keyFile)
 		if err != nil {
 			return err
 		}
@@ -179,7 +172,7 @@ func (cfg *config) parseHostKeys(key keyType) error {
 	return nil
 }
 
-func (cfg *config) setupSSHConfig(key keyType) error {
+func (cfg *config) setupSSHConfig() error {
 	sshConfig := &ssh.ServerConfig{
 		Config: ssh.Config{
 			RekeyThreshold: cfg.SSHProto.RekeyThreshold,
@@ -196,7 +189,7 @@ func (cfg *config) setupSSHConfig(key keyType) error {
 		ServerVersion:               cfg.SSHProto.Version,
 		BannerCallback:              cfg.getBannerCallback(),
 	}
-	if err := cfg.parseHostKeys(key); err != nil {
+	if err := cfg.parseHostKeys(); err != nil {
 		return err
 	}
 	for _, key := range cfg.parsedHostKeys {
@@ -229,7 +222,7 @@ func (cfg *config) setupLogging() error {
 	return nil
 }
 
-func getConfig(configString string, dataDir string, key keyType) (*config, error) {
+func getConfig(configString string, dataDir string) (*config, error) {
 	cfg := getDefaultConfig()
 
 	if err := yaml.UnmarshalStrict([]byte(configString), cfg); err != nil {
@@ -238,12 +231,12 @@ func getConfig(configString string, dataDir string, key keyType) (*config, error
 
 	if len(cfg.Server.HostKeys) == 0 {
 		infoLogger.Printf("No host keys configured, using keys at %q", dataDir)
-		if err := cfg.setDefaultHostKeys(dataDir, key, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
+		if err := cfg.setDefaultHostKeys(dataDir, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := cfg.setupSSHConfig(key); err != nil {
+	if err := cfg.setupSSHConfig(); err != nil {
 		return nil, err
 	}
 	if err := cfg.setupLogging(); err != nil {

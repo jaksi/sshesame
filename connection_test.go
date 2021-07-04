@@ -33,8 +33,7 @@ type testChannel struct {
 }
 
 func testConnection(t *testing.T, clientAddress string, clientRequests []testRequest, clientChannels []testChannel) string {
-	key := pkcs8fileKey{}
-	hostKey, err := key.generate(t.TempDir(), ecdsa_key)
+	hostKey, err := generateKey(t.TempDir(), ecdsa_key)
 	if err != nil {
 		t.Fatalf("Failed to generate host key: %v", err)
 	}
@@ -42,7 +41,7 @@ func testConnection(t *testing.T, clientAddress string, clientRequests []testReq
 		Server: serverConfig{HostKeys: []string{hostKey}},
 		Auth:   authConfig{NoAuth: true},
 	}
-	if err := cfg.setupSSHConfig(key); err != nil {
+	if err := cfg.setupSSHConfig(); err != nil {
 		t.Fatalf("Failed to setup SSH config: %v", err)
 	}
 	cfg.sshConfig.AddHostKey(mockSigner{signature: ecdsa_key})
