@@ -36,15 +36,15 @@ Debug and error logs are written to standard error. Activity logs by default are
 ## Sample output
 
 ```
-2021/07/04 00:37:05 127.0.0.1:64515: authentication for user "jaksi" without credentials rejected
-2021/07/04 00:37:05 127.0.0.1:64515: authentication for user "jaksi" with public key "SHA256:uUdTmvEHN6kCAoE4RJWsxr8+fGTGhCpAhBaWgmMVqNk" rejected
-2021/07/04 00:37:07 127.0.0.1:64515: authentication for user "jaksi" with password "hunter2" accepted
-2021/07/04 00:37:07 127.0.0.1:64515: connection with client version "SSH-2.0-OpenSSH_8.1" established
-2021/07/04 00:37:07 127.0.0.1:64515: channel 0001: session requested
-2021/07/04 00:37:07 127.0.0.1:64515: channel 0001: PTY using terminal "xterm-256color" (size 158x48) requested
-2021/07/04 00:37:07 127.0.0.1:64515: channel 0001: environment variable "LANG" with value "en_IE.UTF-8" requested
-2021/07/04 00:37:07 127.0.0.1:64515: channel 0001: shell requested
-2021/07/04 00:37:16 127.0.0.1:64515: channel 0001: input: "cat /etc/passwd"
-2021/07/04 00:37:17 127.0.0.1:64515: channel 0001 closed
-2021/07/04 00:37:17 127.0.0.1:64515: connection closed
+2021/07/04 00:37:05 [127.0.0.1:64515] authentication for user "jaksi" without credentials rejected
+2021/07/04 00:37:05 [127.0.0.1:64515] authentication for user "jaksi" with public key "SHA256:uUdTmvEHN6kCAoE4RJWsxr8+fGTGhCpAhBaWgmMVqNk" rejected
+2021/07/04 00:37:07 [127.0.0.1:64515] authentication for user "jaksi" with password "hunter2" accepted
+2021/07/04 00:37:07 [127.0.0.1:64515] connection with client version "SSH-2.0-OpenSSH_8.1" established
+2021/07/04 00:37:07 [127.0.0.1:64515] [channel 1] session requested
+2021/07/04 00:37:07 [127.0.0.1:64515] [channel 1] PTY using terminal "xterm-256color" (size 158x48) requested
+2021/07/04 00:37:07 [127.0.0.1:64515] [channel 1] environment variable "LANG" with value "en_IE.UTF-8" requested
+2021/07/04 00:37:07 [127.0.0.1:64515] [channel 1] shell requested
+2021/07/04 00:37:16 [127.0.0.1:64515] [channel 1] input: "cat /etc/passwd"
+2021/07/04 00:37:17 [127.0.0.1:64515] [channel 1] closed
+2021/07/04 00:37:17 [127.0.0.1:64515] connection closed
 ```
