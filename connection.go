@@ -28,14 +28,19 @@ func handleConnection(conn net.Conn, cfg *config) {
 		warningLogger.Printf("Failed to establish SSH connection: %v", err)
 		return
 	}
-	defer serverConn.Close()
-
+	channels := []chan interface{}{}
 	metadata := connMetadata{serverConn, cfg}
+	defer func() {
+		serverConn.Close()
+		for _, channel := range channels {
+			<-channel
+		}
+		metadata.logEvent(connectionCloseLog{})
+	}()
 
 	metadata.logEvent(connectionLog{
 		ClientVersion: string(serverConn.ClientVersion()),
 	})
-	defer metadata.logEvent(connectionCloseLog{})
 
 	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, createHostkeysRequestPayload(cfg.parsedHostKeys)); err != nil {
 		warningLogger.Printf("Failed to send hostkeys-00@openssh.com request: %v", err)
@@ -64,6 +69,9 @@ func handleConnection(conn net.Conn, cfg *config) {
 			continue
 		}
 		go func() {
+			channelChan := make(chan interface{})
+			channels = append(channels, channelChan)
+			defer func() { channelChan <- nil }()
 			if err := handler(newChannel, channelMetadata{metadata, channelID}); err != nil {
 				warningLogger.Printf("Failed to handle new channel: %v", err)
 				serverConn.Close()
