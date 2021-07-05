@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"path"
 	"reflect"
@@ -26,18 +25,6 @@ func (publicKey mockPublicKey) Marshal() []byte {
 
 func (publicKey mockPublicKey) Verify(data []byte, sig *ssh.Signature) error {
 	return nil
-}
-
-type mockSigner struct {
-	signature keySignature
-}
-
-func (signer mockSigner) PublicKey() ssh.PublicKey {
-	return mockPublicKey(signer)
-}
-
-func (signer mockSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, error) {
-	return nil, errors.New("")
 }
 
 type mockFile struct {
