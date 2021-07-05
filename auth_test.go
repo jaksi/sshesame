@@ -48,6 +48,7 @@ func TestAuthLogUninteresting(t *testing.T) {
 
 func TestNoAuthFail(t *testing.T) {
 	cfg := &config{}
+	cfg.Logging.Timestamps = false
 	cfg.Auth.NoAuth = false
 	callback := cfg.getAuthLogCallback()
 	logBuffer := setupLogBuffer(cfg)
@@ -62,6 +63,7 @@ func TestNoAuthFail(t *testing.T) {
 
 func TestNoAuthSuccess(t *testing.T) {
 	cfg := &config{}
+	cfg.Logging.Timestamps = false
 	cfg.Auth.NoAuth = false
 	callback := cfg.getAuthLogCallback()
 	logBuffer := setupLogBuffer(cfg)
@@ -85,6 +87,7 @@ func TestPasswordDisabled(t *testing.T) {
 
 func TestPasswordFail(t *testing.T) {
 	cfg := &config{}
+	cfg.Logging.Timestamps = false
 	cfg.Auth.PasswordAuth.Enabled = true
 	cfg.Auth.PasswordAuth.Accepted = false
 	callback := cfg.getPasswordCallback()

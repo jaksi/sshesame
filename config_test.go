@@ -151,6 +151,7 @@ func TestDefaultConfig(t *testing.T) {
 		path.Join(dataDir, "host_ecdsa_key"),
 		path.Join(dataDir, "host_ed25519_key"),
 	}
+	expectedConfig.Logging.Timestamps = true
 	expectedConfig.Auth.PasswordAuth.Enabled = true
 	expectedConfig.Auth.PasswordAuth.Accepted = true
 	expectedConfig.Auth.PublicKeyAuth.Enabled = true
@@ -168,6 +169,7 @@ server:
 logging:
   file: %v
   json: true
+  timestamps: false
 auth:
   max_tries: 234
   no_auth: true
@@ -211,6 +213,7 @@ ssh_proto:
 	}
 	expectedConfig.Logging.File = logFile
 	expectedConfig.Logging.JSON = true
+	expectedConfig.Logging.Timestamps = false
 	expectedConfig.Auth.MaxTries = 234
 	expectedConfig.Auth.NoAuth = true
 	expectedConfig.Auth.PublicKeyAuth.Accepted = true
@@ -247,6 +250,7 @@ server:
 	expectedConfig := &config{}
 	expectedConfig.Server.ListenAddress = "127.0.0.1:2022"
 	expectedConfig.Server.HostKeys = []string{keyFile}
+	expectedConfig.Logging.Timestamps = true
 	expectedConfig.Auth.PasswordAuth.Enabled = true
 	expectedConfig.Auth.PasswordAuth.Accepted = true
 	expectedConfig.Auth.PublicKeyAuth.Enabled = true

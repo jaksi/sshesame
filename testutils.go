@@ -44,8 +44,8 @@ func testClient(t *testing.T, dataDir string, cfg *config, clientAddress string)
 }
 
 func setupLogBuffer(cfg *config) *bytes.Buffer {
+	cfg.setupLogging()
 	buffer := &bytes.Buffer{}
 	log.SetOutput(buffer)
-	log.SetFlags(0)
 	return buffer
 }

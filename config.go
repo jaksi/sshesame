@@ -26,8 +26,9 @@ type serverConfig struct {
 }
 
 type loggingConfig struct {
-	File string `yaml:"file"`
-	JSON bool   `yaml:"json"`
+	File       string `yaml:"file"`
+	JSON       bool   `yaml:"json"`
+	Timestamps bool   `yaml:"timestamps"`
 }
 
 type commonAuthConfig struct {
@@ -77,6 +78,7 @@ type config struct {
 func getDefaultConfig() *config {
 	cfg := &config{}
 	cfg.Server.ListenAddress = "127.0.0.1:2022"
+	cfg.Logging.Timestamps = true
 	cfg.Auth.PasswordAuth.Enabled = true
 	cfg.Auth.PasswordAuth.Accepted = true
 	cfg.Auth.PublicKeyAuth.Enabled = true
@@ -214,10 +216,10 @@ func (cfg *config) setupLogging() error {
 		log.SetOutput(os.Stdout)
 		cfg.logFileHandle = nil
 	}
-	if cfg.Logging.JSON {
-		log.SetFlags(0)
-	} else {
+	if !cfg.Logging.JSON && cfg.Logging.Timestamps {
 		log.SetFlags(log.LstdFlags)
+	} else {
+		log.SetFlags(0)
 	}
 	return nil
 }
