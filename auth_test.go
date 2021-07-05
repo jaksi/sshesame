@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"errors"
-	"log"
 	"net"
 	"reflect"
 	"testing"
@@ -33,13 +31,6 @@ func (metadata mockConnMetadata) RemoteAddr() net.Addr {
 
 func (metadata mockConnMetadata) LocalAddr() net.Addr {
 	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2022}
-}
-
-func setupLogBuffer(cfg *config) *bytes.Buffer {
-	buffer := &bytes.Buffer{}
-	log.SetOutput(buffer)
-	log.SetFlags(0)
-	return buffer
 }
 
 func TestAuthLogUninteresting(t *testing.T) {
