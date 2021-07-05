@@ -48,7 +48,6 @@ func TestAuthLogUninteresting(t *testing.T) {
 
 func TestNoAuthFail(t *testing.T) {
 	cfg := &config{}
-	cfg.Logging.Timestamps = false
 	cfg.Auth.NoAuth = false
 	callback := cfg.getAuthLogCallback()
 	logBuffer := setupLogBuffer(cfg)
@@ -63,7 +62,6 @@ func TestNoAuthFail(t *testing.T) {
 
 func TestNoAuthSuccess(t *testing.T) {
 	cfg := &config{}
-	cfg.Logging.Timestamps = false
 	cfg.Auth.NoAuth = false
 	callback := cfg.getAuthLogCallback()
 	logBuffer := setupLogBuffer(cfg)
@@ -87,7 +85,6 @@ func TestPasswordDisabled(t *testing.T) {
 
 func TestPasswordFail(t *testing.T) {
 	cfg := &config{}
-	cfg.Logging.Timestamps = false
 	cfg.Auth.PasswordAuth.Enabled = true
 	cfg.Auth.PasswordAuth.Accepted = false
 	callback := cfg.getPasswordCallback()
@@ -128,6 +125,56 @@ func TestPasswordSuccess(t *testing.T) {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
 	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with password "hunter2" accepted
+`
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestPasswordFailJSON(t *testing.T) {
+	cfg := &config{}
+	cfg.Logging.JSON = true
+	cfg.Auth.PasswordAuth.Enabled = true
+	cfg.Auth.PasswordAuth.Accepted = false
+	callback := cfg.getPasswordCallback()
+	if callback == nil {
+		t.Fatalf("callback=nil, want a function")
+	}
+	logBuffer := setupLogBuffer(cfg)
+	permissions, err := callback(mockConnMetadata{}, []byte("hunter2"))
+	logs := logBuffer.String()
+	if err == nil {
+		t.Errorf("err=nil, want an error")
+	}
+	if permissions != nil {
+		t.Errorf("permissions=%v, want nil", permissions)
+	}
+	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"password_auth","event":{"user":"root","accepted":false,"password":"hunter2"}}
+`
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestPasswordSuccessJSON(t *testing.T) {
+	cfg := &config{}
+	cfg.Logging.JSON = true
+	cfg.Auth.PasswordAuth.Enabled = true
+	cfg.Auth.PasswordAuth.Accepted = true
+	callback := cfg.getPasswordCallback()
+	if callback == nil {
+		t.Fatalf("callback=nil, want a function")
+	}
+	logBuffer := setupLogBuffer(cfg)
+	permissions, err := callback(mockConnMetadata{}, []byte("hunter2"))
+	logs := logBuffer.String()
+	if err != nil {
+		t.Errorf("err=%v, want nil", err)
+	}
+	if permissions != nil {
+		t.Errorf("permissions=%v, want nil", permissions)
+	}
+	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"password_auth","event":{"user":"root","accepted":true,"password":"hunter2"}}
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -185,6 +232,56 @@ func TestPublicKeySuccess(t *testing.T) {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
 	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with public key "SHA256:9faRaLujz6HiqA3/g5tI2zbfNvqHbBzZ19UI86swh0Q" accepted
+`
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestPublicKeyFailJSON(t *testing.T) {
+	cfg := &config{}
+	cfg.Logging.JSON = true
+	cfg.Auth.PublicKeyAuth.Enabled = true
+	cfg.Auth.PublicKeyAuth.Accepted = false
+	callback := cfg.getPublicKeyCallback()
+	if callback == nil {
+		t.Fatalf("callback=nil, want a function")
+	}
+	logBuffer := setupLogBuffer(cfg)
+	permissions, err := callback(mockConnMetadata{}, mockPublicKey{})
+	logs := logBuffer.String()
+	if err == nil {
+		t.Errorf("err=nil, want an error")
+	}
+	if permissions != nil {
+		t.Errorf("permissions=%v, want nil", permissions)
+	}
+	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"public_key_auth","event":{"user":"root","accepted":false,"public_key":"SHA256:9faRaLujz6HiqA3/g5tI2zbfNvqHbBzZ19UI86swh0Q"}}
+`
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestPublicKeySuccessJSON(t *testing.T) {
+	cfg := &config{}
+	cfg.Logging.JSON = true
+	cfg.Auth.PublicKeyAuth.Enabled = true
+	cfg.Auth.PublicKeyAuth.Accepted = true
+	callback := cfg.getPublicKeyCallback()
+	if callback == nil {
+		t.Fatalf("callback=nil, want a function")
+	}
+	logBuffer := setupLogBuffer(cfg)
+	permissions, err := callback(mockConnMetadata{}, mockPublicKey{})
+	logs := logBuffer.String()
+	if err != nil {
+		t.Errorf("err=%v, want nil", err)
+	}
+	if permissions != nil {
+		t.Errorf("permissions=%v, want nil", permissions)
+	}
+	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"public_key_auth","event":{"user":"root","accepted":true,"public_key":"SHA256:9faRaLujz6HiqA3/g5tI2zbfNvqHbBzZ19UI86swh0Q"}}
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
@@ -303,6 +400,70 @@ func TestKeyboardInteractiveSuccess(t *testing.T) {
 		t.Errorf("permissions=%v, want nil", permissions)
 	}
 	expectedLogs := `[127.0.0.1:1234] authentication for user "root" with keyboard interactive answers ["a1" "a2"] accepted
+`
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestKeyboardInteractiveFailJSON(t *testing.T) {
+	cfg := &config{}
+	cfg.Logging.JSON = true
+	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
+	cfg.Auth.KeyboardInteractiveAuth.Accepted = false
+	cfg.Auth.KeyboardInteractiveAuth.Instruction = "inst"
+	cfg.Auth.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+		{"q1", true},
+		{"q2", false},
+	}
+	callback := cfg.getKeyboardInteractiveCallback()
+	if callback == nil {
+		t.Fatalf("callback=nil, want a function")
+	}
+	logBuffer := setupLogBuffer(cfg)
+	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
+		return []string{"a1", "a2"}, nil
+	})
+	logs := logBuffer.String()
+	if err == nil {
+		t.Errorf("err=nil, want an error")
+	}
+	if permissions != nil {
+		t.Errorf("permissions=%v, want nil", permissions)
+	}
+	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"keyboard_interactive_auth","event":{"user":"root","accepted":false,"answers":["a1","a2"]}}
+`
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestKeyboardInteractiveSuccessJSON(t *testing.T) {
+	cfg := &config{}
+	cfg.Logging.JSON = true
+	cfg.Auth.KeyboardInteractiveAuth.Enabled = true
+	cfg.Auth.KeyboardInteractiveAuth.Accepted = true
+	cfg.Auth.KeyboardInteractiveAuth.Instruction = "inst"
+	cfg.Auth.KeyboardInteractiveAuth.Questions = []keyboardInteractiveAuthQuestion{
+		{"q1", true},
+		{"q2", false},
+	}
+	callback := cfg.getKeyboardInteractiveCallback()
+	if callback == nil {
+		t.Fatalf("callback=nil, want a function")
+	}
+	logBuffer := setupLogBuffer(cfg)
+	permissions, err := callback(mockConnMetadata{}, func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
+		return []string{"a1", "a2"}, nil
+	})
+	logs := logBuffer.String()
+	if err != nil {
+		t.Errorf("err=%v, want nil", err)
+	}
+	if permissions != nil {
+		t.Errorf("permissions=%v, want nil", permissions)
+	}
+	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"keyboard_interactive_auth","event":{"user":"root","accepted":true,"answers":["a1","a2"]}}
 `
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
