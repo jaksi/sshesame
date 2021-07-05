@@ -67,7 +67,9 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if !accepted {
 		t.Errorf("accepted=false, want true")
 	}
-	channel.Write([]byte("false\ntrue\n"))
+	if _, err := channel.Write([]byte("false\ntrue\n")); err != nil {
+		t.Fatalf("Faield to write to channel: %v", err)
+	}
 	channel.CloseWrite()
 	channelResponse, err := ioutil.ReadAll(channel)
 	if err != nil {
@@ -108,7 +110,9 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if !accepted {
 		t.Errorf("accepted=false, want true")
 	}
-	channel.Write([]byte("false\ntrue\n"))
+	if _, err := channel.Write([]byte("false\ntrue\n")); err != nil {
+		t.Fatalf("Faield to write to channel: %v", err)
+	}
 	channel.CloseWrite()
 	channelResponse, err = ioutil.ReadAll(channel)
 	if err != nil {
@@ -167,7 +171,9 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if !accepted {
 		t.Errorf("accepted=false, want true")
 	}
-	channel.Write([]byte("false\rtrue\r\x04"))
+	if _, err := channel.Write([]byte("false\rtrue\r\x04")); err != nil {
+		t.Fatalf("Faield to write to channel: %v", err)
+	}
 	channelResponse, err = ioutil.ReadAll(channel)
 	if err != nil {
 		t.Fatalf("Failed to read channel: %v", err)
@@ -218,7 +224,9 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if !accepted {
 		t.Errorf("accepted=false, want true")
 	}
-	channel.Write([]byte("false\rtrue\r\x04"))
+	if _, err := channel.Write([]byte("false\rtrue\r\x04")); err != nil {
+		t.Fatalf("Faield to write to channel: %v", err)
+	}
 	channelResponse, err = ioutil.ReadAll(channel)
 	if err != nil {
 		t.Fatalf("Failed to read channel: %v", err)
