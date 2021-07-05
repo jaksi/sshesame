@@ -46,7 +46,9 @@ func testTCP(t *testing.T, dataDir string, cfg *config, clientAddress string) st
 	if _, err := channel.Write([]byte("GET / HTTP/1.1\r\n\r\n")); err != nil {
 		t.Fatalf("Faield to write to channel: %v", err)
 	}
-	channel.CloseWrite()
+	if err := channel.CloseWrite(); err != nil {
+		t.Fatalf("Failed to close channel: %v", err)
+	}
 
 	channelResponse, err := ioutil.ReadAll(channel)
 	if err != nil {
