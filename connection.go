@@ -22,10 +22,10 @@ var channelHandlers = map[string]func(newChannel ssh.NewChannel, metadata channe
 }
 
 func handleConnection(conn net.Conn, cfg *config) {
-	defer conn.Close()
 	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
 		warningLogger.Printf("Failed to establish SSH connection: %v", err)
+		conn.Close()
 		return
 	}
 	channelsDone := []chan interface{}{}
