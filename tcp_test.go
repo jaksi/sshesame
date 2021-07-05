@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"path"
 	"reflect"
 	"testing"
@@ -10,7 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func testRequests(t *testing.T, dataDir string, cfg *config, clientAddress string) string {
+func testTCP(t *testing.T, dataDir string, cfg *config, clientAddress string) string {
 	logBuffer := setupLogBuffer(t, cfg)
 
 	conn, newChannels, requests, done := testClient(t, dataDir, cfg, clientAddress)
@@ -34,51 +35,31 @@ func testRequests(t *testing.T, dataDir string, cfg *config, clientAddress strin
 		requestsDone <- nil
 	}()
 
-	accepted, response, err := conn.SendRequest("tcpip-forward", true, ssh.Marshal(struct {
-		string
-		uint32
-	}{"127.0.0.1", 0}))
+	channel, _, err := conn.OpenChannel("direct-tcpip", ssh.Marshal(struct {
+		Address           string
+		Port              uint32
+		OriginatorAddress string
+		OriginatorPort    uint32
+	}{"example.org", 80, "localhost", 8080}))
 	if err != nil {
-		t.Fatalf("Failed to send request: %v", err)
+		t.Fatalf("Failed to open channel: %v", err)
 	}
-	if !accepted {
-		t.Errorf("accepted=false, want true")
+	if _, err := channel.Write([]byte("GET / HTTP/1.1\r\n\r\n")); err != nil {
+		t.Fatalf("Faield to write to channel: %v", err)
 	}
-	parsedResponse := struct{ Port uint32 }{}
-	if err := ssh.Unmarshal(response, &parsedResponse); err != nil {
-		t.Fatalf("Failed to parse response: %v", err)
-	}
-	if !(parsedResponse.Port >= 1024 && parsedResponse.Port <= 65535) {
-		t.Errorf("parsedResponse.Port=%v, want between 1024 and 65535", parsedResponse.Port)
+	if err := channel.CloseWrite(); err != nil {
+		t.Fatalf("Failed to close channel: %v", err)
 	}
 
-	accepted, response, err = conn.SendRequest("tcpip-forward", true, ssh.Marshal(struct {
-		string
-		uint32
-	}{"127.0.0.1", 1234}))
+	channelResponse, err := ioutil.ReadAll(channel)
 	if err != nil {
-		t.Fatalf("Failed to send request: %v", err)
+		t.Fatalf("Failed to read channel: %v", err)
 	}
-	if !accepted {
-		t.Errorf("accepted=false, want true")
-	}
-	if len(response) != 0 {
-		t.Errorf("response=%v, want []", response)
+	expectedChannelResponse := "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
+	if string(channelResponse) != expectedChannelResponse {
+		t.Errorf("channelResponse=%v, want %v", string(channelResponse), expectedChannelResponse)
 	}
 
-	accepted, response, err = conn.SendRequest("cancel-tcpip-forward", true, ssh.Marshal(struct {
-		string
-		uint32
-	}{"127.0.0.1", 0}))
-	if err != nil {
-		t.Fatalf("Failed to send request: %v", err)
-	}
-	if !accepted {
-		t.Errorf("accepted=false, want true")
-	}
-	if len(response) != 0 {
-		t.Errorf("response=%v, want []", response)
-	}
 	conn.Close()
 
 	<-channelsDone
@@ -97,7 +78,7 @@ func testRequests(t *testing.T, dataDir string, cfg *config, clientAddress strin
 	return logBuffer.String()
 }
 
-func TestRequests(t *testing.T) {
+func TestTCP(t *testing.T) {
 	dataDir := t.TempDir()
 	key, err := generateKey(dataDir, ecdsa_key)
 	if err != nil {
@@ -113,13 +94,13 @@ func TestRequests(t *testing.T) {
 
 	clientAddress := path.Join(dataDir, "client.sock")
 
-	logs := testRequests(t, dataDir, cfg, clientAddress)
+	logs := testTCP(t, dataDir, cfg, clientAddress)
 
 	expectedLogs := fmt.Sprintf(`[%[1]v] authentication for user "" without credentials accepted
 [%[1]v] connection with client version "SSH-2.0-Go" established
-[%[1]v] TCP/IP forwarding on 127.0.0.1:0 requested
-[%[1]v] TCP/IP forwarding on 127.0.0.1:1234 requested
-[%[1]v] TCP/IP forwarding on 127.0.0.1:0 canceled
+[%[1]v] [channel 0] direct TCP/IP forwarding from localhost:8080 to example.org:80 requested
+[%[1]v] [channel 0] input: "GET / HTTP/1.1\r\n\r\n"
+[%[1]v] [channel 0] closed
 [%[1]v] connection closed
 `, clientAddress)
 	if logs != expectedLogs {
@@ -127,7 +108,7 @@ func TestRequests(t *testing.T) {
 	}
 }
 
-func TestRequestsJSON(t *testing.T) {
+func TestTCPJSON(t *testing.T) {
 	dataDir := t.TempDir()
 	key, err := generateKey(dataDir, ecdsa_key)
 	if err != nil {
@@ -144,17 +125,17 @@ func TestRequestsJSON(t *testing.T) {
 
 	clientAddress := path.Join(dataDir, "client.sock")
 
-	logs := testRequests(t, dataDir, cfg, clientAddress)
-
+	logs := testTCP(t, dataDir, cfg, clientAddress)
 	escapedClientAddress, err := json.Marshal(clientAddress)
 	if err != nil {
 		t.Fatalf("Failed to escape clientAddress: %v", err)
 	}
+
 	expectedLogs := fmt.Sprintf(`{"source":%[1]v,"event_type":"no_auth","event":{"user":"","accepted":true}}
 {"source":%[1]v,"event_type":"connection","event":{"client_version":"SSH-2.0-Go"}}
-{"source":%[1]v,"event_type":"tcpip_forward","event":{"address":"127.0.0.1:0"}}
-{"source":%[1]v,"event_type":"tcpip_forward","event":{"address":"127.0.0.1:1234"}}
-{"source":%[1]v,"event_type":"cancel_tcpip_forward","event":{"address":"127.0.0.1:0"}}
+{"source":%[1]v,"event_type":"direct_tcpip","event":{"channel_id":0,"from":"localhost:8080","to":"example.org:80"}}
+{"source":%[1]v,"event_type":"direct_tcpip_input","event":{"channel_id":0,"input":"GET / HTTP/1.1\r\n\r\n"}}
+{"source":%[1]v,"event_type":"direct_tcpip_close","event":{"channel_id":0}}
 {"source":%[1]v,"event_type":"connection_close","event":{}}
 `, string(escapedClientAddress))
 	if logs != expectedLogs {

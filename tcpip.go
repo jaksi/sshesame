@@ -31,6 +31,10 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
 		return err
 	}
+	server := servers[channelData.Port]
+	if server == nil {
+		return newChannel.Reject(ssh.ConnectionFailed, "Connection refused")
+	}
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		return err
@@ -47,12 +51,6 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 			ChannelID: metadata.channelID,
 		},
 	})
-
-	server := servers[channelData.Port]
-	if server == nil {
-		warningLogger.Printf("Unsupported port %v", channelData.Port)
-		return nil
-	}
 
 	inputChan := make(chan string)
 	errorChan := make(chan error)

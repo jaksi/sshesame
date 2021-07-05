@@ -8,33 +8,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type request interface {
-	name() string
-	wantReply() bool
-	payload() []byte
-	reply(ok bool, payload []byte) error
-}
-
-type sshRequest struct {
-	*ssh.Request
-}
-
-func (req sshRequest) name() string {
-	return req.Type
-}
-
-func (req sshRequest) wantReply() bool {
-	return req.WantReply
-}
-
-func (req sshRequest) payload() []byte {
-	return req.Payload
-}
-
-func (req sshRequest) reply(ok bool, payload []byte) error {
-	return req.Reply(ok, payload)
-}
-
 type globalRequestPayload interface {
 	reply() []byte
 	logEntry() logEntry
@@ -97,23 +70,23 @@ var globalRequestPayloads = map[string]globalRequestPayloadParser{
 	},
 }
 
-func handleGlobalRequest(req request, metadata connMetadata) error {
-	parser := globalRequestPayloads[req.name()]
+func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
+	parser := globalRequestPayloads[request.Type]
 	if parser == nil {
-		warningLogger.Printf("Unsupported global request type %v", req.name())
-		if req.wantReply() {
-			if err := req.reply(false, nil); err != nil {
+		warningLogger.Printf("Unsupported global request type %v", request.Type)
+		if request.WantReply {
+			if err := request.Reply(false, nil); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	payload, err := parser(req.payload())
+	payload, err := parser(request.Payload)
 	if err != nil {
 		return err
 	}
-	if req.wantReply() {
-		if err := req.reply(true, payload.reply()); err != nil {
+	if request.WantReply {
+		if err := request.Reply(true, payload.reply()); err != nil {
 			return err
 		}
 	}

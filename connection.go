@@ -22,10 +22,10 @@ var channelHandlers = map[string]func(newChannel ssh.NewChannel, metadata channe
 }
 
 func handleConnection(conn net.Conn, cfg *config) {
-	defer conn.Close()
 	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
 		warningLogger.Printf("Failed to establish SSH connection: %v", err)
+		conn.Close()
 		return
 	}
 	channelsDone := []chan interface{}{}
@@ -48,8 +48,8 @@ func handleConnection(conn net.Conn, cfg *config) {
 	}
 
 	go func() {
-		for req := range requests {
-			if err := handleGlobalRequest(sshRequest{req}, metadata); err != nil {
+		for request := range requests {
+			if err := handleGlobalRequest(request, metadata); err != nil {
 				warningLogger.Printf("Failed to handle global request: %v", err)
 				serverConn.Close()
 			}

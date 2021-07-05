@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"path"
 	"reflect"
@@ -28,60 +27,6 @@ func (publicKey mockPublicKey) Verify(data []byte, sig *ssh.Signature) error {
 	return nil
 }
 
-type mockSigner struct {
-	signature keySignature
-}
-
-func (signer mockSigner) PublicKey() ssh.PublicKey {
-	return mockPublicKey(signer)
-}
-
-func (signer mockSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, error) {
-	return nil, errors.New("")
-}
-
-type mockKeyType struct {
-	keys map[string]keySignature
-}
-
-func (key *mockKeyType) generate(dataDir string, signature keySignature) (string, error) {
-	keyFile := path.Join(dataDir, fmt.Sprintf("host_%v_key", signature))
-	if key.keys == nil {
-		key.keys = map[string]keySignature{}
-	}
-	key.keys[keyFile] = signature
-	return keyFile, nil
-}
-
-func (key *mockKeyType) load(keyFile string) (ssh.Signer, error) {
-	result, ok := key.keys[keyFile]
-	if !ok {
-		return nil, errors.New("")
-	}
-	return mockSigner{result}, nil
-}
-
-func (key *mockKeyType) verifyDefaultKeys(dataDir string, t *testing.T) {
-	expectedKeys := map[string]keySignature{
-		path.Join(dataDir, "host_rsa_key"):     rsa_key,
-		path.Join(dataDir, "host_ecdsa_key"):   ecdsa_key,
-		path.Join(dataDir, "host_ed25519_key"): ed25519_key,
-	}
-	if !reflect.DeepEqual(key.keys, expectedKeys) {
-		t.Fatalf("keys=%v, want %v", key.keys, expectedKeys)
-	}
-	for file, signature := range key.keys {
-		signer, err := key.load(file)
-		if err != nil {
-			t.Fatalf("Failed to load key: %v", err)
-		}
-		expectedKeyType := signature.String()
-		if signer.PublicKey().Type() != expectedKeyType {
-			t.Errorf("signer.PublicKey().Type()=%v, want %v", signer.PublicKey().Type(), expectedKeyType)
-		}
-	}
-}
-
 type mockFile struct {
 	closed bool
 }
@@ -98,7 +43,7 @@ func (file *mockFile) Close() error {
 	return nil
 }
 
-func verifyConfig(cfg *config, expected *config, t *testing.T) {
+func verifyConfig(t *testing.T, cfg *config, expected *config) {
 	if !reflect.DeepEqual(cfg.Server, expected.Server) {
 		t.Errorf("Server=%v, want %v", cfg.Server, expected.Server)
 	}
@@ -166,10 +111,36 @@ func verifyConfig(cfg *config, expected *config, t *testing.T) {
 	}
 }
 
+func verifyDefaultKeys(t *testing.T, dataDir string) {
+	files, err := ioutil.ReadDir(dataDir)
+	if err != nil {
+		t.Fatalf("Faield to list directory: %v", err)
+	}
+	expectedKeys := map[string]string{
+		"host_rsa_key":     "ssh-rsa",
+		"host_ecdsa_key":   "ecdsa-sha2-nistp256",
+		"host_ed25519_key": "ssh-ed25519",
+	}
+	keys := map[string]string{}
+	for _, file := range files {
+		keyBytes, err := ioutil.ReadFile(path.Join(dataDir, file.Name()))
+		if err != nil {
+			t.Fatalf("Failed to read key: %v", err)
+		}
+		signer, err := ssh.ParsePrivateKey(keyBytes)
+		if err != nil {
+			t.Fatalf("Failed to parse private key: %v", err)
+		}
+		keys[file.Name()] = signer.PublicKey().Type()
+	}
+	if !reflect.DeepEqual(keys, expectedKeys) {
+		t.Errorf("keys=%v, want %v", keys, expectedKeys)
+	}
+}
+
 func TestDefaultConfig(t *testing.T) {
-	dataDir := "test"
-	key := &mockKeyType{}
-	cfg, err := getConfig("", dataDir, key)
+	dataDir := t.TempDir()
+	cfg, err := getConfig("", dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -180,13 +151,14 @@ func TestDefaultConfig(t *testing.T) {
 		path.Join(dataDir, "host_ecdsa_key"),
 		path.Join(dataDir, "host_ed25519_key"),
 	}
+	expectedConfig.Logging.Timestamps = true
 	expectedConfig.Auth.PasswordAuth.Enabled = true
 	expectedConfig.Auth.PasswordAuth.Accepted = true
 	expectedConfig.Auth.PublicKeyAuth.Enabled = true
 	expectedConfig.SSHProto.Version = "SSH-2.0-sshesame"
 	expectedConfig.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
-	verifyConfig(cfg, expectedConfig, t)
-	key.verifyDefaultKeys(dataDir, t)
+	verifyConfig(t, cfg, expectedConfig)
+	verifyDefaultKeys(t, dataDir)
 }
 
 func TestUserConfigDefaultKeys(t *testing.T) {
@@ -197,6 +169,7 @@ server:
 logging:
   file: %v
   json: true
+  timestamps: false
 auth:
   max_tries: 234
   no_auth: true
@@ -223,9 +196,8 @@ ssh_proto:
   ciphers: [cipher]
   macs: [mac]
 `, logFile)
-	dataDir := "test"
-	key := &mockKeyType{}
-	cfg, err := getConfig(cfgString, dataDir, key)
+	dataDir := t.TempDir()
+	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -241,6 +213,7 @@ ssh_proto:
 	}
 	expectedConfig.Logging.File = logFile
 	expectedConfig.Logging.JSON = true
+	expectedConfig.Logging.Timestamps = false
 	expectedConfig.Auth.MaxTries = 234
 	expectedConfig.Auth.NoAuth = true
 	expectedConfig.Auth.PublicKeyAuth.Accepted = true
@@ -256,36 +229,40 @@ ssh_proto:
 	expectedConfig.SSHProto.KeyExchanges = []string{"kex"}
 	expectedConfig.SSHProto.Ciphers = []string{"cipher"}
 	expectedConfig.SSHProto.MACs = []string{"mac"}
-	verifyConfig(cfg, expectedConfig, t)
-	key.verifyDefaultKeys(dataDir, t)
+	verifyConfig(t, cfg, expectedConfig)
+	verifyDefaultKeys(t, dataDir)
 }
 
 func TestUserConfigCustomKeys(t *testing.T) {
-	keyFile := "rsa.key"
+	keyFile, err := generateKey(t.TempDir(), ecdsa_key)
 	cfgString := fmt.Sprintf(`
 server:
   host_keys: [%v]
 `, keyFile)
-	dataDir := "test"
-	key := &mockKeyType{map[string]keySignature{keyFile: rsa_key}}
-	cfg, err := getConfig(cfgString, dataDir, key)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+	dataDir := t.TempDir()
+	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	expectedConfig := &config{}
 	expectedConfig.Server.ListenAddress = "127.0.0.1:2022"
 	expectedConfig.Server.HostKeys = []string{keyFile}
+	expectedConfig.Logging.Timestamps = true
 	expectedConfig.Auth.PasswordAuth.Enabled = true
 	expectedConfig.Auth.PasswordAuth.Accepted = true
 	expectedConfig.Auth.PublicKeyAuth.Enabled = true
 	expectedConfig.SSHProto.Version = "SSH-2.0-sshesame"
 	expectedConfig.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
-	verifyConfig(cfg, expectedConfig, t)
-	expectedKeys := map[string]keySignature{
-		keyFile: rsa_key,
+	verifyConfig(t, cfg, expectedConfig)
+	files, err := ioutil.ReadDir(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to read directory: %v", err)
 	}
-	if !reflect.DeepEqual(key.keys, expectedKeys) {
-		t.Errorf("key.keys=%v, want %v", key.keys, expectedKeys)
+	if len(files) != 0 {
+		t.Errorf("files=%v, want []", files)
 	}
 }
 
@@ -300,38 +277,9 @@ func TestSetupLoggingOldHandleClosed(t *testing.T) {
 	}
 }
 
-func TestPKCS8fileKey(t *testing.T) {
-	baseDir := t.TempDir()
-	for signature, keyType := range map[keySignature]string{
-		rsa_key:     "ssh-rsa",
-		ecdsa_key:   "ecdsa-sha2-nistp256",
-		ed25519_key: "ssh-ed25519",
-	} {
-		dataDir := path.Join(baseDir, keyType)
-		keyFile, err := pkcs8fileKey{}.generate(dataDir, signature)
-		if err != nil {
-			t.Fatalf("Failed to generate key: %v", err)
-		}
-		signer, err := pkcs8fileKey{}.load(keyFile)
-		if err != nil {
-			t.Fatalf("Failed to load key: %v", err)
-		}
-		files, err := ioutil.ReadDir(dataDir)
-		if err != nil {
-			t.Fatalf("Failed to list directory: %v", err)
-		}
-		if len(files) != 1 {
-			t.Errorf("len(files)=%v, want 1", len(files))
-		}
-		if signer.PublicKey().Type() != keyType {
-			t.Errorf("signer.PublicKey().Type()=%v, want %v", signer.PublicKey().Type(), keyType)
-		}
-	}
-}
-
-func TestExistingPKCS8fileKey(t *testing.T) {
-	dataDir := t.TempDir()
-	oldKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
+func TestExistingKey(t *testing.T) {
+	dataDir := path.Join(t.TempDir(), "keys")
+	oldKeyFile, err := generateKey(dataDir, ed25519_key)
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
 	}
@@ -339,7 +287,7 @@ func TestExistingPKCS8fileKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read key: %v", err)
 	}
-	newKeyFile, err := pkcs8fileKey{}.generate(dataDir, ed25519_key)
+	newKeyFile, err := generateKey(dataDir, ed25519_key)
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
 	}

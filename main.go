@@ -37,7 +37,7 @@ func main() {
 		configString = string(configBytes)
 	}
 
-	cfg, err := getConfig(configString, *dataDir, pkcs8fileKey{})
+	cfg, err := getConfig(configString, *dataDir)
 	if err != nil {
 		errorLogger.Fatalf("Failed to get config: %v", err)
 	}
