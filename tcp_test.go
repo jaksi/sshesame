@@ -83,7 +83,9 @@ func TestTCP(t *testing.T) {
 	cfg := &config{}
 	cfg.Server.HostKeys = []string{key}
 	cfg.Auth.NoAuth = true
-	cfg.setupSSHConfig()
+	if err := cfg.setupSSHConfig(); err != nil {
+		t.Fatalf("Failed to setup SSH config: %v", err)
+	}
 
 	clientAddress := path.Join(dataDir, "client.sock")
 
@@ -112,7 +114,9 @@ func TestTCPJSON(t *testing.T) {
 	cfg.Server.HostKeys = []string{key}
 	cfg.Logging.JSON = true
 	cfg.Auth.NoAuth = true
-	cfg.setupSSHConfig()
+	if err := cfg.setupSSHConfig(); err != nil {
+		t.Fatalf("Failed to setup SSH config: %v", err)
+	}
 
 	clientAddress := path.Join(dataDir, "client.sock")
 
