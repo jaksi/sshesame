@@ -43,8 +43,10 @@ func testClient(t *testing.T, dataDir string, cfg *config, clientAddress string)
 	return clientSSHConn, newChannels, requests, serverDone
 }
 
-func setupLogBuffer(cfg *config) *bytes.Buffer {
-	cfg.setupLogging()
+func setupLogBuffer(t *testing.T, cfg *config) *bytes.Buffer {
+	if err := cfg.setupLogging(); err != nil {
+		t.Fatalf("Failed to setup logging: %v", err)
+	}
 	buffer := &bytes.Buffer{}
 	log.SetOutput(buffer)
 	return buffer

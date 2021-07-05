@@ -13,7 +13,7 @@ import (
 )
 
 func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string) string {
-	logBuffer := setupLogBuffer(cfg)
+	logBuffer := setupLogBuffer(t, cfg)
 
 	conn, newChannels, requests, done := testClient(t, dataDir, cfg, clientAddress)
 	defer conn.Close()

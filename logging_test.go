@@ -25,7 +25,7 @@ func TestPlainWithTimestamps(t *testing.T) {
 			Timestamps: true,
 		},
 	}
-	logBuffer := setupLogBuffer(cfg)
+	logBuffer := setupLogBuffer(t, cfg)
 	connMetadata{mockConnMetadata{}, cfg}.logEvent(mockLogEntry{"lorem"})
 	logs := logBuffer.String()
 	expectedLogs := regexp.MustCompile(`^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} \[127\.0\.0\.1:1234\] test lorem
@@ -42,7 +42,7 @@ func TestJSONWithTimestamps(t *testing.T) {
 			Timestamps: true,
 		},
 	}
-	logBuffer := setupLogBuffer(cfg)
+	logBuffer := setupLogBuffer(t, cfg)
 	connMetadata{mockConnMetadata{}, cfg}.logEvent(mockLogEntry{"ipsum"})
 	logs := logBuffer.String()
 	expectedLogs := regexp.MustCompile(`^{"time":"[^"]+","source":"127\.0\.0\.1:1234","event_type":"test","event":{"content":"ipsum"}}
@@ -59,7 +59,7 @@ func TestPlainWithoutTimestamps(t *testing.T) {
 			Timestamps: false,
 		},
 	}
-	logBuffer := setupLogBuffer(cfg)
+	logBuffer := setupLogBuffer(t, cfg)
 	connMetadata{mockConnMetadata{}, cfg}.logEvent(mockLogEntry{"dolor"})
 	logs := logBuffer.String()
 	expectedLogs := `[127.0.0.1:1234] test dolor
@@ -76,7 +76,7 @@ func TestJSONWithoutTimestamps(t *testing.T) {
 			Timestamps: false,
 		},
 	}
-	logBuffer := setupLogBuffer(cfg)
+	logBuffer := setupLogBuffer(t, cfg)
 	connMetadata{mockConnMetadata{}, cfg}.logEvent(mockLogEntry{"sit"})
 	logs := logBuffer.String()
 	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"test","event":{"content":"sit"}}
