@@ -278,7 +278,7 @@ func TestSetupLoggingOldHandleClosed(t *testing.T) {
 }
 
 func TestExistingKey(t *testing.T) {
-	dataDir := t.TempDir()
+	dataDir := path.Join(t.TempDir(), "keys")
 	oldKeyFile, err := generateKey(dataDir, ed25519_key)
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
