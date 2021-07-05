@@ -33,6 +33,7 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	}
 	server := servers[channelData.Port]
 	if server == nil {
+		warningLogger.Printf("Unsupported port %v", channelData.Port)
 		return newChannel.Reject(ssh.ConnectionFailed, "Connection refused")
 	}
 	channel, requests, err := newChannel.Accept()
@@ -86,6 +87,7 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 				requests = nil
 				continue
 			}
+			warningLogger.Printf("Unsupported direct-tcpip request type %v", request.Type)
 			if request.WantReply {
 				if err := request.Reply(false, nil); err != nil {
 					return err
