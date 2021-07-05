@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -125,14 +126,18 @@ func TestTCPJSON(t *testing.T) {
 	clientAddress := path.Join(dataDir, "client.sock")
 
 	logs := testTCP(t, dataDir, cfg, clientAddress)
+	escapedClientAddress, err := json.Marshal(clientAddress)
+	if err != nil {
+		t.Fatalf("Failed to escape clientAddress: %v", err)
+	}
 
-	expectedLogs := fmt.Sprintf(`{"source":"%[1]v","event_type":"no_auth","event":{"user":"","accepted":true}}
-{"source":"%[1]v","event_type":"connection","event":{"client_version":"SSH-2.0-Go"}}
-{"source":"%[1]v","event_type":"direct_tcpip","event":{"channel_id":0,"from":"localhost:8080","to":"example.org:80"}}
-{"source":"%[1]v","event_type":"direct_tcpip_input","event":{"channel_id":0,"input":"GET / HTTP/1.1\r\n\r\n"}}
-{"source":"%[1]v","event_type":"direct_tcpip_close","event":{"channel_id":0}}
-{"source":"%[1]v","event_type":"connection_close","event":{}}
-`, clientAddress)
+	expectedLogs := fmt.Sprintf(`{"source":%[1]v,"event_type":"no_auth","event":{"user":"","accepted":true}}
+{"source":%[1]v,"event_type":"connection","event":{"client_version":"SSH-2.0-Go"}}
+{"source":%[1]v,"event_type":"direct_tcpip","event":{"channel_id":0,"from":"localhost:8080","to":"example.org:80"}}
+{"source":%[1]v,"event_type":"direct_tcpip_input","event":{"channel_id":0,"input":"GET / HTTP/1.1\r\n\r\n"}}
+{"source":%[1]v,"event_type":"direct_tcpip_close","event":{"channel_id":0}}
+{"source":%[1]v,"event_type":"connection_close","event":{}}
+`, string(escapedClientAddress))
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", logs, expectedLogs)
 	}

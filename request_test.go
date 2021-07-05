@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"reflect"
@@ -145,13 +146,17 @@ func TestRequestsJSON(t *testing.T) {
 
 	logs := testRequests(t, dataDir, cfg, clientAddress)
 
-	expectedLogs := fmt.Sprintf(`{"source":"%[1]v","event_type":"no_auth","event":{"user":"","accepted":true}}
-{"source":"%[1]v","event_type":"connection","event":{"client_version":"SSH-2.0-Go"}}
-{"source":"%[1]v","event_type":"tcpip_forward","event":{"address":"127.0.0.1:0"}}
-{"source":"%[1]v","event_type":"tcpip_forward","event":{"address":"127.0.0.1:1234"}}
-{"source":"%[1]v","event_type":"cancel_tcpip_forward","event":{"address":"127.0.0.1:0"}}
-{"source":"%[1]v","event_type":"connection_close","event":{}}
-`, clientAddress)
+	escapedClientAddress, err := json.Marshal(clientAddress)
+	if err != nil {
+		t.Fatalf("Failed to escape clientAddress: %v", err)
+	}
+	expectedLogs := fmt.Sprintf(`{"source":%[1]v,"event_type":"no_auth","event":{"user":"","accepted":true}}
+{"source":%[1]v,"event_type":"connection","event":{"client_version":"SSH-2.0-Go"}}
+{"source":%[1]v,"event_type":"tcpip_forward","event":{"address":"127.0.0.1:0"}}
+{"source":%[1]v,"event_type":"tcpip_forward","event":{"address":"127.0.0.1:1234"}}
+{"source":%[1]v,"event_type":"cancel_tcpip_forward","event":{"address":"127.0.0.1:0"}}
+{"source":%[1]v,"event_type":"connection_close","event":{}}
+`, string(escapedClientAddress))
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", logs, expectedLogs)
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -335,40 +336,44 @@ func TestSessionJSON(t *testing.T) {
 
 	logs := testSession(t, dataDir, cfg, clientAddress)
 
-	expectedLogs := fmt.Sprintf(`{"source":"%[1]v","event_type":"no_auth","event":{"user":"","accepted":true}}
-{"source":"%[1]v","event_type":"connection","event":{"client_version":"SSH-2.0-Go"}}
-{"source":"%[1]v","event_type":"session","event":{"channel_id":0}}
-{"source":"%[1]v","event_type":"x11","event":{"channel_id":0,"screen":0}}
-{"source":"%[1]v","event_type":"env","event":{"channel_id":0,"name":"LANG","value":"en_IE.UTF-8"}}
-{"source":"%[1]v","event_type":"exec","event":{"channel_id":0,"command":"sh"}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":0,"input":"false"}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":0,"input":"true"}}
-{"source":"%[1]v","event_type":"session_close","event":{"channel_id":0}}
-{"source":"%[1]v","event_type":"session","event":{"channel_id":1}}
-{"source":"%[1]v","event_type":"x11","event":{"channel_id":1,"screen":0}}
-{"source":"%[1]v","event_type":"env","event":{"channel_id":1,"name":"LANG","value":"en_IE.UTF-8"}}
-{"source":"%[1]v","event_type":"shell","event":{"channel_id":1}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":1,"input":"false"}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":1,"input":"true"}}
-{"source":"%[1]v","event_type":"session_close","event":{"channel_id":1}}
-{"source":"%[1]v","event_type":"session","event":{"channel_id":2}}
-{"source":"%[1]v","event_type":"x11","event":{"channel_id":2,"screen":0}}
-{"source":"%[1]v","event_type":"pty","event":{"channel_id":2,"terminal":"xterm-256color","width":80,"height":24}}
-{"source":"%[1]v","event_type":"env","event":{"channel_id":2,"name":"LANG","value":"en_IE.UTF-8"}}
-{"source":"%[1]v","event_type":"exec","event":{"channel_id":2,"command":"sh"}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":2,"input":"false"}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":2,"input":"true"}}
-{"source":"%[1]v","event_type":"session_close","event":{"channel_id":2}}
-{"source":"%[1]v","event_type":"session","event":{"channel_id":3}}
-{"source":"%[1]v","event_type":"x11","event":{"channel_id":3,"screen":0}}
-{"source":"%[1]v","event_type":"pty","event":{"channel_id":3,"terminal":"xterm-256color","width":80,"height":24}}
-{"source":"%[1]v","event_type":"env","event":{"channel_id":3,"name":"LANG","value":"en_IE.UTF-8"}}
-{"source":"%[1]v","event_type":"shell","event":{"channel_id":3}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":3,"input":"false"}}
-{"source":"%[1]v","event_type":"session_input","event":{"channel_id":3,"input":"true"}}
-{"source":"%[1]v","event_type":"session_close","event":{"channel_id":3}}
-{"source":"%[1]v","event_type":"connection_close","event":{}}
-`, clientAddress)
+	escapedClientAddress, err := json.Marshal(clientAddress)
+	if err != nil {
+		t.Fatalf("Failed to escape clientAddress: %v", err)
+	}
+	expectedLogs := fmt.Sprintf(`{"source":%[1]v,"event_type":"no_auth","event":{"user":"","accepted":true}}
+{"source":%[1]v,"event_type":"connection","event":{"client_version":"SSH-2.0-Go"}}
+{"source":%[1]v,"event_type":"session","event":{"channel_id":0}}
+{"source":%[1]v,"event_type":"x11","event":{"channel_id":0,"screen":0}}
+{"source":%[1]v,"event_type":"env","event":{"channel_id":0,"name":"LANG","value":"en_IE.UTF-8"}}
+{"source":%[1]v,"event_type":"exec","event":{"channel_id":0,"command":"sh"}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":0,"input":"false"}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":0,"input":"true"}}
+{"source":%[1]v,"event_type":"session_close","event":{"channel_id":0}}
+{"source":%[1]v,"event_type":"session","event":{"channel_id":1}}
+{"source":%[1]v,"event_type":"x11","event":{"channel_id":1,"screen":0}}
+{"source":%[1]v,"event_type":"env","event":{"channel_id":1,"name":"LANG","value":"en_IE.UTF-8"}}
+{"source":%[1]v,"event_type":"shell","event":{"channel_id":1}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":1,"input":"false"}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":1,"input":"true"}}
+{"source":%[1]v,"event_type":"session_close","event":{"channel_id":1}}
+{"source":%[1]v,"event_type":"session","event":{"channel_id":2}}
+{"source":%[1]v,"event_type":"x11","event":{"channel_id":2,"screen":0}}
+{"source":%[1]v,"event_type":"pty","event":{"channel_id":2,"terminal":"xterm-256color","width":80,"height":24}}
+{"source":%[1]v,"event_type":"env","event":{"channel_id":2,"name":"LANG","value":"en_IE.UTF-8"}}
+{"source":%[1]v,"event_type":"exec","event":{"channel_id":2,"command":"sh"}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":2,"input":"false"}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":2,"input":"true"}}
+{"source":%[1]v,"event_type":"session_close","event":{"channel_id":2}}
+{"source":%[1]v,"event_type":"session","event":{"channel_id":3}}
+{"source":%[1]v,"event_type":"x11","event":{"channel_id":3,"screen":0}}
+{"source":%[1]v,"event_type":"pty","event":{"channel_id":3,"terminal":"xterm-256color","width":80,"height":24}}
+{"source":%[1]v,"event_type":"env","event":{"channel_id":3,"name":"LANG","value":"en_IE.UTF-8"}}
+{"source":%[1]v,"event_type":"shell","event":{"channel_id":3}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":3,"input":"false"}}
+{"source":%[1]v,"event_type":"session_input","event":{"channel_id":3,"input":"true"}}
+{"source":%[1]v,"event_type":"session_close","event":{"channel_id":3}}
+{"source":%[1]v,"event_type":"connection_close","event":{}}
+`, string(escapedClientAddress))
 	if logs != expectedLogs {
 		t.Errorf("logs=%v, want %v", logs, expectedLogs)
 	}
