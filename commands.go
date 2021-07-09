@@ -38,8 +38,8 @@ func executeProgram(context commandContext) (uint32, error) {
 	}
 	command := commands[context.args[0]]
 	if command == nil {
-		fmt.Fprintf(context.stdout, "%v: command not found\n", context.args[0])
-		return 127, nil
+		_, err := fmt.Fprintf(context.stderr, "%v: command not found\n", context.args[0])
+		return 127, err
 	}
 	return command.execute(context)
 }
@@ -53,9 +53,15 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 	}
 	var line string
 	var err error
-	for err == nil {
-		fmt.Fprint(context.stdout, prompt)
+	for {
+		_, err = fmt.Fprint(context.stdout, prompt)
+		if err != nil {
+			return 0, err
+		}
 		line, err = context.stdin.ReadLine()
+		if err != nil {
+			return 0, err
+		}
 		args := strings.Fields(line)
 		if len(args) > 0 && args[0] == "exit" {
 			var err error
@@ -68,13 +74,12 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 			}
 			return uint32(status), nil
 		}
-		if err == nil {
-			newContext := context
-			newContext.args = strings.Fields(line)
-			_, err = executeProgram(newContext)
+		newContext := context
+		newContext.args = strings.Fields(line)
+		if _, err = executeProgram(newContext); err != nil {
+			return 0, err
 		}
 	}
-	return 0, err
 }
 
 type cmdTrue struct{}
@@ -99,11 +104,21 @@ func (cmdEcho) execute(context commandContext) (uint32, error) {
 type cmdCat struct{}
 
 func (cmdCat) execute(context commandContext) (uint32, error) {
+	if len(context.args) > 1 {
+		for _, file := range context.args[1:] {
+			if _, err := fmt.Fprintf(context.stderr, "%v: %v: No such file or directory\n", context.args[0], file); err != nil {
+				return 0, err
+			}
+		}
+		return 1, nil
+	}
 	var line string
 	var err error
 	for err == nil {
 		line, err = context.stdin.ReadLine()
-		fmt.Fprintln(context.stdout, line)
+		if err == nil {
+			_, err = fmt.Fprintln(context.stdout, line)
+		}
 	}
 	return 0, err
 }
