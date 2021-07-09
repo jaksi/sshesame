@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"strings"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
@@ -186,34 +187,60 @@ type sessionChannel struct {
 	pty       bool
 }
 
-func (channel *sessionChannel) handleProgram() bool {
+type scannerReadLiner struct {
+	scanner   *bufio.Scanner
+	inputChan chan<- string
+}
+
+func (r scannerReadLiner) ReadLine() (string, error) {
+	if !r.scanner.Scan() {
+		if err := r.scanner.Err(); err != nil {
+			return "", err
+		}
+		return "", io.EOF
+	}
+	line := r.scanner.Text()
+	r.inputChan <- line
+	return line, nil
+}
+
+type terminalReadLiner struct {
+	terminal  *term.Terminal
+	inputChan chan<- string
+}
+
+func (r terminalReadLiner) ReadLine() (string, error) {
+	line, err := r.terminal.ReadLine()
+	if err == nil || line != "" {
+		r.inputChan <- line
+	}
+	return line, err
+}
+
+func (channel *sessionChannel) handleProgram(program []string) bool {
 	if channel.active {
 		warningLogger.Printf("A program is already active")
 		return false
 	}
 	channel.active = true
+	var stdin readLiner
+	var stdout, stderr io.Writer
+	if channel.pty {
+		terminal := term.NewTerminal(channel, "")
+		stdin = terminalReadLiner{terminal, channel.inputChan}
+		stdout = terminal
+		stderr = terminal
+	} else {
+		stdin = scannerReadLiner{bufio.NewScanner(channel), channel.inputChan}
+		stdout = channel
+		stderr = channel.Stderr()
+	}
 	go func() {
 		defer close(channel.inputChan)
 		defer close(channel.errorChan)
-		var err error
-		if channel.pty {
-			terminal := term.NewTerminal(channel, "$ ")
-			var line string
-			for err == nil {
-				line, err = terminal.ReadLine()
-				if err == nil || line != "" {
-					channel.inputChan <- line
-				}
-			}
-			if err == io.EOF {
-				err = nil
-			}
-		} else {
-			scanner := bufio.NewScanner(channel)
-			for scanner.Scan() {
-				channel.inputChan <- scanner.Text()
-			}
-			err = scanner.Err()
+		result, err := executeProgram(commandContext{program, stdin, stdout, stderr, channel.pty})
+		if err == io.EOF {
+			err = nil
 		}
 		if err == nil && channel.pty {
 			_, err = channel.Write([]byte("\r\n"))
@@ -221,7 +248,7 @@ func (channel *sessionChannel) handleProgram() bool {
 		if err == nil {
 			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(struct {
 				ExitStatus uint32
-			}{0}))
+			}{result}))
 		}
 		if err == nil && channel.pty {
 			_, err = channel.SendRequest("eow@openssh.com", false, nil)
@@ -238,14 +265,22 @@ func (channel *sessionChannel) handleProgram() bool {
 }
 
 func (channel *sessionChannel) handleRequest(request interface{}) (bool, error) {
-	switch request.(type) {
+	switch payload := request.(type) {
 	case *ptyRequest:
 		if channel.pty {
 			return false, errors.New("a pty-req request was already sent")
 		}
 		channel.pty = true
-	case *shellRequest, *execRequestPayload, *subsystemRequestPayload:
-		if !channel.handleProgram() {
+	case *shellRequest:
+		if !channel.handleProgram(shellProgram) {
+			return false, nil
+		}
+	case *execRequestPayload:
+		if !channel.handleProgram(strings.Fields(payload.Command)) {
+			return false, nil
+		}
+	case *subsystemRequestPayload:
+		if !channel.handleProgram(strings.Fields(payload.Subsystem)) {
 			return false, nil
 		}
 	}
