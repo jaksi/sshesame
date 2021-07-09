@@ -35,7 +35,7 @@ func testTCP(t *testing.T, dataDir string, cfg *config, clientAddress string) st
 		requestsDone <- nil
 	}()
 
-	channel, _, err := conn.OpenChannel("direct-tcpip", ssh.Marshal(struct {
+	channel, channelRequests, err := conn.OpenChannel("direct-tcpip", ssh.Marshal(struct {
 		Address           string
 		Port              uint32
 		OriginatorAddress string
@@ -50,6 +50,14 @@ func testTCP(t *testing.T, dataDir string, cfg *config, clientAddress string) st
 	if err := channel.CloseWrite(); err != nil {
 		t.Fatalf("Failed to close channel: %v", err)
 	}
+	channelRequestTypes := []string{}
+	channelRequestsDone := make(chan interface{})
+	go func() {
+		for request := range channelRequests {
+			channelRequestTypes = append(channelRequestTypes, request.Type)
+		}
+		channelRequestsDone <- nil
+	}()
 
 	channelResponse, err := ioutil.ReadAll(channel)
 	if err != nil {
@@ -58,6 +66,11 @@ func testTCP(t *testing.T, dataDir string, cfg *config, clientAddress string) st
 	expectedChannelResponse := "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
 	if string(channelResponse) != expectedChannelResponse {
 		t.Errorf("channelResponse=%v, want %v", string(channelResponse), expectedChannelResponse)
+	}
+
+	<-channelRequestsDone
+	if len(channelRequestTypes) != 0 {
+		t.Errorf("channelRequestTypes=%v, want []", channelRequestTypes)
 	}
 
 	conn.Close()
