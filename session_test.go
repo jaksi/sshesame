@@ -38,10 +38,18 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	}()
 
 	// Raw exec
-	channel, _, err := conn.OpenChannel("session", nil)
+	channel, channelRequests, err := conn.OpenChannel("session", nil)
 	if err != nil {
 		t.Fatalf("Failed to open channel: %v", err)
 	}
+	channelRequestTypes := []string{}
+	channelRequestsDone := make(chan interface{})
+	go func() {
+		for request := range channelRequests {
+			channelRequestTypes = append(channelRequestTypes, request.Type)
+		}
+		channelRequestsDone <- nil
+	}()
 	accepted, err := channel.SendRequest("x11-req", true, ssh.Marshal(struct {
 		SingleConnection         bool
 		AuthProtocol, AuthCookie string
@@ -82,13 +90,25 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if string(channelResponse) != expectedChannelResponse {
 		t.Errorf("channelResponse=%v, want %v", string(channelResponse), expectedChannelResponse)
 	}
+	<-channelRequestsDone
+	expectedChannelRequestTypes := []string{"exit-status"}
+	if !reflect.DeepEqual(channelRequestTypes, expectedChannelRequestTypes) {
+		t.Errorf("channelRequestTypes=%v, want %v", channelRequestTypes, expectedChannelRequestTypes)
+	}
+	channelRequestTypes = []string{}
 	time.Sleep(10 * time.Millisecond)
 
 	// Raw shell
-	channel, _, err = conn.OpenChannel("session", nil)
+	channel, channelRequests, err = conn.OpenChannel("session", nil)
 	if err != nil {
 		t.Fatalf("Failed to open channel: %v", err)
 	}
+	go func() {
+		for request := range channelRequests {
+			channelRequestTypes = append(channelRequestTypes, request.Type)
+		}
+		channelRequestsDone <- nil
+	}()
 	accepted, err = channel.SendRequest("x11-req", true, ssh.Marshal(struct {
 		SingleConnection         bool
 		AuthProtocol, AuthCookie string
@@ -127,6 +147,12 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if string(channelResponse) != expectedChannelResponse {
 		t.Errorf("channelResponse=%v, want %v", string(channelResponse), expectedChannelResponse)
 	}
+	<-channelRequestsDone
+	expectedChannelRequestTypes = []string{"exit-status"}
+	if !reflect.DeepEqual(channelRequestTypes, expectedChannelRequestTypes) {
+		t.Errorf("channelRequestTypes=%v, want %v", channelRequestTypes, expectedChannelRequestTypes)
+	}
+	channelRequestTypes = []string{}
 	time.Sleep(10 * time.Millisecond)
 
 	terminalModes, err := base64.RawStdEncoding.DecodeString("gQAAJYCAAAAlgAEAAAADAgAAABwDAAAAfwQAAAAVBQAAAAQGAAAA/wcAAAD/CAAAABEJAAAAEwoAAAAaCwAAABkMAAAAEg0AAAAXDgAAABYRAAAAFBIAAAAPHgAAAAAfAAAAACAAAAAAIQAAAAAiAAAAACMAAAAAJAAAAAEmAAAAACcAAAABKAAAAAApAAAAASoAAAABMgAAAAEzAAAAATUAAAABNgAAAAE3AAAAADgAAAAAOQAAAAA6AAAAADsAAAABPAAAAAE9AAAAAT4AAAAARgAAAAFIAAAAAUkAAAAASgAAAABLAAAAAFoAAAABWwAAAAFcAAAAAF0AAAAAAA")
@@ -135,10 +161,16 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	}
 
 	// PTY exec
-	channel, _, err = conn.OpenChannel("session", nil)
+	channel, channelRequests, err = conn.OpenChannel("session", nil)
 	if err != nil {
 		t.Fatalf("Failed to open channel: %v", err)
 	}
+	go func() {
+		for request := range channelRequests {
+			channelRequestTypes = append(channelRequestTypes, request.Type)
+		}
+		channelRequestsDone <- nil
+	}()
 	accepted, err = channel.SendRequest("x11-req", true, ssh.Marshal(struct {
 		SingleConnection         bool
 		AuthProtocol, AuthCookie string
@@ -187,13 +219,25 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if string(channelResponse) != expectedChannelResponse {
 		t.Errorf("channelResponse=%v, want %v", string(channelResponse), expectedChannelResponse)
 	}
+	<-channelRequestsDone
+	expectedChannelRequestTypes = []string{"exit-status", "eow@openssh.com"}
+	if !reflect.DeepEqual(channelRequestTypes, expectedChannelRequestTypes) {
+		t.Errorf("channelRequestTypes=%v, want %v", channelRequestTypes, expectedChannelRequestTypes)
+	}
+	channelRequestTypes = []string{}
 	time.Sleep(10 * time.Millisecond)
 
 	// PTY shell
-	channel, _, err = conn.OpenChannel("session", nil)
+	channel, channelRequests, err = conn.OpenChannel("session", nil)
 	if err != nil {
 		t.Fatalf("Failed to open channel: %v", err)
 	}
+	go func() {
+		for request := range channelRequests {
+			channelRequestTypes = append(channelRequestTypes, request.Type)
+		}
+		channelRequestsDone <- nil
+	}()
 	accepted, err = channel.SendRequest("x11-req", true, ssh.Marshal(struct {
 		SingleConnection         bool
 		AuthProtocol, AuthCookie string
@@ -240,6 +284,12 @@ func testSession(t *testing.T, dataDir string, cfg *config, clientAddress string
 	if string(channelResponse) != expectedChannelResponse {
 		t.Errorf("channelResponse=%v, want %v", string(channelResponse), expectedChannelResponse)
 	}
+	<-channelRequestsDone
+	expectedChannelRequestTypes = []string{"exit-status", "eow@openssh.com"}
+	if !reflect.DeepEqual(channelRequestTypes, expectedChannelRequestTypes) {
+		t.Errorf("channelRequestTypes=%v, want %v", channelRequestTypes, expectedChannelRequestTypes)
+	}
+	channelRequestTypes = []string{}
 	time.Sleep(10 * time.Millisecond)
 
 	conn.Close()
