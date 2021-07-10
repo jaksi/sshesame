@@ -104,7 +104,6 @@ func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 	}
 	switch payload.(type) {
 	case *noMoreSessionsRequest:
-		warningLogger.Printf("Setting no-more-sessions: %v\n", context.noMoreSessions)
 		context.noMoreSessions = true
 	}
 	if request.WantReply {

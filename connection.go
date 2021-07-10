@@ -66,7 +66,6 @@ loop:
 				newChannels = nil
 				continue
 			}
-			warningLogger.Printf("Servin new channel %v: %v\n", newChannel.ChannelType(), context.noMoreSessions)
 			channelType := newChannel.ChannelType()
 			handler := channelHandlers[channelType]
 			if handler == nil {
