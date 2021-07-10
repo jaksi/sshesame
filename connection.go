@@ -49,8 +49,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 	}
 
 	channelID := 0
-loop:
-	for requests != nil && newChannels != nil {
+	for requests != nil || newChannels != nil {
 		select {
 		case request, ok := <-requests:
 			if !ok {
@@ -59,7 +58,8 @@ loop:
 			}
 			if err := handleGlobalRequest(request, &context); err != nil {
 				warningLogger.Printf("Failed to handle global request: %v", err)
-				break loop
+				requests = nil
+				continue
 			}
 		case newChannel, ok := <-newChannels:
 			if !ok {
@@ -72,7 +72,8 @@ loop:
 				warningLogger.Printf("Unsupported channel type %v", channelType)
 				if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
 					warningLogger.Printf("Failed to reject channel: %v", err)
-					break loop
+					newChannels = nil
+					continue
 				}
 				continue
 			}
