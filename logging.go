@@ -287,22 +287,22 @@ func (entry windowChangeLog) eventType() string {
 	return "window_change"
 }
 
-func (metadata connMetadata) logEvent(entry logEntry) {
-	if metadata.cfg.Logging.JSON {
+func (context connContext) logEvent(entry logEntry) {
+	if context.cfg.Logging.JSON {
 		var jsonEntry interface{}
-		if metadata.cfg.Logging.Timestamps {
+		if context.cfg.Logging.Timestamps {
 			jsonEntry = struct {
 				Time      string   `json:"time"`
 				Source    string   `json:"source"`
 				EventType string   `json:"event_type"`
 				Event     logEntry `json:"event"`
-			}{time.Now().Format(time.RFC3339), metadata.RemoteAddr().String(), entry.eventType(), entry}
+			}{time.Now().Format(time.RFC3339), context.RemoteAddr().String(), entry.eventType(), entry}
 		} else {
 			jsonEntry = struct {
 				Source    string   `json:"source"`
 				EventType string   `json:"event_type"`
 				Event     logEntry `json:"event"`
-			}{metadata.RemoteAddr().String(), entry.eventType(), entry}
+			}{context.RemoteAddr().String(), entry.eventType(), entry}
 		}
 		logBytes, err := json.Marshal(jsonEntry)
 		if err != nil {
@@ -311,6 +311,6 @@ func (metadata connMetadata) logEvent(entry logEntry) {
 		}
 		log.Print(string(logBytes))
 	} else {
-		log.Printf("[%v] %v", metadata.RemoteAddr().String(), entry)
+		log.Printf("[%v] %v", context.RemoteAddr().String(), entry)
 	}
 }

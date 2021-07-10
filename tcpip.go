@@ -26,7 +26,7 @@ type tcpipChannelData struct {
 	OriginatorPort    uint32
 }
 
-func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadata) error {
+func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext) error {
 	channelData := &tcpipChannelData{}
 	if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
 		return err
@@ -40,16 +40,16 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 	if err != nil {
 		return err
 	}
-	metadata.logEvent(directTCPIPLog{
+	context.logEvent(directTCPIPLog{
 		channelLog: channelLog{
-			ChannelID: metadata.channelID,
+			ChannelID: context.channelID,
 		},
 		From: net.JoinHostPort(channelData.OriginatorAddress, strconv.Itoa(int(channelData.OriginatorPort))),
 		To:   net.JoinHostPort(channelData.Address, strconv.Itoa(int(channelData.Port))),
 	})
-	defer metadata.logEvent(directTCPIPCloseLog{
+	defer context.logEvent(directTCPIPCloseLog{
 		channelLog: channelLog{
-			ChannelID: metadata.channelID,
+			ChannelID: context.channelID,
 		},
 	})
 
@@ -68,9 +68,9 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, metadata channelMetadat
 				inputChan = nil
 				continue
 			}
-			metadata.logEvent(directTCPIPInputLog{
+			context.logEvent(directTCPIPInputLog{
 				channelLog: channelLog{
-					ChannelID: metadata.channelID,
+					ChannelID: context.channelID,
 				},
 				Input: input,
 			})

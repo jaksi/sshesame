@@ -87,7 +87,7 @@ var globalRequestPayloads = map[string]globalRequestPayloadParser{
 	},
 }
 
-func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
+func handleGlobalRequest(request *ssh.Request, context connContext) error {
 	parser := globalRequestPayloads[request.Type]
 	if parser == nil {
 		warningLogger.Printf("Unsupported global request type %v", request.Type)
@@ -107,7 +107,7 @@ func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
 			return err
 		}
 	}
-	metadata.logEvent(payload.logEntry())
+	context.logEvent(payload.logEntry())
 	return nil
 }
 

@@ -6,17 +6,17 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type connMetadata struct {
+type connContext struct {
 	ssh.ConnMetadata
 	cfg *config
 }
 
-type channelMetadata struct {
-	connMetadata
+type channelContext struct {
+	connContext
 	channelID int
 }
 
-var channelHandlers = map[string]func(newChannel ssh.NewChannel, metadata channelMetadata) error{
+var channelHandlers = map[string]func(newChannel ssh.NewChannel, context channelContext) error{
 	"session":      handleSessionChannel,
 	"direct-tcpip": handleDirectTCPIPChannel,
 }
@@ -29,16 +29,16 @@ func handleConnection(conn net.Conn, cfg *config) {
 		return
 	}
 	channelsDone := []chan interface{}{}
-	metadata := connMetadata{serverConn, cfg}
+	context := connContext{ConnMetadata: serverConn, cfg: cfg}
 	defer func() {
 		serverConn.Close()
 		for _, channelDone := range channelsDone {
 			<-channelDone
 		}
-		metadata.logEvent(connectionCloseLog{})
+		context.logEvent(connectionCloseLog{})
 	}()
 
-	metadata.logEvent(connectionLog{
+	context.logEvent(connectionLog{
 		ClientVersion: string(serverConn.ClientVersion()),
 	})
 
@@ -49,7 +49,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 
 	go func() {
 		for request := range requests {
-			if err := handleGlobalRequest(request, metadata); err != nil {
+			if err := handleGlobalRequest(request, context); err != nil {
 				warningLogger.Printf("Failed to handle global request: %v", err)
 				serverConn.Close()
 			}
@@ -72,7 +72,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 			channelDone := make(chan interface{})
 			channelsDone = append(channelsDone, channelDone)
 			defer func() { channelDone <- nil }()
-			if err := handler(newChannel, channelMetadata{metadata, channelID}); err != nil {
+			if err := handler(newChannel, channelContext{context, channelID}); err != nil {
 				warningLogger.Printf("Failed to handle new channel: %v", err)
 				serverConn.Close()
 			}
