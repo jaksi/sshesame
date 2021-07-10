@@ -87,7 +87,7 @@ var globalRequestPayloads = map[string]globalRequestPayloadParser{
 	},
 }
 
-func handleGlobalRequest(request *ssh.Request, context connContext) error {
+func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 	parser := globalRequestPayloads[request.Type]
 	if parser == nil {
 		warningLogger.Printf("Unsupported global request type %v", request.Type)
@@ -101,6 +101,11 @@ func handleGlobalRequest(request *ssh.Request, context connContext) error {
 	payload, err := parser(request.Payload)
 	if err != nil {
 		return err
+	}
+	switch payload.(type) {
+	case *noMoreSessionsRequest:
+		warningLogger.Printf("Setting no-more-sessions: %v\n", context.noMoreSessions)
+		context.noMoreSessions = true
 	}
 	if request.WantReply {
 		if err := request.Reply(true, payload.reply()); err != nil {

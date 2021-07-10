@@ -8,7 +8,8 @@ import (
 
 type connContext struct {
 	ssh.ConnMetadata
-	cfg *config
+	cfg            *config
+	noMoreSessions bool
 }
 
 type channelContext struct {
@@ -47,36 +48,45 @@ func handleConnection(conn net.Conn, cfg *config) {
 		return
 	}
 
-	go func() {
-		for request := range requests {
-			if err := handleGlobalRequest(request, context); err != nil {
-				warningLogger.Printf("Failed to handle global request: %v", err)
-				serverConn.Close()
-			}
-		}
-	}()
-
 	channelID := 0
-	for newChannel := range newChannels {
-		channelType := newChannel.ChannelType()
-		handler := channelHandlers[channelType]
-		if handler == nil {
-			warningLogger.Printf("Unsupported channel type %v", channelType)
-			if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
-				warningLogger.Printf("Failed to reject channel: %v", err)
-				break
+loop:
+	for requests != nil && newChannels != nil {
+		select {
+		case request, ok := <-requests:
+			if !ok {
+				requests = nil
+				continue
 			}
-			continue
+			if err := handleGlobalRequest(request, &context); err != nil {
+				warningLogger.Printf("Failed to handle global request: %v", err)
+				break loop
+			}
+		case newChannel, ok := <-newChannels:
+			if !ok {
+				newChannels = nil
+				continue
+			}
+			warningLogger.Printf("Servin new channel %v: %v\n", newChannel.ChannelType(), context.noMoreSessions)
+			channelType := newChannel.ChannelType()
+			handler := channelHandlers[channelType]
+			if handler == nil {
+				warningLogger.Printf("Unsupported channel type %v", channelType)
+				if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
+					warningLogger.Printf("Failed to reject channel: %v", err)
+					break loop
+				}
+				continue
+			}
+			go func(context channelContext) {
+				channelDone := make(chan interface{})
+				channelsDone = append(channelsDone, channelDone)
+				defer func() { channelDone <- nil }()
+				if err := handler(newChannel, context); err != nil {
+					warningLogger.Printf("Failed to handle new channel: %v", err)
+					serverConn.Close()
+				}
+			}(channelContext{context, channelID})
+			channelID++
 		}
-		go func(channelID int) {
-			channelDone := make(chan interface{})
-			channelsDone = append(channelsDone, channelDone)
-			defer func() { channelDone <- nil }()
-			if err := handler(newChannel, channelContext{context, channelID}); err != nil {
-				warningLogger.Printf("Failed to handle new channel: %v", err)
-				serverConn.Close()
-			}
-		}(channelID)
-		channelID++
 	}
 }

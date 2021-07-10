@@ -287,6 +287,9 @@ func (channel *sessionContext) handleRequest(request interface{}) (bool, error) 
 }
 
 func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) error {
+	if context.noMoreSessions {
+		return errors.New("nore more sessions were supposed to be requested")
+	}
 	if len(newChannel.ExtraData()) != 0 {
 		return errors.New("invalid channel data")
 	}
