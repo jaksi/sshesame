@@ -116,6 +116,16 @@ func (entry cancelTCPIPForwardLog) eventType() string {
 	return "cancel_tcpip_forward"
 }
 
+type noMoreSessionsLog struct {
+}
+
+func (entry noMoreSessionsLog) String() string {
+	return "rejection of further session channels requested"
+}
+func (entry noMoreSessionsLog) eventType() string {
+	return "no_more_sessions"
+}
+
 type channelLog struct {
 	ChannelID int `json:"channel_id"`
 }
