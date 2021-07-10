@@ -11,7 +11,7 @@ import (
 func (cfg *config) getAuthLogCallback() func(conn ssh.ConnMetadata, method string, err error) {
 	return func(conn ssh.ConnMetadata, method string, err error) {
 		if method == "none" {
-			connMetadata{conn, cfg}.logEvent(noAuthLog{authLog: authLog{
+			connContext{ConnMetadata: conn, cfg: cfg}.logEvent(noAuthLog{authLog: authLog{
 				User:     conn.User(),
 				Accepted: err == nil,
 			}})
@@ -24,7 +24,7 @@ func (cfg *config) getPasswordCallback() func(conn ssh.ConnMetadata, password []
 		return nil
 	}
 	return func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-		connMetadata{conn, cfg}.logEvent(passwordAuthLog{
+		connContext{ConnMetadata: conn, cfg: cfg}.logEvent(passwordAuthLog{
 			authLog: authLog{
 				User:     conn.User(),
 				Accepted: authAccepted(cfg.Auth.PasswordAuth.Accepted),
@@ -43,7 +43,7 @@ func (cfg *config) getPublicKeyCallback() func(conn ssh.ConnMetadata, key ssh.Pu
 		return nil
 	}
 	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-		connMetadata{conn, cfg}.logEvent(publicKeyAuthLog{
+		connContext{ConnMetadata: conn, cfg: cfg}.logEvent(publicKeyAuthLog{
 			authLog: authLog{
 				User:     conn.User(),
 				Accepted: authAccepted(cfg.Auth.PublicKeyAuth.Accepted),
@@ -73,7 +73,7 @@ func (cfg *config) getKeyboardInteractiveCallback() func(conn ssh.ConnMetadata, 
 			warningLogger.Printf("Failed to process keyboard interactive authentication: %v", err)
 			return nil, errors.New("")
 		}
-		connMetadata{conn, cfg}.logEvent(keyboardInteractiveAuthLog{
+		connContext{ConnMetadata: conn, cfg: cfg}.logEvent(keyboardInteractiveAuthLog{
 			authLog: authLog{
 				User:     conn.User(),
 				Accepted: authAccepted(cfg.Auth.KeyboardInteractiveAuth.Accepted),

@@ -6,17 +6,18 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type connMetadata struct {
+type connContext struct {
 	ssh.ConnMetadata
-	cfg *config
+	cfg            *config
+	noMoreSessions bool
 }
 
-type channelMetadata struct {
-	connMetadata
+type channelContext struct {
+	connContext
 	channelID int
 }
 
-var channelHandlers = map[string]func(newChannel ssh.NewChannel, metadata channelMetadata) error{
+var channelHandlers = map[string]func(newChannel ssh.NewChannel, context channelContext) error{
 	"session":      handleSessionChannel,
 	"direct-tcpip": handleDirectTCPIPChannel,
 }
@@ -29,16 +30,16 @@ func handleConnection(conn net.Conn, cfg *config) {
 		return
 	}
 	channelsDone := []chan interface{}{}
-	metadata := connMetadata{serverConn, cfg}
+	context := connContext{ConnMetadata: serverConn, cfg: cfg}
 	defer func() {
 		serverConn.Close()
 		for _, channelDone := range channelsDone {
 			<-channelDone
 		}
-		metadata.logEvent(connectionCloseLog{})
+		context.logEvent(connectionCloseLog{})
 	}()
 
-	metadata.logEvent(connectionLog{
+	context.logEvent(connectionLog{
 		ClientVersion: string(serverConn.ClientVersion()),
 	})
 
@@ -47,36 +48,45 @@ func handleConnection(conn net.Conn, cfg *config) {
 		return
 	}
 
-	go func() {
-		for request := range requests {
-			if err := handleGlobalRequest(request, metadata); err != nil {
-				warningLogger.Printf("Failed to handle global request: %v", err)
-				serverConn.Close()
-			}
-		}
-	}()
-
 	channelID := 0
-	for newChannel := range newChannels {
-		channelType := newChannel.ChannelType()
-		handler := channelHandlers[channelType]
-		if handler == nil {
-			warningLogger.Printf("Unsupported channel type %v", channelType)
-			if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
-				warningLogger.Printf("Failed to reject channel: %v", err)
-				break
+	for requests != nil || newChannels != nil {
+		select {
+		case request, ok := <-requests:
+			if !ok {
+				requests = nil
+				continue
 			}
-			continue
+			if err := handleGlobalRequest(request, &context); err != nil {
+				warningLogger.Printf("Failed to handle global request: %v", err)
+				requests = nil
+				continue
+			}
+		case newChannel, ok := <-newChannels:
+			if !ok {
+				newChannels = nil
+				continue
+			}
+			channelType := newChannel.ChannelType()
+			handler := channelHandlers[channelType]
+			if handler == nil {
+				warningLogger.Printf("Unsupported channel type %v", channelType)
+				if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
+					warningLogger.Printf("Failed to reject channel: %v", err)
+					newChannels = nil
+					continue
+				}
+				continue
+			}
+			go func(context channelContext) {
+				channelDone := make(chan interface{})
+				channelsDone = append(channelsDone, channelDone)
+				defer func() { channelDone <- nil }()
+				if err := handler(newChannel, context); err != nil {
+					warningLogger.Printf("Failed to handle new channel: %v", err)
+					serverConn.Close()
+				}
+			}(channelContext{context, channelID})
+			channelID++
 		}
-		go func(channelID int) {
-			channelDone := make(chan interface{})
-			channelsDone = append(channelsDone, channelDone)
-			defer func() { channelDone <- nil }()
-			if err := handler(newChannel, channelMetadata{metadata, channelID}); err != nil {
-				warningLogger.Printf("Failed to handle new channel: %v", err)
-				serverConn.Close()
-			}
-		}(channelID)
-		channelID++
 	}
 }

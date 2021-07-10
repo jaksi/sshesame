@@ -178,9 +178,8 @@ var sessionRequestParsers = map[string]channelRequestPayloadParser{
 	},
 }
 
-type sessionChannel struct {
+type sessionContext struct {
 	ssh.Channel
-	metadata  channelMetadata
 	inputChan chan string
 	errorChan chan error
 	active    bool
@@ -217,7 +216,7 @@ func (r terminalReadLiner) ReadLine() (string, error) {
 	return line, err
 }
 
-func (channel *sessionChannel) handleProgram(program []string) bool {
+func (channel *sessionContext) handleProgram(program []string) bool {
 	if channel.active {
 		warningLogger.Printf("A program is already active")
 		return false
@@ -264,7 +263,7 @@ func (channel *sessionChannel) handleProgram(program []string) bool {
 	return true
 }
 
-func (channel *sessionChannel) handleRequest(request interface{}) (bool, error) {
+func (channel *sessionContext) handleRequest(request interface{}) (bool, error) {
 	switch payload := request.(type) {
 	case *ptyRequest:
 		if channel.pty {
@@ -287,7 +286,10 @@ func (channel *sessionChannel) handleRequest(request interface{}) (bool, error) 
 	return true, nil
 }
 
-func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) error {
+func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) error {
+	if context.noMoreSessions {
+		return errors.New("nore more sessions were supposed to be requested")
+	}
 	if len(newChannel.ExtraData()) != 0 {
 		return errors.New("invalid channel data")
 	}
@@ -295,20 +297,20 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 	if err != nil {
 		return err
 	}
-	metadata.logEvent(sessionLog{
+	context.logEvent(sessionLog{
 		channelLog: channelLog{
-			ChannelID: metadata.channelID,
+			ChannelID: context.channelID,
 		},
 	})
-	defer metadata.logEvent(sessionCloseLog{
+	defer context.logEvent(sessionCloseLog{
 		channelLog: channelLog{
-			ChannelID: metadata.channelID,
+			ChannelID: context.channelID,
 		},
 	})
 
 	inputChan := make(chan string)
 	errorChan := make(chan error)
-	session := sessionChannel{channel, metadata, inputChan, errorChan, false, false}
+	session := sessionContext{channel, inputChan, errorChan, false, false}
 
 	for inputChan != nil || errorChan != nil || requests != nil {
 		select {
@@ -317,9 +319,9 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 				inputChan = nil
 				continue
 			}
-			metadata.logEvent(sessionInputLog{
+			context.logEvent(sessionInputLog{
 				channelLog: channelLog{
-					ChannelID: metadata.channelID,
+					ChannelID: context.channelID,
 				},
 				Input: input,
 			})
@@ -359,7 +361,7 @@ func handleSessionChannel(newChannel ssh.NewChannel, metadata channelMetadata) e
 				return err
 			}
 			if accept {
-				metadata.logEvent(payload.logEntry(metadata.channelID))
+				context.logEvent(payload.logEntry(context.channelID))
 			}
 			if request.WantReply {
 				if err := request.Reply(accept, payload.reply()); err != nil {

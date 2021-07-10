@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"math/rand"
 	"net"
 	"strconv"
@@ -53,6 +54,16 @@ func (request cancelTCPIPRequest) logEntry() logEntry {
 	}
 }
 
+type noMoreSessionsRequest struct {
+}
+
+func (request noMoreSessionsRequest) reply() []byte {
+	return nil
+}
+func (request noMoreSessionsRequest) logEntry() logEntry {
+	return noMoreSessionsLog{}
+}
+
 var globalRequestPayloads = map[string]globalRequestPayloadParser{
 	"tcpip-forward": func(data []byte) (globalRequestPayload, error) {
 		payload := &tcpipRequest{}
@@ -68,9 +79,15 @@ var globalRequestPayloads = map[string]globalRequestPayloadParser{
 		}
 		return payload, nil
 	},
+	"no-more-sessions@openssh.com": func(data []byte) (globalRequestPayload, error) {
+		if len(data) != 0 {
+			return nil, errors.New("invalid request payload")
+		}
+		return &noMoreSessionsRequest{}, nil
+	},
 }
 
-func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
+func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 	parser := globalRequestPayloads[request.Type]
 	if parser == nil {
 		warningLogger.Printf("Unsupported global request type %v", request.Type)
@@ -85,12 +102,16 @@ func handleGlobalRequest(request *ssh.Request, metadata connMetadata) error {
 	if err != nil {
 		return err
 	}
+	switch payload.(type) {
+	case *noMoreSessionsRequest:
+		context.noMoreSessions = true
+	}
 	if request.WantReply {
 		if err := request.Reply(true, payload.reply()); err != nil {
 			return err
 		}
 	}
-	metadata.logEvent(payload.logEntry())
+	context.logEvent(payload.logEntry())
 	return nil
 }
 
