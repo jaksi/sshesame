@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"sync"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -29,13 +30,11 @@ func handleConnection(conn net.Conn, cfg *config) {
 		conn.Close()
 		return
 	}
-	channelsDone := []chan interface{}{}
+	var wg sync.WaitGroup
 	context := connContext{ConnMetadata: serverConn, cfg: cfg}
 	defer func() {
 		serverConn.Close()
-		for _, channelDone := range channelsDone {
-			<-channelDone
-		}
+		wg.Wait()
 		context.logEvent(connectionCloseLog{})
 	}()
 
@@ -87,10 +86,9 @@ func handleConnection(conn net.Conn, cfg *config) {
 				}
 				continue
 			}
+			wg.Add(1)
 			go func(context channelContext) {
-				channelDone := make(chan interface{})
-				channelsDone = append(channelsDone, channelDone)
-				defer func() { channelDone <- nil }()
+				defer wg.Done()
 				if err := handler(newChannel, context); err != nil {
 					warningLogger.Printf("Failed to handle new channel: %v", err)
 					serverConn.Close()
