@@ -65,9 +65,9 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 		args := strings.Fields(line)
 		if len(args) > 0 && args[0] == "exit" {
 			var err error
-			var status int
+			var status uint64
 			if len(args) > 1 {
-				status, err = strconv.Atoi(args[1])
+				status, err = strconv.ParseUint(args[1], 10, 32)
 				if err != nil {
 					status = 255
 				}
