@@ -5,6 +5,7 @@ logging:
   file: null # The log file to output activity logs to. Debug and error logs are still going to standard error. If unspecified, activity logs are written to standard out.
   json: false # Makes activity logs JSON-formatted instead of human readable.
   timestamps: true # Include timestamps in the logs.
+  debug: false # Log full raw details of all global and channel requests, channels and channel data.
 auth:
   no_auth: false # Allow clients to connect without authenticating.
   max_tries: 0 # The maximum number of authentication attempts permitted per connection. If set to a negative number, the number of attempts are unlimited. If set to zero, the number of attempts are limited to 6.

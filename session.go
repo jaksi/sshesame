@@ -342,6 +342,12 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 				}
 				continue
 			}
+			context.logEvent(debugChannelRequestLog{
+				channelLog:  channelLog{ChannelID: context.channelID},
+				RequestType: request.Type,
+				WantReply:   request.WantReply,
+				Payload:     string(request.Payload),
+			})
 			parser := sessionRequestParsers[request.Type]
 			if parser == nil {
 				warningLogger.Printf("Unsupported session request type %v", request.Type)
