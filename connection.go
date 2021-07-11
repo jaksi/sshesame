@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"sync"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -29,13 +30,11 @@ func handleConnection(conn net.Conn, cfg *config) {
 		conn.Close()
 		return
 	}
-	channelsDone := []chan interface{}{}
+	var channels sync.WaitGroup
 	context := connContext{ConnMetadata: serverConn, cfg: cfg}
 	defer func() {
 		serverConn.Close()
-		for _, channelDone := range channelsDone {
-			<-channelDone
-		}
+		channels.Wait()
 		context.logEvent(connectionCloseLog{})
 	}()
 
@@ -56,6 +55,11 @@ func handleConnection(conn net.Conn, cfg *config) {
 				requests = nil
 				continue
 			}
+			context.logEvent(debugGlobalRequestLog{
+				RequestType: request.Type,
+				WantReply:   request.WantReply,
+				Payload:     string(request.Payload),
+			})
 			if err := handleGlobalRequest(request, &context); err != nil {
 				warningLogger.Printf("Failed to handle global request: %v", err)
 				requests = nil
@@ -66,6 +70,11 @@ func handleConnection(conn net.Conn, cfg *config) {
 				newChannels = nil
 				continue
 			}
+			context.logEvent(debugChannelLog{
+				channelLog:  channelLog{ChannelID: channelID},
+				ChannelType: newChannel.ChannelType(),
+				ExtraData:   string(newChannel.ExtraData()),
+			})
 			channelType := newChannel.ChannelType()
 			handler := channelHandlers[channelType]
 			if handler == nil {
@@ -77,10 +86,9 @@ func handleConnection(conn net.Conn, cfg *config) {
 				}
 				continue
 			}
+			channels.Add(1)
 			go func(context channelContext) {
-				channelDone := make(chan interface{})
-				channelsDone = append(channelsDone, channelDone)
-				defer func() { channelDone <- nil }()
+				defer channels.Done()
 				if err := handler(newChannel, context); err != nil {
 					warningLogger.Printf("Failed to handle new channel: %v", err)
 					serverConn.Close()

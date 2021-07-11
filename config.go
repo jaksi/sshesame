@@ -29,6 +29,7 @@ type loggingConfig struct {
 	File       string `yaml:"file"`
 	JSON       bool   `yaml:"json"`
 	Timestamps bool   `yaml:"timestamps"`
+	Debug      bool   `yaml:"debug"`
 }
 
 type commonAuthConfig struct {
