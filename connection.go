@@ -30,11 +30,11 @@ func handleConnection(conn net.Conn, cfg *config) {
 		conn.Close()
 		return
 	}
-	var wg sync.WaitGroup
+	var channels sync.WaitGroup
 	context := connContext{ConnMetadata: serverConn, cfg: cfg}
 	defer func() {
 		serverConn.Close()
-		wg.Wait()
+		channels.Wait()
 		context.logEvent(connectionCloseLog{})
 	}()
 
@@ -86,9 +86,9 @@ func handleConnection(conn net.Conn, cfg *config) {
 				}
 				continue
 			}
-			wg.Add(1)
+			channels.Add(1)
 			go func(context channelContext) {
-				defer wg.Done()
+				defer channels.Done()
 				if err := handler(newChannel, context); err != nil {
 					warningLogger.Printf("Failed to handle new channel: %v", err)
 					serverConn.Close()
