@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"io"
@@ -207,7 +208,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 				requestLog: requestLog{
 					Type:      clientRequest.Type,
 					WantReply: clientRequest.WantReply,
-					Payload:   string(clientRequest.Payload),
+					Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
 					Accepted:  accepted,
 				},
 			}, client)
@@ -280,7 +281,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 				requestLog: requestLog{
 					Type:      serverRequest.Type,
 					WantReply: serverRequest.WantReply,
-					Payload:   string(serverRequest.Payload),
+					Payload:   base64.RawStdEncoding.EncodeToString(serverRequest.Payload),
 					Accepted:  accepted,
 				},
 			}, server)
@@ -333,7 +334,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			serverChannel, serverChannelRequests, err := serverSSHConn.OpenChannel(clientNewChannel.ChannelType(), clientNewChannel.ExtraData())
 			logEvent(newChannelLog{
 				Type:      clientNewChannel.ChannelType(),
-				ExtraData: string(clientNewChannel.ExtraData()),
+				ExtraData: base64.RawStdEncoding.EncodeToString(clientNewChannel.ExtraData()),
 				Accepted:  err == nil,
 			}, client)
 			if err != nil {
@@ -360,10 +361,10 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 					requestLog: requestLog{
 						Type:      clientRequest.Type,
 						WantReply: clientRequest.WantReply,
-						Payload:   string(clientRequest.Payload),
+						Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
 						Accepted:  clientRequest.WantReply,
 					},
-					Response: string([]byte{}),
+					Response: base64.RawStdEncoding.EncodeToString([]byte{}),
 				}, client)
 				continue
 			}
@@ -375,10 +376,10 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				requestLog: requestLog{
 					Type:      clientRequest.Type,
 					WantReply: clientRequest.WantReply,
-					Payload:   string(clientRequest.Payload),
+					Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
 					Accepted:  accepted,
 				},
-				Response: string(response),
+				Response: base64.RawStdEncoding.EncodeToString(response),
 			}, client)
 			if err := clientRequest.Reply(accepted, response); err != nil {
 				panic(err)
@@ -399,10 +400,10 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				requestLog: requestLog{
 					Type:      serverRequest.Type,
 					WantReply: serverRequest.WantReply,
-					Payload:   string(serverRequest.Payload),
+					Payload:   base64.RawStdEncoding.EncodeToString(serverRequest.Payload),
 					Accepted:  accepted,
 				},
-				Response: string(response),
+				Response: base64.RawStdEncoding.EncodeToString(response),
 			}, server)
 			if err != nil {
 				panic(err)
