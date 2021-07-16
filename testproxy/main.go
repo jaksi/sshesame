@@ -114,6 +114,12 @@ func (entry channelCloseLog) eventType() string {
 	return "channel_close"
 }
 
+type connectionCloseLog struct{}
+
+func (entry connectionCloseLog) eventType() string {
+	return "connection_close"
+}
+
 func logEvent(entry logEntry, src source) {
 	jsonBytes, err := json.Marshal(struct {
 		Source    string   `json:"source"`
@@ -295,19 +301,15 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 }
 
 func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAddress string, clientKey ssh.Signer) {
-	defer clientConn.Close()
-
 	clientSSHConn, clientNewChannels, clientRequests, err := ssh.NewServerConn(clientConn, sshServerConfig)
 	if err != nil {
 		panic(err)
 	}
-	defer clientSSHConn.Close()
 
 	serverConn, err := net.Dial("tcp", serverAddress)
 	if err != nil {
 		panic(err)
 	}
-	defer serverConn.Close()
 
 	serverSSHConn, serverNewChannels, serverRequests, err := ssh.NewClientConn(serverConn, serverAddress, &ssh.ClientConfig{
 		User:            clientSSHConn.User(),
@@ -320,7 +322,6 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 	if err != nil {
 		panic(err)
 	}
-	defer serverSSHConn.Close()
 
 	channelID := 0
 
@@ -329,6 +330,12 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 		case clientNewChannel, ok := <-clientNewChannels:
 			if !ok {
 				clientNewChannels = nil
+				if serverNewChannels != nil {
+					logEvent(connectionCloseLog{}, client)
+					if err := serverSSHConn.Close(); err != nil {
+						panic(err)
+					}
+				}
 				continue
 			}
 			serverChannel, serverChannelRequests, err := serverSSHConn.OpenChannel(clientNewChannel.ChannelType(), clientNewChannel.ExtraData())
@@ -386,6 +393,12 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			}
 		case serverNewChannel, ok := <-serverNewChannels:
 			if !ok {
+				if clientNewChannels != nil {
+					logEvent(connectionCloseLog{}, server)
+					if err := clientSSHConn.Close(); err != nil {
+						panic(err)
+					}
+				}
 				serverNewChannels = nil
 				continue
 			}
