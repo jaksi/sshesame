@@ -88,6 +88,15 @@ func (entry channelDataLog) eventType() string {
 	return "channel_data"
 }
 
+type channelErrorLog struct {
+	channelLog
+	Data string `json:"data"`
+}
+
+func (entry channelErrorLog) eventType() string {
+	return "channel_error"
+}
+
 type channelEOFLog struct {
 	channelLog
 }
@@ -233,11 +242,15 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 			}
 		case serverError, ok := <-serverErrorStream:
 			if !ok {
-				log.Printf("Server error stream closed")
 				serverErrorStream = nil
 				continue
 			}
-			log.Printf("Server error: %q", serverError)
+			logEvent(channelErrorLog{
+				channelLog: channelLog{
+					ChannelID: channelID,
+				},
+				Data: serverError,
+			}, server)
 			if _, err := clientChannel.Stderr().Write([]byte(serverError)); err != nil {
 				panic(err)
 			}
@@ -343,6 +356,15 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				continue
 			}
 			if clientRequest.Type == "no-more-sessions@openssh.com" {
+				logEvent(globalRequestLog{
+					requestLog: requestLog{
+						Type:      clientRequest.Type,
+						WantReply: clientRequest.WantReply,
+						Payload:   string(clientRequest.Payload),
+						Accepted:  clientRequest.WantReply,
+					},
+					Response: string([]byte{}),
+				}, client)
 				continue
 			}
 			accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
