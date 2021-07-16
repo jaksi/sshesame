@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"io"
 	"io/ioutil"
@@ -9,6 +10,115 @@ import (
 
 	"golang.org/x/crypto/ssh"
 )
+
+type source int
+
+const (
+	client source = iota
+	server
+)
+
+func (src source) String() string {
+	switch src {
+	case client:
+		return "client"
+	case server:
+		return "server"
+	default:
+		return "unknown"
+	}
+}
+
+func (src source) MarshalJSON() ([]byte, error) {
+	return json.Marshal(src.String())
+}
+
+type channelLog struct {
+	ChannelID int `json:"channel_id"`
+}
+
+type requestLog struct {
+	Type      string `json:"type"`
+	WantReply bool   `json:"want_reply"`
+	Payload   string `json:"payload"`
+
+	Accepted bool `json:"accepted"`
+}
+
+type logEntry interface {
+	eventType() string
+}
+
+type globalRequestLog struct {
+	requestLog
+
+	Response string `json:"response"`
+}
+
+func (entry globalRequestLog) eventType() string {
+	return "global_request"
+}
+
+type newChannelLog struct {
+	Type      string `json:"type"`
+	ExtraData string `json:"extra_data"`
+
+	Accepted bool `json:"accepted"`
+}
+
+func (entry newChannelLog) eventType() string {
+	return "new_channel"
+}
+
+type channelRequestLog struct {
+	channelLog
+	requestLog
+}
+
+func (entry channelRequestLog) eventType() string {
+	return "channel_request"
+}
+
+type channelDataLog struct {
+	channelLog
+	Data string `json:"data"`
+}
+
+func (entry channelDataLog) eventType() string {
+	return "channel_data"
+}
+
+type channelEOFLog struct {
+	channelLog
+}
+
+func (entry channelEOFLog) eventType() string {
+	return "channel_eof"
+}
+
+type channelCloseLog struct {
+	channelLog
+}
+
+func (entry channelCloseLog) eventType() string {
+	return "channel_close"
+}
+
+func logEvent(entry logEntry, src source) {
+	jsonBytes, err := json.Marshal(struct {
+		Source    string   `json:"source"`
+		EventType string   `json:"event_type"`
+		Event     logEntry `json:"event"`
+	}{
+		Source:    src.String(),
+		EventType: entry.eventType(),
+		Event:     entry,
+	})
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("%s", jsonBytes)
+}
 
 func streamReader(reader io.Reader) <-chan string {
 	input := make(chan string)
@@ -31,75 +141,138 @@ func streamReader(reader io.Reader) <-chan string {
 	return input
 }
 
-func handleChannel(clientChannel ssh.Channel, clientRequests <-chan *ssh.Request, upstreamChannel ssh.Channel, upstreamRequests <-chan *ssh.Request) {
+func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-chan *ssh.Request, serverChannel ssh.Channel, serverRequests <-chan *ssh.Request) {
 	clientInputStream := streamReader(clientChannel)
-	upstreamInputStream := streamReader(upstreamChannel)
-	upstreamErrorStream := streamReader(upstreamChannel.Stderr())
+	serverInputStream := streamReader(serverChannel)
+	serverErrorStream := streamReader(serverChannel.Stderr())
 
-	for clientInputStream != nil || clientRequests != nil || upstreamInputStream != nil || upstreamRequests != nil {
+	for clientInputStream != nil || clientRequests != nil || serverInputStream != nil || serverRequests != nil {
 		select {
 		case clientInput, ok := <-clientInputStream:
 			if !ok {
-				log.Printf("Client input stream closed")
+				if serverInputStream != nil {
+					logEvent(channelEOFLog{
+						channelLog: channelLog{
+							ChannelID: channelID,
+						},
+					}, client)
+					if err := serverChannel.CloseWrite(); err != nil {
+						panic(err)
+					}
+				}
 				clientInputStream = nil
-				upstreamChannel.CloseWrite()
 				continue
 			}
-			log.Printf("Client data: %q", clientInput)
-			if _, err := upstreamChannel.Write([]byte(clientInput)); err != nil {
+			logEvent(channelDataLog{
+				channelLog: channelLog{
+					ChannelID: channelID,
+				},
+				Data: clientInput,
+			}, client)
+			if _, err := serverChannel.Write([]byte(clientInput)); err != nil {
 				panic(err)
 			}
 		case clientRequest, ok := <-clientRequests:
 			if !ok {
-				log.Printf("Client channel closed")
+				if serverRequests != nil {
+					logEvent(channelCloseLog{
+						channelLog: channelLog{
+							ChannelID: channelID,
+						},
+					}, client)
+					if err := serverChannel.Close(); err != nil {
+						panic(err)
+					}
+				}
 				clientRequests = nil
-				upstreamChannel.Close()
 				continue
 			}
-			log.Printf("Client channel request: %s", clientRequest.Type)
-			response, err := upstreamChannel.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
+			accepted, err := serverChannel.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
 			if err != nil {
 				panic(err)
 			}
+			logEvent(channelRequestLog{
+				channelLog: channelLog{
+					ChannelID: channelID,
+				},
+				requestLog: requestLog{
+					Type:      clientRequest.Type,
+					WantReply: clientRequest.WantReply,
+					Payload:   string(clientRequest.Payload),
+					Accepted:  accepted,
+				},
+			}, client)
 			if clientRequest.WantReply {
-				if err := clientRequest.Reply(response, nil); err != nil {
+				if err := clientRequest.Reply(accepted, nil); err != nil {
 					panic(err)
 				}
 			}
-		case upstreamInput, ok := <-upstreamInputStream:
+		case serverInput, ok := <-serverInputStream:
 			if !ok {
-				log.Printf("Upstream input stream closed")
-				upstreamInputStream = nil
-				clientChannel.CloseWrite()
+				if clientInputStream != nil {
+					logEvent(channelEOFLog{
+						channelLog: channelLog{
+							ChannelID: channelID,
+						},
+					}, server)
+					if err := clientChannel.CloseWrite(); err != nil {
+						panic(err)
+					}
+				}
+				serverInputStream = nil
 				continue
 			}
-			log.Printf("Upstream data: %q", upstreamInput)
-			if _, err := clientChannel.Write([]byte(upstreamInput)); err != nil {
+			logEvent(channelDataLog{
+				channelLog: channelLog{
+					ChannelID: channelID,
+				},
+				Data: serverInput,
+			}, server)
+			if _, err := clientChannel.Write([]byte(serverInput)); err != nil {
 				panic(err)
 			}
-		case upstreamError, ok := <-upstreamErrorStream:
+		case serverError, ok := <-serverErrorStream:
 			if !ok {
-				upstreamErrorStream = nil
+				log.Printf("Server error stream closed")
+				serverErrorStream = nil
 				continue
 			}
-			log.Printf("Upstream error: %q", upstreamError)
-			if _, err := clientChannel.Stderr().Write([]byte(upstreamError)); err != nil {
+			log.Printf("Server error: %q", serverError)
+			if _, err := clientChannel.Stderr().Write([]byte(serverError)); err != nil {
 				panic(err)
 			}
-		case upstreamRequest, ok := <-upstreamRequests:
+		case serverRequest, ok := <-serverRequests:
 			if !ok {
-				log.Printf("Upstream channel closed")
-				upstreamRequests = nil
-				clientChannel.Close()
+				if clientRequests != nil {
+					logEvent(channelCloseLog{
+						channelLog: channelLog{
+							ChannelID: channelID,
+						},
+					}, server)
+					if err := clientChannel.Close(); err != nil {
+						panic(err)
+					}
+				}
+				serverRequests = nil
 				continue
 			}
-			log.Printf("Upstream channel request: %s", upstreamRequest.Type)
-			response, err := clientChannel.SendRequest(upstreamRequest.Type, upstreamRequest.WantReply, upstreamRequest.Payload)
+			accepted, err := clientChannel.SendRequest(serverRequest.Type, serverRequest.WantReply, serverRequest.Payload)
 			if err != nil {
 				panic(err)
 			}
-			if upstreamRequest.WantReply {
-				if err := upstreamRequest.Reply(response, nil); err != nil {
+			logEvent(channelRequestLog{
+				channelLog: channelLog{
+					ChannelID: channelID,
+				},
+				requestLog: requestLog{
+					Type:      serverRequest.Type,
+					WantReply: serverRequest.WantReply,
+					Payload:   string(serverRequest.Payload),
+					Accepted:  accepted,
+				},
+			}, server)
+			if serverRequest.WantReply {
+				if err := serverRequest.Reply(accepted, nil); err != nil {
 					panic(err)
 				}
 			}
@@ -107,43 +280,49 @@ func handleChannel(clientChannel ssh.Channel, clientRequests <-chan *ssh.Request
 	}
 }
 
-func handleConn(conn net.Conn, serverConfig *ssh.ServerConfig, upstreamAddress string, upstreamKey ssh.Signer) {
-	defer conn.Close()
+func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAddress string, clientKey ssh.Signer) {
+	defer clientConn.Close()
 
-	clientSSHConn, clientNewChannels, clientRequests, err := ssh.NewServerConn(conn, serverConfig)
+	clientSSHConn, clientNewChannels, clientRequests, err := ssh.NewServerConn(clientConn, sshServerConfig)
 	if err != nil {
 		panic(err)
 	}
 	defer clientSSHConn.Close()
 
-	upstreamConn, err := net.Dial("tcp", upstreamAddress)
+	serverConn, err := net.Dial("tcp", serverAddress)
 	if err != nil {
 		panic(err)
 	}
-	defer upstreamConn.Close()
+	defer serverConn.Close()
 
-	upstreamSSHConn, upstreamNewChannels, upstreamRequests, err := ssh.NewClientConn(upstreamConn, upstreamAddress, &ssh.ClientConfig{
+	serverSSHConn, serverNewChannels, serverRequests, err := ssh.NewClientConn(serverConn, serverAddress, &ssh.ClientConfig{
 		User:            clientSSHConn.User(),
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(upstreamKey),
+			ssh.PublicKeys(clientKey),
 		},
 		ClientVersion: "SSH-2.0-OpenSSH_7.2",
 	})
 	if err != nil {
 		panic(err)
 	}
-	defer upstreamSSHConn.Close()
+	defer serverSSHConn.Close()
 
-	for clientNewChannels != nil || clientRequests != nil || upstreamNewChannels != nil || upstreamRequests != nil {
+	channelID := 0
+
+	for clientNewChannels != nil || clientRequests != nil || serverNewChannels != nil || serverRequests != nil {
 		select {
 		case clientNewChannel, ok := <-clientNewChannels:
 			if !ok {
 				clientNewChannels = nil
 				continue
 			}
-			log.Printf("New client channel: %s", clientNewChannel.ChannelType())
-			upstreamChannel, upstreamChannelRequests, err := upstreamSSHConn.OpenChannel(clientNewChannel.ChannelType(), clientNewChannel.ExtraData())
+			serverChannel, serverChannelRequests, err := serverSSHConn.OpenChannel(clientNewChannel.ChannelType(), clientNewChannel.ExtraData())
+			logEvent(newChannelLog{
+				Type:      clientNewChannel.ChannelType(),
+				ExtraData: string(clientNewChannel.ExtraData()),
+				Accepted:  err == nil,
+			}, client)
 			if err != nil {
 				if err, ok := err.(*ssh.OpenChannelError); ok {
 					if err := clientNewChannel.Reject(err.Reason, err.Message); err != nil {
@@ -157,51 +336,68 @@ func handleConn(conn net.Conn, serverConfig *ssh.ServerConfig, upstreamAddress s
 			if err != nil {
 				panic(err)
 			}
-			go handleChannel(clientChannel, clientChannelRequests, upstreamChannel, upstreamChannelRequests)
+			go handleChannel(channelID, clientChannel, clientChannelRequests, serverChannel, serverChannelRequests)
 		case clientRequest, ok := <-clientRequests:
 			if !ok {
 				clientRequests = nil
 				continue
 			}
-			log.Printf("Client request: %s", clientRequest.Type)
 			if clientRequest.Type == "no-more-sessions@openssh.com" {
 				continue
 			}
-			response, payload, err := upstreamSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
+			accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
 			if err != nil {
 				panic(err)
 			}
-			if err := clientRequest.Reply(response, payload); err != nil {
+			logEvent(globalRequestLog{
+				requestLog: requestLog{
+					Type:      clientRequest.Type,
+					WantReply: clientRequest.WantReply,
+					Payload:   string(clientRequest.Payload),
+					Accepted:  accepted,
+				},
+				Response: string(response),
+			}, client)
+			if err := clientRequest.Reply(accepted, response); err != nil {
 				panic(err)
 			}
-		case upstreamNewChannel, ok := <-upstreamNewChannels:
+		case serverNewChannel, ok := <-serverNewChannels:
 			if !ok {
-				upstreamNewChannels = nil
+				serverNewChannels = nil
 				continue
 			}
-			panic(upstreamNewChannel.ChannelType())
-		case upstreamRequest, ok := <-upstreamRequests:
+			panic(serverNewChannel.ChannelType())
+		case serverRequest, ok := <-serverRequests:
 			if !ok {
-				upstreamRequests = nil
+				serverRequests = nil
 				continue
 			}
-			log.Printf("Upstream request: %s", upstreamRequest.Type)
-			response, payload, err := clientSSHConn.SendRequest(upstreamRequest.Type, upstreamRequest.WantReply, upstreamRequest.Payload)
+			accepted, response, err := clientSSHConn.SendRequest(serverRequest.Type, serverRequest.WantReply, serverRequest.Payload)
+			logEvent(globalRequestLog{
+				requestLog: requestLog{
+					Type:      serverRequest.Type,
+					WantReply: serverRequest.WantReply,
+					Payload:   string(serverRequest.Payload),
+					Accepted:  accepted,
+				},
+				Response: string(response),
+			}, server)
 			if err != nil {
 				panic(err)
 			}
-			if err := upstreamRequest.Reply(response, payload); err != nil {
+			if err := serverRequest.Reply(accepted, response); err != nil {
 				panic(err)
 			}
 		}
+		channelID++
 	}
 }
 
 func main() {
 	listenAddress := flag.String("listen_address", "127.0.0.1:2022", "listen address")
 	hostKeyFile := flag.String("host_key_file", "", "host key file")
-	upstreamAddress := flag.String("upstream_address", "127.0.0.1:22", "upstream address")
-	upstreamKeyFile := flag.String("upstream_key_file", "", "upstream key file")
+	serverAddress := flag.String("server_address", "127.0.0.1:22", "server address")
+	clientKeyFile := flag.String("client_key_file", "", "client key file")
 	flag.Parse()
 	if *listenAddress == "" {
 		panic("listen address is required")
@@ -209,12 +405,14 @@ func main() {
 	if *hostKeyFile == "" {
 		panic("host key file is required")
 	}
-	if *upstreamAddress == "" {
-		panic("upstream address is required")
+	if *serverAddress == "" {
+		panic("server address is required")
 	}
-	if *upstreamKeyFile == "" {
-		panic("upstream key file is required")
+	if *clientKeyFile == "" {
+		panic("client key file is required")
 	}
+
+	log.SetFlags(0)
 
 	serverConfig := &ssh.ServerConfig{
 		NoClientAuth:  true,
@@ -230,11 +428,11 @@ func main() {
 	}
 	serverConfig.AddHostKey(hostKey)
 
-	upstreamKeyBytes, err := ioutil.ReadFile(*upstreamKeyFile)
+	clientKeyBytes, err := ioutil.ReadFile(*clientKeyFile)
 	if err != nil {
 		panic(err)
 	}
-	upstreamKey, err := ssh.ParsePrivateKey(upstreamKeyBytes)
+	clientKey, err := ssh.ParsePrivateKey(clientKeyBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -249,6 +447,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		go handleConn(conn, serverConfig, *upstreamAddress, upstreamKey)
+		go handleConn(conn, serverConfig, *serverAddress, clientKey)
 	}
 }
