@@ -303,7 +303,6 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAddress string, clientKey ssh.Signer) {
 	clientSSHConn, clientNewChannels, clientRequests, err := ssh.NewServerConn(clientConn, sshServerConfig)
 	if err != nil {
-		clientConn.Close()
 		panic(err)
 	}
 
@@ -321,7 +320,6 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 		ClientVersion: "SSH-2.0-OpenSSH_7.2",
 	})
 	if err != nil {
-		serverConn.Close()
 		panic(err)
 	}
 
