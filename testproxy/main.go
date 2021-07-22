@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -195,8 +194,6 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 		case clientRequest, ok := <-clientRequests:
 			if !ok {
 				if serverRequests != nil {
-					go func() {
-						time.Sleep(100 * time.Millisecond)
 						logEvent(channelCloseLog{
 							channelLog: channelLog{
 								ChannelID: channelID,
@@ -205,7 +202,6 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 						if err := serverChannel.Close(); err != nil {
 							panic(err)
 						}
-					}()
 				}
 				clientRequests = nil
 				continue
@@ -271,8 +267,6 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 		case serverRequest, ok := <-serverRequests:
 			if !ok {
 				if clientRequests != nil {
-					go func() {
-						time.Sleep(100 * time.Millisecond)
 						logEvent(channelCloseLog{
 							channelLog: channelLog{
 								ChannelID: channelID,
@@ -281,7 +275,6 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 						if err := clientChannel.Close(); err != nil {
 							panic(err)
 						}
-					}()
 				}
 				serverRequests = nil
 				continue
@@ -385,9 +378,17 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				clientRequests = nil
 				continue
 			}
-			go func() {
 				if clientRequest.Type == "no-more-sessions@openssh.com" {
-					time.Sleep(100 * time.Millisecond)
+				logEvent(globalRequestLog{
+					requestLog: requestLog{
+						Type:      clientRequest.Type,
+						WantReply: clientRequest.WantReply,
+						Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
+						Accepted:  clientRequest.WantReply,
+					},
+					Response: "",
+				}, client)
+				continue
 				}
 				accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
 				if err != nil {
@@ -405,7 +406,6 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				if err := clientRequest.Reply(accepted, response); err != nil {
 					panic(err)
 				}
-			}()
 		case serverNewChannel, ok := <-serverNewChannels:
 			if !ok {
 				if clientNewChannels != nil {
