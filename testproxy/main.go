@@ -64,7 +64,9 @@ type newChannelLog struct {
 	Type      string `json:"type"`
 	ExtraData string `json:"extra_data"`
 
-	Accepted bool `json:"accepted"`
+	Accepted     bool   `json:"accepted"`
+	RejectReason uint32 `json:"reject_reason"`
+	Message      string `json:"message"`
 }
 
 func (entry newChannelLog) eventType() string {
