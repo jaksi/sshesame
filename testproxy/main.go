@@ -364,17 +364,9 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				clientRequests = nil
 				continue
 			}
+			go func() {
 			if clientRequest.Type == "no-more-sessions@openssh.com" {
-				logEvent(globalRequestLog{
-					requestLog: requestLog{
-						Type:      clientRequest.Type,
-						WantReply: clientRequest.WantReply,
-						Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
-						Accepted:  clientRequest.WantReply,
-					},
-					Response: base64.RawStdEncoding.EncodeToString([]byte{}),
-				}, client)
-				continue
+					time.Sleep(100 * time.Millisecond)
 			}
 			accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
 			if err != nil {
@@ -392,6 +384,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			if err := clientRequest.Reply(accepted, response); err != nil {
 				panic(err)
 			}
+			}()
 		case serverNewChannel, ok := <-serverNewChannels:
 			if !ok {
 				if clientNewChannels != nil {
