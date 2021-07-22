@@ -449,6 +449,7 @@ func main() {
 	}
 
 	log.SetFlags(0)
+	log.SetOutput(os.Stdout)
 
 	serverConfig := &ssh.ServerConfig{
 		NoClientAuth:  true,
