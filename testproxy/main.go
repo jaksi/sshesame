@@ -197,14 +197,14 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 				if serverRequests != nil {
 					go func() {
 						time.Sleep(100 * time.Millisecond)
-					logEvent(channelCloseLog{
-						channelLog: channelLog{
-							ChannelID: channelID,
-						},
-					}, client)
-					if err := serverChannel.Close(); err != nil {
-						panic(err)
-					}
+						logEvent(channelCloseLog{
+							channelLog: channelLog{
+								ChannelID: channelID,
+							},
+						}, client)
+						if err := serverChannel.Close(); err != nil {
+							panic(err)
+						}
 					}()
 				}
 				clientRequests = nil
@@ -273,14 +273,14 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 				if clientRequests != nil {
 					go func() {
 						time.Sleep(100 * time.Millisecond)
-					logEvent(channelCloseLog{
-						channelLog: channelLog{
-							ChannelID: channelID,
-						},
-					}, server)
-					if err := clientChannel.Close(); err != nil {
-						panic(err)
-					}
+						logEvent(channelCloseLog{
+							channelLog: channelLog{
+								ChannelID: channelID,
+							},
+						}, server)
+						if err := clientChannel.Close(); err != nil {
+							panic(err)
+						}
 					}()
 				}
 				serverRequests = nil
@@ -358,9 +358,9 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 					rejectReason = err.Reason
 					message = err.Message
 				} else {
-						panic(err)
-					}
+					panic(err)
 				}
+			}
 			logEvent(newChannelLog{
 				Type:         clientNewChannel.ChannelType(),
 				ExtraData:    base64.RawStdEncoding.EncodeToString(clientNewChannel.ExtraData()),
@@ -370,7 +370,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			}, client)
 			if !accepted {
 				if err := clientNewChannel.Reject(rejectReason, message); err != nil {
-				panic(err)
+					panic(err)
 				}
 				continue
 			}
@@ -386,25 +386,25 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				continue
 			}
 			go func() {
-			if clientRequest.Type == "no-more-sessions@openssh.com" {
+				if clientRequest.Type == "no-more-sessions@openssh.com" {
 					time.Sleep(100 * time.Millisecond)
-			}
-			accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
-			if err != nil {
-				panic(err)
-			}
-			logEvent(globalRequestLog{
-				requestLog: requestLog{
-					Type:      clientRequest.Type,
-					WantReply: clientRequest.WantReply,
-					Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
-					Accepted:  accepted,
-				},
-				Response: base64.RawStdEncoding.EncodeToString(response),
-			}, client)
-			if err := clientRequest.Reply(accepted, response); err != nil {
-				panic(err)
-			}
+				}
+				accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
+				if err != nil {
+					panic(err)
+				}
+				logEvent(globalRequestLog{
+					requestLog: requestLog{
+						Type:      clientRequest.Type,
+						WantReply: clientRequest.WantReply,
+						Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
+						Accepted:  accepted,
+					},
+					Response: base64.RawStdEncoding.EncodeToString(response),
+				}, client)
+				if err := clientRequest.Reply(accepted, response); err != nil {
+					panic(err)
+				}
 			}()
 		case serverNewChannel, ok := <-serverNewChannels:
 			if !ok {
