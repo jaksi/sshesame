@@ -339,19 +339,30 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				continue
 			}
 			serverChannel, serverChannelRequests, err := serverSSHConn.OpenChannel(clientNewChannel.ChannelType(), clientNewChannel.ExtraData())
-			logEvent(newChannelLog{
-				Type:      clientNewChannel.ChannelType(),
-				ExtraData: base64.RawStdEncoding.EncodeToString(clientNewChannel.ExtraData()),
-				Accepted:  err == nil,
-			}, client)
+			accepted := true
+			var rejectReason ssh.RejectionReason
+			var message string
 			if err != nil {
 				if err, ok := err.(*ssh.OpenChannelError); ok {
-					if err := clientNewChannel.Reject(err.Reason, err.Message); err != nil {
+					accepted = false
+					rejectReason = err.Reason
+					message = err.Message
+				} else {
 						panic(err)
 					}
-					continue
 				}
+			logEvent(newChannelLog{
+				Type:         clientNewChannel.ChannelType(),
+				ExtraData:    base64.RawStdEncoding.EncodeToString(clientNewChannel.ExtraData()),
+				Accepted:     err == nil,
+				RejectReason: uint32(rejectReason),
+				Message:      message,
+			}, client)
+			if !accepted {
+				if err := clientNewChannel.Reject(rejectReason, message); err != nil {
 				panic(err)
+				}
+				continue
 			}
 			clientChannel, clientChannelRequests, err := clientNewChannel.Accept()
 			if err != nil {
