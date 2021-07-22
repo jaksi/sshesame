@@ -51,6 +51,7 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 	if context.pty {
 		prompt = "$ "
 	}
+	var lastStatus uint32
 	var line string
 	var err error
 	for {
@@ -63,9 +64,12 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 			return 0, err
 		}
 		args := strings.Fields(line)
-		if len(args) > 0 && args[0] == "exit" {
+		if len(args) == 0 {
+			continue
+		}
+		if args[0] == "exit" {
 			var err error
-			var status uint64
+			var status uint64 = uint64(lastStatus)
 			if len(args) > 1 {
 				status, err = strconv.ParseUint(args[1], 10, 32)
 				if err != nil {
@@ -75,8 +79,8 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 			return uint32(status), nil
 		}
 		newContext := context
-		newContext.args = strings.Fields(line)
-		if _, err = executeProgram(newContext); err != nil {
+		newContext.args = args
+		if lastStatus, err = executeProgram(newContext); err != nil {
 			return 0, err
 		}
 	}
