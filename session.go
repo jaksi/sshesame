@@ -208,10 +208,21 @@ type terminalReadLiner struct {
 	inputChan chan<- string
 }
 
+type clientEOFError struct{}
+
+var clientEOF = clientEOFError{}
+
+func (clientEOFError) Error() string {
+	return "Client EOF"
+}
+
 func (r terminalReadLiner) ReadLine() (string, error) {
 	line, err := r.terminal.ReadLine()
 	if err == nil || line != "" {
 		r.inputChan <- line
+	}
+	if err == io.EOF {
+		return line, clientEOF
 	}
 	return line, err
 }
@@ -238,10 +249,12 @@ func (channel *sessionContext) handleProgram(program []string) bool {
 		defer close(channel.inputChan)
 		defer close(channel.errorChan)
 		result, err := executeProgram(commandContext{program, stdin, stdout, stderr, channel.pty})
-		if err == io.EOF {
+		shouldSendEOW := err == nil || (channel.pty && err == clientEOF)
+		shouldSendCRLF := channel.pty && err == clientEOF
+		if err == clientEOF || err == io.EOF {
 			err = nil
 		}
-		if err == nil && channel.pty {
+		if err == nil && shouldSendCRLF {
 			_, err = channel.Write([]byte("\r\n"))
 		}
 		if err == nil {
@@ -249,7 +262,7 @@ func (channel *sessionContext) handleProgram(program []string) bool {
 				ExitStatus uint32
 			}{result}))
 		}
-		if err == nil && channel.pty {
+		if err == nil && shouldSendEOW {
 			_, err = channel.SendRequest("eow@openssh.com", false, nil)
 		}
 		if err == nil {
