@@ -193,15 +193,18 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 			}
 		case clientRequest, ok := <-clientRequests:
 			if !ok {
+				if clientInputStream != nil && serverInputStream != nil {
+					continue
+				}
 				if serverRequests != nil {
-						logEvent(channelCloseLog{
-							channelLog: channelLog{
-								ChannelID: channelID,
-							},
-						}, client)
-						if err := serverChannel.Close(); err != nil {
-							panic(err)
-						}
+					logEvent(channelCloseLog{
+						channelLog: channelLog{
+							ChannelID: channelID,
+						},
+					}, client)
+					if err := serverChannel.Close(); err != nil {
+						panic(err)
+					}
 				}
 				clientRequests = nil
 				continue
@@ -266,15 +269,18 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 			}
 		case serverRequest, ok := <-serverRequests:
 			if !ok {
+				if clientInputStream != nil && serverInputStream != nil {
+					continue
+				}
 				if clientRequests != nil {
-						logEvent(channelCloseLog{
-							channelLog: channelLog{
-								ChannelID: channelID,
-							},
-						}, server)
-						if err := clientChannel.Close(); err != nil {
-							panic(err)
-						}
+					logEvent(channelCloseLog{
+						channelLog: channelLog{
+							ChannelID: channelID,
+						},
+					}, server)
+					if err := clientChannel.Close(); err != nil {
+						panic(err)
+					}
 				}
 				serverRequests = nil
 				continue
@@ -378,7 +384,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				clientRequests = nil
 				continue
 			}
-				if clientRequest.Type == "no-more-sessions@openssh.com" {
+			if clientRequest.Type == "no-more-sessions@openssh.com" {
 				logEvent(globalRequestLog{
 					requestLog: requestLog{
 						Type:      clientRequest.Type,
@@ -389,23 +395,23 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 					Response: "",
 				}, client)
 				continue
-				}
-				accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
-				if err != nil {
-					panic(err)
-				}
-				logEvent(globalRequestLog{
-					requestLog: requestLog{
-						Type:      clientRequest.Type,
-						WantReply: clientRequest.WantReply,
-						Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
-						Accepted:  accepted,
-					},
-					Response: base64.RawStdEncoding.EncodeToString(response),
-				}, client)
-				if err := clientRequest.Reply(accepted, response); err != nil {
-					panic(err)
-				}
+			}
+			accepted, response, err := serverSSHConn.SendRequest(clientRequest.Type, clientRequest.WantReply, clientRequest.Payload)
+			if err != nil {
+				panic(err)
+			}
+			logEvent(globalRequestLog{
+				requestLog: requestLog{
+					Type:      clientRequest.Type,
+					WantReply: clientRequest.WantReply,
+					Payload:   base64.RawStdEncoding.EncodeToString(clientRequest.Payload),
+					Accepted:  accepted,
+				},
+				Response: base64.RawStdEncoding.EncodeToString(response),
+			}, client)
+			if err := clientRequest.Reply(accepted, response); err != nil {
+				panic(err)
+			}
 		case serverNewChannel, ok := <-serverNewChannels:
 			if !ok {
 				if clientNewChannels != nil {
