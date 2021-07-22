@@ -358,6 +358,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				panic(err)
 			}
 			go handleChannel(channelID, clientChannel, clientChannelRequests, serverChannel, serverChannelRequests)
+			channelID++
 		case clientRequest, ok := <-clientRequests:
 			if !ok {
 				clientRequests = nil
@@ -425,7 +426,6 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				panic(err)
 			}
 		}
-		channelID++
 	}
 }
 
