@@ -57,11 +57,11 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 	for {
 		_, err = fmt.Fprint(context.stdout, prompt)
 		if err != nil {
-			return 0, err
+			return lastStatus, err
 		}
 		line, err = context.stdin.ReadLine()
 		if err != nil {
-			return 0, err
+			return lastStatus, err
 		}
 		args := strings.Fields(line)
 		if len(args) == 0 {
@@ -81,7 +81,7 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 		newContext := context
 		newContext.args = args
 		if lastStatus, err = executeProgram(newContext); err != nil {
-			return 0, err
+			return lastStatus, err
 		}
 	}
 }
