@@ -10,16 +10,16 @@ import (
 	"golang.org/x/term"
 )
 
-type ptyRequest struct {
+type ptyRequestPayload struct {
 	Term                                   string
 	Width, Height, PixelWidth, PixelHeight uint32
 	Modes                                  string
 }
 
-func (request ptyRequest) reply() []byte {
+func (request ptyRequestPayload) reply() []byte {
 	return nil
 }
-func (request ptyRequest) logEntry(channelID int) logEntry {
+func (request ptyRequestPayload) logEntry(channelID int) logEntry {
 	return ptyLog{
 		channelLog: channelLog{
 			ChannelID: channelID,
@@ -30,12 +30,12 @@ func (request ptyRequest) logEntry(channelID int) logEntry {
 	}
 }
 
-type shellRequest struct{}
+type shellRequestPayload struct{}
 
-func (request shellRequest) reply() []byte {
+func (request shellRequestPayload) reply() []byte {
 	return nil
 }
-func (request shellRequest) logEntry(channelID int) logEntry {
+func (request shellRequestPayload) logEntry(channelID int) logEntry {
 	return shellLog{
 		channelLog: channelLog{
 			ChannelID: channelID,
@@ -127,58 +127,8 @@ func (request windowChangeRequestPayload) logEntry(channelID int) logEntry {
 	}
 }
 
-var sessionRequestParsers = map[string]channelRequestPayloadParser{
-	"pty-req": func(data []byte) (channelRequestPayload, error) {
-		payload := &ptyRequest{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"shell": func(data []byte) (channelRequestPayload, error) {
-		if len(data) != 0 {
-			return nil, errors.New("invalid request payload")
-		}
-		return &shellRequest{}, nil
-	},
-	"x11-req": func(data []byte) (channelRequestPayload, error) {
-		payload := &x11RequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"env": func(data []byte) (channelRequestPayload, error) {
-		payload := &envRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"exec": func(data []byte) (channelRequestPayload, error) {
-		payload := &execRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"subsystem": func(data []byte) (channelRequestPayload, error) {
-		payload := &subsystemRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-	"window-change": func(data []byte) (channelRequestPayload, error) {
-		payload := &windowChangeRequestPayload{}
-		if err := ssh.Unmarshal(data, payload); err != nil {
-			return nil, err
-		}
-		return payload, nil
-	},
-}
-
 type sessionContext struct {
+	channelContext
 	ssh.Channel
 	inputChan chan string
 	errorChan chan error
@@ -227,76 +177,137 @@ func (r terminalReadLiner) ReadLine() (string, error) {
 	return line, err
 }
 
-func (channel *sessionContext) handleProgram(program []string) bool {
-	if channel.active {
-		warningLogger.Printf("A program is already active")
-		return false
-	}
-	channel.active = true
+func (context *sessionContext) handleProgram(program []string) {
+	context.active = true
 	var stdin readLiner
 	var stdout, stderr io.Writer
-	if channel.pty {
-		terminal := term.NewTerminal(channel, "")
-		stdin = terminalReadLiner{terminal, channel.inputChan}
+	if context.pty {
+		terminal := term.NewTerminal(context, "")
+		stdin = terminalReadLiner{terminal, context.inputChan}
 		stdout = terminal
 		stderr = terminal
 	} else {
-		stdin = scannerReadLiner{bufio.NewScanner(channel), channel.inputChan}
-		stdout = channel
-		stderr = channel.Stderr()
+		stdin = scannerReadLiner{bufio.NewScanner(context), context.inputChan}
+		stdout = context
+		stderr = context.Stderr()
 	}
 	go func() {
-		defer close(channel.inputChan)
-		defer close(channel.errorChan)
-		result, err := executeProgram(commandContext{program, stdin, stdout, stderr, channel.pty})
-		shouldSendEOW := err == nil || (channel.pty && err == clientEOF)
-		shouldSendCRLF := channel.pty && err == clientEOF
+		defer close(context.inputChan)
+		defer close(context.errorChan)
+		result, err := executeProgram(commandContext{program, stdin, stdout, stderr, context.pty})
+		shouldSendEOW := err == nil || (context.pty && err == clientEOF)
+		shouldSendCRLF := context.pty && err == clientEOF
 		if err == clientEOF || err == io.EOF {
 			err = nil
 		}
 		if err == nil && shouldSendCRLF {
-			_, err = channel.Write([]byte("\r\n"))
+			_, err = context.Write([]byte("\r\n"))
 		}
 		if err == nil {
-			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(struct {
+			_, err = context.SendRequest("exit-status", false, ssh.Marshal(struct {
 				ExitStatus uint32
 			}{result}))
 		}
 		if err == nil && shouldSendEOW {
-			_, err = channel.SendRequest("eow@openssh.com", false, nil)
+			_, err = context.SendRequest("eow@openssh.com", false, nil)
 		}
 		if err == nil {
-			err = channel.CloseWrite()
+			err = context.CloseWrite()
 		}
 		if err == nil {
-			err = channel.Close()
+			err = context.Close()
 		}
-		channel.errorChan <- err
+		context.errorChan <- err
 	}()
-	return true
 }
 
-func (channel *sessionContext) handleRequest(request interface{}) (bool, error) {
-	switch payload := request.(type) {
-	case *ptyRequest:
-		if channel.pty {
-			return false, errors.New("a pty-req request was already sent")
+func (context *sessionContext) handleRequest(request *ssh.Request) error {
+	switch request.Type {
+	case "pty-req":
+		if !context.active {
+			if context.pty {
+				return errors.New("a pty is already requested")
+			}
+			payload := &ptyRequestPayload{}
+			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
+				return err
+			}
+			context.logEvent(payload.logEntry(context.channelID))
+			if err := request.Reply(true, payload.reply()); err != nil {
+				return err
+			}
+			context.pty = true
+			return nil
 		}
-		channel.pty = true
-	case *shellRequest:
-		if !channel.handleProgram(shellProgram) {
-			return false, nil
+	case "shell":
+		if !context.active {
+			if len(request.Payload) != 0 {
+				return errors.New("invalid request payload")
+			}
+			payload := &shellRequestPayload{}
+			context.logEvent(payload.logEntry(context.channelID))
+			if err := request.Reply(true, payload.reply()); err != nil {
+				return err
+			}
+			context.active = true
+			context.handleProgram(shellProgram)
+			return nil
 		}
-	case *execRequestPayload:
-		if !channel.handleProgram(strings.Fields(payload.Command)) {
-			return false, nil
+	case "x11-req":
+		if !context.active {
+			payload := &x11RequestPayload{}
+			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
+				return err
+			}
+			context.logEvent(payload.logEntry(context.channelID))
+			return request.Reply(true, payload.reply())
 		}
-	case *subsystemRequestPayload:
-		if !channel.handleProgram(strings.Fields(payload.Subsystem)) {
-			return false, nil
+	case "env":
+		if !context.active {
+			payload := &envRequestPayload{}
+			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
+				return err
+			}
+			context.logEvent(payload.logEntry(context.channelID))
+			return request.Reply(true, payload.reply())
 		}
+	case "exec":
+		if !context.active {
+			payload := &execRequestPayload{}
+			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
+				return err
+			}
+			context.logEvent(payload.logEntry(context.channelID))
+			if err := request.Reply(true, payload.reply()); err != nil {
+				return err
+			}
+			context.active = true
+			context.handleProgram(strings.Fields(payload.Command))
+			return nil
+		}
+	case "subsystem":
+		if !context.active {
+			payload := &subsystemRequestPayload{}
+			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
+				return err
+			}
+			context.logEvent(payload.logEntry(context.channelID))
+			if err := request.Reply(true, payload.reply()); err != nil {
+				return err
+			}
+			context.active = true
+			context.handleProgram(strings.Fields(payload.Subsystem))
+		}
+	case "window-change":
+		payload := &windowChangeRequestPayload{}
+		if err := ssh.Unmarshal(request.Payload, payload); err != nil {
+			return err
+		}
+		context.logEvent(payload.logEntry(context.channelID))
+		return request.Reply(true, payload.reply())
 	}
-	return true, nil
+	warningLogger.Printf("Rejected session request: %s", request.Type)
+	return request.Reply(false, nil)
 }
 
 func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) error {
@@ -323,7 +334,7 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 
 	inputChan := make(chan string)
 	errorChan := make(chan error)
-	session := sessionContext{channel, inputChan, errorChan, false, false}
+	session := sessionContext{context, channel, inputChan, errorChan, false, false}
 
 	for inputChan != nil || errorChan != nil || requests != nil {
 		select {
@@ -361,31 +372,8 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 				WantReply:   request.WantReply,
 				Payload:     string(request.Payload),
 			})
-			parser := sessionRequestParsers[request.Type]
-			if parser == nil {
-				warningLogger.Printf("Unsupported session request type %v", request.Type)
-				if request.WantReply {
-					if err := request.Reply(false, nil); err != nil {
-						return err
-					}
-				}
-				continue
-			}
-			payload, err := parser(request.Payload)
-			if err != nil {
+			if err := session.handleRequest(request); err != nil {
 				return err
-			}
-			accept, err := session.handleRequest(payload)
-			if err != nil {
-				return err
-			}
-			if accept {
-				context.logEvent(payload.logEntry(context.channelID))
-			}
-			if request.WantReply {
-				if err := request.Reply(accept, payload.reply()); err != nil {
-					return err
-				}
 			}
 		}
 	}
