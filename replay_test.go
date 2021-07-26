@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -527,16 +526,15 @@ func TestReplay(t *testing.T) {
 				if err := json.Unmarshal(testCaseBytes, &testCase); err != nil {
 					t.Fatal(err)
 				}
-				var server sync.WaitGroup
-				server.Add(1)
+				serverResult := make(chan error)
 				go func() {
-					defer server.Done()
 					conn, err := listener.Accept()
 					if err != nil {
-						t.Error(err)
+						serverResult <- err
 						return
 					}
 					handleConnection(conn, cfg)
+					serverResult <- nil
 				}()
 				conn, err := net.DialUnix("unix", &net.UnixAddr{Name: clientAddress, Net: "unix"}, &net.UnixAddr{Name: serverAddress, Net: "unix"})
 				if err != nil {
@@ -567,7 +565,9 @@ func TestReplay(t *testing.T) {
 						t.Fatalf("%v: %v", event, err)
 					}
 				}
-				server.Wait()
+				if err := <-serverResult; err != nil {
+					t.Fatal(err)
+				}
 				for _, channel := range context.clientChannels {
 					for request := range channel.requests {
 						t.Errorf("unexpected request: %#v", request)
