@@ -1,0 +1,121 @@
+{
+  "events": [
+    {
+      "source": "server",
+      "type": "global_request",
+      "entry": {
+        "type": "hostkeys-00@openssh.com",
+        "want_reply": false,
+        "payload": "AAABlwAAAAdzc2gtcnNhAAAAAwEAAQAAAYEA4KuAMkkzdgouYgtZWZPkyCknD4D8xy23tRW2udglFGXd8bmF7Mz7co68+ewdd3OdQP/oSIO46MLL+ke5xQ1nZy5wNuzxJD0dMbzCCGHgyo5wg16l2lVFaRV8rW/ulvIS0nX2RXnyhYGHRBCOOFErkL5yk8P0iuGALi+5p8GRCGyclGclabFu2Z02v4d3pgYMoR+I4+gnEK/WnEk47UvYMiSYqXc8rBU0Xv4hWRxE3WGwZcx+m3GPf6tOYx03fcrg+p8xcdJO345KmJ19NEhPl09JH8Obggwl/OlL8mZkz86oT9YMivRjk24eII5aa7QbvDmCOM+z3wsV3disTNcZ1zlEjtMw/wwQ866/cMuyK+EUY3+9tuapp0M+EStgZFORWbx7pZT/iP9zfFN2t85xN6TNRF/gYCRQDx5UX3oxFlCaGm82qnm2BI7veiMCLzVnk47Cq0vF3zEQuzP1vGBQpHc/3XXWNraq/W7JYR2IJTr8ZAaKbww7jWZ8vv32762DAAAAaAAAABNlY2RzYS1zaGEyLW5pc3RwMjU2AAAACG5pc3RwMjU2AAAAQQSUJIs7r7i/6XZ/vbGPCq9kNwvR48uvv6fy9HJ4yQaEx4Uo4bTSyNgK1J0uR23zbQUKtsi+7iZcAcu1WZm1HwTwAAAAMwAAAAtzc2gtZWQyNTUxOQAAACBbaYmWWd6DK13xllCBp68I7hmt8/s5s3gOyMUabBvIiw",
+        "accepted": false,
+        "response": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "global_request",
+      "entry": {
+        "type": "tcpip-forward",
+        "want_reply": true,
+        "payload": "AAAACWxvY2FsaG9zdAAAAAA",
+        "accepted": true,
+        "response": "AACPkQ"
+      }
+    },
+    {
+      "source": "client",
+      "type": "global_request",
+      "entry": {
+        "type": "tcpip-forward",
+        "want_reply": true,
+        "payload": "AAAACWxvY2FsaG9zdAAACSk",
+        "accepted": true,
+        "response": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "global_request",
+      "entry": {
+        "type": "no-more-sessions@openssh.com",
+        "want_reply": false,
+        "payload": "",
+        "accepted": false,
+        "response": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "global_request",
+      "entry": {
+        "type": "cancel-tcpip-forward",
+        "want_reply": false,
+        "payload": "AAAACWxvY2FsaG9zdAAACSk",
+        "accepted": false,
+        "response": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "connection_close",
+      "entry": {}
+    }
+  ],
+  "plain_logs": [
+    "[SOURCE] authentication for user \"\" without credentials accepted",
+    "[SOURCE] connection with client version \"SSH-2.0-Go\" established",
+    "[SOURCE] TCP/IP forwarding on localhost:0 requested",
+    "[SOURCE] TCP/IP forwarding on localhost:2345 requested",
+    "[SOURCE] rejection of further session channels requested",
+    "[SOURCE] TCP/IP forwarding on localhost:2345 canceled",
+    "[SOURCE] connection closed"
+  ],
+  "json_logs": [
+    {
+      "source": "SOURCE",
+      "event_type": "no_auth",
+      "event": {
+        "user": "",
+        "accepted": true
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "connection",
+      "event": {
+        "client_version": "SSH-2.0-Go"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "tcpip_forward",
+      "event": {
+        "address": "localhost:0"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "tcpip_forward",
+      "event": {
+        "address": "localhost:2345"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "no_more_sessions",
+      "event": {}
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "cancel_tcpip_forward",
+      "event": {
+        "address": "localhost:2345"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "connection_close",
+      "event": {}
+    }
+  ]
+}
