@@ -207,15 +207,15 @@ func (event newChannelReplayEntry) Execute(t *testing.T, context *clientContext)
 		if err.Message != event.Message {
 			t.Errorf("Message mismatch: got %q, want %q", err.Message, event.Message)
 		}
-		return nil
-	}
-	if err != nil {
+	} else if err != nil {
 		return err
 	}
 	if accepted != event.Accepted {
 		t.Errorf("Accepted mismatch: got %v, want %v", accepted, event.Accepted)
 	}
-	context.clientChannels = append(context.clientChannels, clientChannel{channel, requests})
+	if accepted {
+		context.clientChannels = append(context.clientChannels, clientChannel{channel, requests})
+	}
 	return nil
 }
 
