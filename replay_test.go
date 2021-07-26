@@ -517,7 +517,6 @@ func TestReplay(t *testing.T) {
 			}
 			t.Run(testName, func(t *testing.T) {
 				logBuffer := setupLogBuffer(t, cfg)
-				clientAddress := path.Join(tempDir, fmt.Sprint(testName, ".sock"))
 				testCaseBytes, err := ioutil.ReadFile(testFile)
 				if err != nil {
 					t.Fatal(err)
@@ -536,7 +535,7 @@ func TestReplay(t *testing.T) {
 					handleConnection(conn, cfg)
 					serverResult <- nil
 				}()
-				conn, err := net.DialUnix("unix", &net.UnixAddr{Name: clientAddress, Net: "unix"}, &net.UnixAddr{Name: serverAddress, Net: "unix"})
+				conn, err := net.Dial("unix", serverAddress)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -589,7 +588,7 @@ func TestReplay(t *testing.T) {
 						if i >= len(testCase.PlainLogs) {
 							break
 						}
-						expectedLogLine := strings.ReplaceAll(testCase.PlainLogs[i], "SOURCE", clientAddress)
+						expectedLogLine := strings.ReplaceAll(testCase.PlainLogs[i], "SOURCE", conn.LocalAddr().String())
 						if logLine != expectedLogLine {
 							t.Errorf("Log mismatch at line %d: got \n%q, want \n%q", i, logLine, expectedLogLine)
 						}
@@ -607,7 +606,7 @@ func TestReplay(t *testing.T) {
 							t.Fatal(err)
 						}
 						expectedLogLine := testCase.JSONLogs[i]
-						expectedLogLine["source"] = clientAddress
+						expectedLogLine["source"] = conn.LocalAddr().String()
 						if !reflect.DeepEqual(parsedLogLine, expectedLogLine) {
 							t.Errorf("Log mismatch at line %d: got \n%#v, want \n%#v", i, parsedLogLine, expectedLogLine)
 						}
