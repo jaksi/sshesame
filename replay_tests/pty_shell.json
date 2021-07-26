@@ -1,4 +1,5 @@
 {
+  "user": "jaksi",
   "events": [
     {
       "source": "client",
@@ -259,6 +260,14 @@
       }
     },
     {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "c"
+      }
+    },
+    {
       "source": "client",
       "type": "channel_data",
       "entry": {
@@ -271,7 +280,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "ca"
+        "data": "a"
       }
     },
     {
@@ -411,14 +420,6 @@
       }
     },
     {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "n"
-      }
-    },
-    {
       "source": "client",
       "type": "channel_data",
       "entry": {
@@ -431,7 +432,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "o"
+        "data": "no"
       }
     },
     {
@@ -567,15 +568,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "cat: "
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "/does/not/exist: No such file or directory\r\n$ "
+        "data": "cat: /does/not/exist: No such file or directory\r\n$ "
       }
     },
     {
@@ -975,15 +968,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "\r\n"
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "something: command not found\r\n$ "
+        "data": "\r\nsomething: command not found\r\n$ "
       }
     },
     {
@@ -992,14 +977,6 @@
       "entry": {
         "channel_id": 0,
         "data": "\u0004"
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "\r\n"
       }
     },
     {
@@ -1026,6 +1003,14 @@
     },
     {
       "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n"
+      }
+    },
+    {
+      "source": "server",
       "type": "channel_eof",
       "entry": {
         "channel_id": 0
@@ -1045,7 +1030,7 @@
     }
   ],
   "plain_logs": [
-    "[SOURCE] authentication for user \"\" without credentials accepted",
+    "[SOURCE] authentication for user \"jaksi\" without credentials accepted",
     "[SOURCE] connection with client version \"SSH-2.0-Go\" established",
     "[SOURCE] [channel 0] session requested",
     "[SOURCE] rejection of further session channels requested",
@@ -1065,7 +1050,7 @@
       "source": "SOURCE",
       "event_type": "no_auth",
       "event": {
-        "user": "",
+        "user": "jaksi",
         "accepted": true
       }
     },

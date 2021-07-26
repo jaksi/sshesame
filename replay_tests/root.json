@@ -1,5 +1,5 @@
 {
-  "user": "jaksi",
+  "user": "root",
   "events": [
     {
       "source": "client",
@@ -16,32 +16,10 @@
       "source": "client",
       "type": "global_request",
       "entry": {
-        "type": "tcpip-forward",
-        "want_reply": true,
-        "payload": "AAAACWxvY2FsaG9zdAAAAAA",
-        "accepted": true,
-        "response": "AACGDQ"
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_request",
-      "entry": {
-        "channel_id": 0,
-        "type": "x11-req",
-        "want_reply": true,
-        "payload": "AAAAABJNSVQtTUFHSUMtQ09PS0lFLTEAAAAgZTU0MmJkOTA3MDY2M2JlNjRjZTBhOGE2N2Q3NTVlNWIAAAAA",
-        "accepted": true
-      }
-    },
-    {
-      "source": "client",
-      "type": "global_request",
-      "entry": {
-        "type": "tcpip-forward",
-        "want_reply": true,
-        "payload": "AAAACWxvY2FsaG9zdAAACSk",
-        "accepted": true,
+        "type": "no-more-sessions@openssh.com",
+        "want_reply": false,
+        "payload": "",
+        "accepted": false,
         "response": ""
       }
     },
@@ -58,23 +36,12 @@
     },
     {
       "source": "client",
-      "type": "global_request",
-      "entry": {
-        "type": "no-more-sessions@openssh.com",
-        "want_reply": false,
-        "payload": "",
-        "accepted": false,
-        "response": ""
-      }
-    },
-    {
-      "source": "client",
       "type": "channel_request",
       "entry": {
         "channel_id": 0,
         "type": "pty-req",
         "want_reply": true,
-        "payload": "AAAADnh0ZXJtLTI1NmNvbG9yAAAAUAAAABYAAALQAAABjAAAAQCBAAAlgIAAACWAAQAAAAMCAAAAHAMAAAB/BAAAABUFAAAABAYAAAD/BwAAAP8IAAAAEQkAAAATCgAAABoLAAAAGQwAAAASDQAAABcOAAAAFhEAAAAUEgAAAA8eAAAAAB8AAAAAIAAAAAAhAAAAACIAAAAAIwAAAAAkAAAAASYAAAAAJwAAAAEoAAAAACkAAAABKgAAAAEyAAAAATMAAAABNQAAAAE2AAAAATcAAAAAOAAAAAA5AAAAADoAAAAAOwAAAAE8AAAAAT0AAAABPgAAAAFGAAAAAUgAAAABSQAAAABKAAAAAEsAAAAAWgAAAAFbAAAAAVwAAAAAXQAAAAAA",
+        "payload": "AAAADnh0ZXJtLTI1NmNvbG9yAAAAngAAADAAAAWWAAADYgAAAQCBAAAlgIAAACWAAQAAAAMCAAAAHAMAAAB/BAAAABUFAAAABAYAAAD/BwAAAP8IAAAAEQkAAAATCgAAABoLAAAAGQwAAAASDQAAABcOAAAAFhEAAAAUEgAAAA8eAAAAAB8AAAAAIAAAAAAhAAAAACIAAAAAIwAAAAAkAAAAASYAAAAAJwAAAAEoAAAAACkAAAABKgAAAAEyAAAAATMAAAABNQAAAAE2AAAAATcAAAAAOAAAAAA5AAAAADoAAAAAOwAAAAE8AAAAAT0AAAABPgAAAAFGAAAAAUgAAAABSQAAAABKAAAAAEsAAAAAWgAAAAFbAAAAAVwAAAAAXQAAAAAA",
         "accepted": true
       }
     },
@@ -105,111 +72,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "$ "
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_request",
-      "entry": {
-        "channel_id": 0,
-        "type": "window-change",
-        "want_reply": false,
-        "payload": "AAAAUAAAABcAAALQAAABng",
-        "accepted": false
-      }
-    },
-    {
-      "source": "client",
-      "type": "new_channel",
-      "entry": {
-        "type": "direct-tcpip",
-        "extra_data": "AAAACTEyNy4wLjAuMQAAAFAAAAAJMTI3LjAuMC4xAADhpg",
-        "accepted": true,
-        "reject_reason": 0,
-        "message": ""
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 1,
-        "data": "GET / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n"
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 1,
-        "data": "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_eof",
-      "entry": {
-        "channel_id": 1
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_close",
-      "entry": {
-        "channel_id": 1
-      }
-    },
-    {
-      "source": "client",
-      "type": "new_channel",
-      "entry": {
-        "type": "direct-tcpip",
-        "extra_data": "AAAACTEyNy4wLjAuMQAAAFAAAAAJMTI3LjAuMC4xAADhpg",
-        "accepted": true,
-        "reject_reason": 0,
-        "message": ""
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 2,
-        "data": "GET /path HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n"
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 2,
-        "data": "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_eof",
-      "entry": {
-        "channel_id": 2
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_close",
-      "entry": {
-        "channel_id": 2
-      }
-    },
-    {
-      "source": "client",
-      "type": "new_channel",
-      "entry": {
-        "type": "direct-tcpip",
-        "extra_data": "AAAACTEyNy4wLjAuMQAAAFEAAAAJMTI3LjAuMC4xAADgCQ",
-        "accepted": false,
-        "reject_reason": 2,
-        "message": "Connection refused"
+        "data": "# "
       }
     },
     {
@@ -217,7 +80,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "e"
+        "data": "s"
       }
     },
     {
@@ -225,7 +88,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "e"
+        "data": "s"
       }
     },
     {
@@ -233,7 +96,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "x"
+        "data": "u"
       }
     },
     {
@@ -241,39 +104,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "x"
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "i"
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "i"
-      }
-    },
-    {
-      "source": "client",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "t"
-      }
-    },
-    {
-      "source": "server",
-      "type": "channel_data",
-      "entry": {
-        "channel_id": 0,
-        "data": "t"
+        "data": "u"
       }
     },
     {
@@ -297,7 +128,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "4"
+        "data": "j"
       }
     },
     {
@@ -305,7 +136,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "4"
+        "data": "j"
       }
     },
     {
@@ -313,7 +144,7 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "2"
+        "data": "a"
       }
     },
     {
@@ -321,7 +152,55 @@
       "type": "channel_data",
       "entry": {
         "channel_id": 0,
-        "data": "2"
+        "data": "a"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "k"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "k"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
       }
     },
     {
@@ -342,13 +221,181 @@
     },
     {
       "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "$ "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "x"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "x"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n# "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "x"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "x"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r"
+      }
+    },
+    {
+      "source": "server",
       "type": "channel_request",
       "entry": {
         "channel_id": 0,
         "type": "exit-status",
         "want_reply": false,
-        "payload": "AAAAKg",
+        "payload": "AAAAAA",
         "accepted": false
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n"
       }
     },
     {
@@ -383,24 +430,16 @@
     }
   ],
   "plain_logs": [
-    "[SOURCE] authentication for user \"jaksi\" without credentials accepted",
+    "[SOURCE] authentication for user \"root\" without credentials accepted",
     "[SOURCE] connection with client version \"SSH-2.0-Go\" established",
     "[SOURCE] [channel 0] session requested",
-    "[SOURCE] TCP/IP forwarding on localhost:0 requested",
-    "[SOURCE] [channel 0] X11 forwarding on screen 0 requested",
-    "[SOURCE] TCP/IP forwarding on localhost:2345 requested",
     "[SOURCE] rejection of further session channels requested",
-    "[SOURCE] [channel 0] PTY using terminal \"xterm-256color\" (size 80x22) requested",
+    "[SOURCE] [channel 0] PTY using terminal \"xterm-256color\" (size 158x48) requested",
     "[SOURCE] [channel 0] environment variable \"LANG\" with value \"en_IE.UTF-8\" requested",
     "[SOURCE] [channel 0] shell requested",
-    "[SOURCE] [channel 0] window size change to 80x23 requested",
-    "[SOURCE] [channel 1] direct TCP/IP forwarding from 127.0.0.1:57766 to 127.0.0.1:80 requested",
-    "[SOURCE] [channel 1] input: \"GET / HTTP/1.1\\r\\nHost: 127.0.0.1:8080\\r\\nAccept: */*\\r\\nUser-Agent: curl/7.64.1\\r\\n\\r\\n\"",
-    "[SOURCE] [channel 1] closed",
-    "[SOURCE] [channel 2] direct TCP/IP forwarding from 127.0.0.1:57766 to 127.0.0.1:80 requested",
-    "[SOURCE] [channel 2] input: \"GET /path HTTP/1.1\\r\\nHost: 127.0.0.1:8080\\r\\nAccept: */*\\r\\nUser-Agent: curl/7.64.1\\r\\n\\r\\n\"",
-    "[SOURCE] [channel 2] closed",
-    "[SOURCE] [channel 0] input: \"exit 42\"",
+    "[SOURCE] [channel 0] input: \"su jaksi\"",
+    "[SOURCE] [channel 0] input: \"exit\"",
+    "[SOURCE] [channel 0] input: \"exit\"",
     "[SOURCE] [channel 0] closed",
     "[SOURCE] connection closed"
   ],
@@ -409,7 +448,7 @@
       "source": "SOURCE",
       "event_type": "no_auth",
       "event": {
-        "user": "jaksi",
+        "user": "root",
         "accepted": true
       }
     },
@@ -429,28 +468,6 @@
     },
     {
       "source": "SOURCE",
-      "event_type": "tcpip_forward",
-      "event": {
-        "address": "localhost:0"
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "x11",
-      "event": {
-        "channel_id": 0,
-        "screen": 0
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "tcpip_forward",
-      "event": {
-        "address": "localhost:2345"
-      }
-    },
-    {
-      "source": "SOURCE",
       "event_type": "no_more_sessions",
       "event": {}
     },
@@ -460,8 +477,8 @@
       "event": {
         "channel_id": 0,
         "terminal": "xterm-256color",
-        "width": 80,
-        "height": 22
+        "width": 158,
+        "height": 48
       }
     },
     {
@@ -482,59 +499,10 @@
     },
     {
       "source": "SOURCE",
-      "event_type": "window_change",
+      "event_type": "session_input",
       "event": {
         "channel_id": 0,
-        "width": 80,
-        "height": 23
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "direct_tcpip",
-      "event": {
-        "channel_id": 1,
-        "from": "127.0.0.1:57766",
-        "to": "127.0.0.1:80"
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "direct_tcpip_input",
-      "event": {
-        "channel_id": 1,
-        "input": "GET / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nAccept: */*\r\nUser-Agent: curl/7.64.1\r\n\r\n"
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "direct_tcpip_close",
-      "event": {
-        "channel_id": 1
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "direct_tcpip",
-      "event": {
-        "channel_id": 2,
-        "from": "127.0.0.1:57766",
-        "to": "127.0.0.1:80"
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "direct_tcpip_input",
-      "event": {
-        "channel_id": 2,
-        "input": "GET /path HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nAccept: */*\r\nUser-Agent: curl/7.64.1\r\n\r\n"
-      }
-    },
-    {
-      "source": "SOURCE",
-      "event_type": "direct_tcpip_close",
-      "event": {
-        "channel_id": 2
+        "input": "su jaksi"
       }
     },
     {
@@ -542,7 +510,15 @@
       "event_type": "session_input",
       "event": {
         "channel_id": 0,
-        "input": "exit 42"
+        "input": "exit"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session_input",
+      "event": {
+        "channel_id": 0,
+        "input": "exit"
       }
     },
     {

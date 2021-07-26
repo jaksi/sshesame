@@ -194,7 +194,7 @@ func (context *sessionContext) handleProgram(program []string) {
 	go func() {
 		defer close(context.inputChan)
 		defer close(context.errorChan)
-		result, err := executeProgram(commandContext{program, stdin, stdout, stderr, context.pty})
+		result, err := executeProgram(commandContext{program, stdin, stdout, stderr, context.pty, context.User()})
 		shouldSendEOW := err == nil || (context.pty && err == clientEOF)
 		shouldSendCRLF := context.pty && err == clientEOF
 		if err == clientEOF || err == io.EOF {

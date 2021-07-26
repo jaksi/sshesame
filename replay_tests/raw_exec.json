@@ -1,4 +1,5 @@
 {
+  "user": "jaksi",
   "events": [
     {
       "source": "client",
@@ -106,7 +107,7 @@
     }
   ],
   "plain_logs": [
-    "[SOURCE] authentication for user \"\" without credentials accepted",
+    "[SOURCE] authentication for user \"jaksi\" without credentials accepted",
     "[SOURCE] connection with client version \"SSH-2.0-Go\" established",
     "[SOURCE] [channel 0] session requested",
     "[SOURCE] rejection of further session channels requested",
@@ -120,7 +121,7 @@
       "source": "SOURCE",
       "event_type": "no_auth",
       "event": {
-        "user": "",
+        "user": "jaksi",
         "accepted": true
       }
     },

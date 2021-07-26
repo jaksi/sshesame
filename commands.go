@@ -16,6 +16,7 @@ type commandContext struct {
 	stdin          readLiner
 	stdout, stderr io.Writer
 	pty            bool
+	user           string
 }
 
 type command interface {
@@ -28,6 +29,7 @@ var commands = map[string]command{
 	"false": cmdFalse{},
 	"echo":  cmdEcho{},
 	"cat":   cmdCat{},
+	"su":    cmdSu{},
 }
 
 var shellProgram = []string{"sh"}
@@ -49,7 +51,12 @@ type cmdShell struct{}
 func (cmdShell) execute(context commandContext) (uint32, error) {
 	var prompt string
 	if context.pty {
-		prompt = "$ "
+		switch context.user {
+		case "root":
+			prompt = "# "
+		default:
+			prompt = "$ "
+		}
 	}
 	var lastStatus uint32
 	var line string
@@ -125,4 +132,16 @@ func (cmdCat) execute(context commandContext) (uint32, error) {
 		}
 	}
 	return 0, err
+}
+
+type cmdSu struct{}
+
+func (cmdSu) execute(context commandContext) (uint32, error) {
+	newContext := context
+	newContext.user = "root"
+	if len(context.args) > 1 {
+		newContext.user = context.args[1]
+	}
+	newContext.args = shellProgram
+	return executeProgram(newContext)
 }
