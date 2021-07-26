@@ -129,9 +129,9 @@ func (entry connectionCloseLog) eventType() string {
 }
 
 var output struct {
-	Events   []event `json:"events"`
-	TextLogs string  `json:"text_logs"`
-	JSONLogs string  `json:"json_logs"`
+	Events    []event                  `json:"events"`
+	PlainLogs []string                 `json:"plain_logs"`
+	JSONLogs  []map[string]interface{} `json:"json_logs"`
 }
 
 func recordEntry(entry logEntry, src source) {
