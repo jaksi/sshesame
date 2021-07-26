@@ -55,11 +55,6 @@ func handleConnection(conn net.Conn, cfg *config) {
 				requests = nil
 				continue
 			}
-			context.logEvent(debugGlobalRequestLog{
-				RequestType: request.Type,
-				WantReply:   request.WantReply,
-				Payload:     string(request.Payload),
-			})
 			if err := handleGlobalRequest(request, &context); err != nil {
 				warningLogger.Printf("Failed to handle global request: %v", err)
 				requests = nil
@@ -70,11 +65,6 @@ func handleConnection(conn net.Conn, cfg *config) {
 				newChannels = nil
 				continue
 			}
-			context.logEvent(debugChannelLog{
-				channelLog:  channelLog{ChannelID: channelID},
-				ChannelType: newChannel.ChannelType(),
-				ExtraData:   string(newChannel.ExtraData()),
-			})
 			channelType := newChannel.ChannelType()
 			handler := channelHandlers[channelType]
 			if handler == nil {

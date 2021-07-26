@@ -1,0 +1,211 @@
+{
+  "events": [
+    {
+      "source": "client",
+      "type": "global_request",
+      "entry": {
+        "type": "no-more-sessions@openssh.com",
+        "want_reply": false,
+        "payload": "",
+        "accepted": false,
+        "response": ""
+      }
+    },
+    {
+      "source": "server",
+      "type": "global_request",
+      "entry": {
+        "type": "hostkeys-00@openssh.com",
+        "want_reply": false,
+        "payload": "AAABlwAAAAdzc2gtcnNhAAAAAwEAAQAAAYEA4KuAMkkzdgouYgtZWZPkyCknD4D8xy23tRW2udglFGXd8bmF7Mz7co68+ewdd3OdQP/oSIO46MLL+ke5xQ1nZy5wNuzxJD0dMbzCCGHgyo5wg16l2lVFaRV8rW/ulvIS0nX2RXnyhYGHRBCOOFErkL5yk8P0iuGALi+5p8GRCGyclGclabFu2Z02v4d3pgYMoR+I4+gnEK/WnEk47UvYMiSYqXc8rBU0Xv4hWRxE3WGwZcx+m3GPf6tOYx03fcrg+p8xcdJO345KmJ19NEhPl09JH8Obggwl/OlL8mZkz86oT9YMivRjk24eII5aa7QbvDmCOM+z3wsV3disTNcZ1zlEjtMw/wwQ866/cMuyK+EUY3+9tuapp0M+EStgZFORWbx7pZT/iP9zfFN2t85xN6TNRF/gYCRQDx5UX3oxFlCaGm82qnm2BI7veiMCLzVnk47Cq0vF3zEQuzP1vGBQpHc/3XXWNraq/W7JYR2IJTr8ZAaKbww7jWZ8vv32762DAAAAaAAAABNlY2RzYS1zaGEyLW5pc3RwMjU2AAAACG5pc3RwMjU2AAAAQQSUJIs7r7i/6XZ/vbGPCq9kNwvR48uvv6fy9HJ4yQaEx4Uo4bTSyNgK1J0uR23zbQUKtsi+7iZcAcu1WZm1HwTwAAAAMwAAAAtzc2gtZWQyNTUxOQAAACBbaYmWWd6DK13xllCBp68I7hmt8/s5s3gOyMUabBvIiw",
+        "accepted": false,
+        "response": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "new_channel",
+      "entry": {
+        "type": "direct-tcpip",
+        "extra_data": "AAAACTEyNy4wLjAuMQAAAFAAAAAJMTI3LjAuMC4xAADhpg",
+        "accepted": true,
+        "reject_reason": 0,
+        "message": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "GET / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_eof",
+      "entry": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_close",
+      "entry": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "client",
+      "type": "new_channel",
+      "entry": {
+        "type": "direct-tcpip",
+        "extra_data": "AAAACTEyNy4wLjAuMQAAAFAAAAAJMTI3LjAuMC4xAADhpg",
+        "accepted": true,
+        "reject_reason": 0,
+        "message": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 1,
+        "data": "GET /path HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 1,
+        "data": "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_eof",
+      "entry": {
+        "channel_id": 1
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_close",
+      "entry": {
+        "channel_id": 1
+      }
+    },
+    {
+      "source": "client",
+      "type": "new_channel",
+      "entry": {
+        "type": "direct-tcpip",
+        "extra_data": "AAAACTEyNy4wLjAuMQAAAFEAAAAJMTI3LjAuMC4xAADbHg",
+        "accepted": false,
+        "reject_reason": 2,
+        "message": "Connection refused"
+      }
+    },
+    {
+      "source": "client",
+      "type": "connection_close",
+      "entry": {}
+    }
+  ],
+  "plain_logs": [
+    "[SOURCE] authentication for user \"\" without credentials accepted",
+    "[SOURCE] connection with client version \"SSH-2.0-Go\" established",
+    "[SOURCE] rejection of further session channels requested",
+    "[SOURCE] [channel 0] direct TCP/IP forwarding from 127.0.0.1:57766 to 127.0.0.1:80 requested",
+    "[SOURCE] [channel 0] input: \"GET / HTTP/1.1\\r\\nHost: 127.0.0.1:8080\\r\\nAccept: */*\\r\\nUser-Agent: curl/7.64.1\\r\\n\\r\\n\"",
+    "[SOURCE] [channel 0] closed",
+    "[SOURCE] [channel 1] direct TCP/IP forwarding from 127.0.0.1:57766 to 127.0.0.1:80 requested",
+    "[SOURCE] [channel 1] input: \"GET /path HTTP/1.1\\r\\nHost: 127.0.0.1:8080\\r\\nAccept: */*\\r\\nUser-Agent: curl/7.64.1\\r\\n\\r\\n\"",
+    "[SOURCE] [channel 1] closed",
+    "[SOURCE] connection closed"
+  ],
+  "json_logs": [
+    {
+      "source": "SOURCE",
+      "event_type": "no_auth",
+      "event": {
+        "user": "",
+        "accepted": true
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "connection",
+      "event": {
+        "client_version": "SSH-2.0-Go"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "no_more_sessions",
+      "event": {}
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "direct_tcpip",
+      "event": {
+        "channel_id": 0,
+        "from": "127.0.0.1:57766",
+        "to": "127.0.0.1:80"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "direct_tcpip_input",
+      "event": {
+        "channel_id": 0,
+        "input": "GET / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nAccept: */*\r\nUser-Agent: curl/7.64.1\r\n\r\n"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "direct_tcpip_close",
+      "event": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "direct_tcpip",
+      "event": {
+        "channel_id": 1,
+        "from": "127.0.0.1:57766",
+        "to": "127.0.0.1:80"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "direct_tcpip_input",
+      "event": {
+        "channel_id": 1,
+        "input": "GET /path HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nAccept: */*\r\nUser-Agent: curl/7.64.1\r\n\r\n"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "direct_tcpip_close",
+      "event": {
+        "channel_id": 1
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "connection_close",
+      "event": {}
+    }
+  ]
+}

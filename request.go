@@ -16,13 +16,6 @@ type globalRequestPayload interface {
 
 type globalRequestPayloadParser func(data []byte) (globalRequestPayload, error)
 
-type channelRequestPayload interface {
-	reply() []byte
-	logEntry(channelID int) logEntry
-}
-
-type channelRequestPayloadParser func(data []byte) (channelRequestPayload, error)
-
 type tcpipRequest struct {
 	Address string
 	Port    uint32

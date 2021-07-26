@@ -1,0 +1,1170 @@
+{
+  "events": [
+    {
+      "source": "client",
+      "type": "new_channel",
+      "entry": {
+        "type": "session",
+        "extra_data": "",
+        "accepted": true,
+        "reject_reason": 0,
+        "message": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "global_request",
+      "entry": {
+        "type": "no-more-sessions@openssh.com",
+        "want_reply": false,
+        "payload": "",
+        "accepted": false,
+        "response": ""
+      }
+    },
+    {
+      "source": "server",
+      "type": "global_request",
+      "entry": {
+        "type": "hostkeys-00@openssh.com",
+        "want_reply": false,
+        "payload": "AAABlwAAAAdzc2gtcnNhAAAAAwEAAQAAAYEA4KuAMkkzdgouYgtZWZPkyCknD4D8xy23tRW2udglFGXd8bmF7Mz7co68+ewdd3OdQP/oSIO46MLL+ke5xQ1nZy5wNuzxJD0dMbzCCGHgyo5wg16l2lVFaRV8rW/ulvIS0nX2RXnyhYGHRBCOOFErkL5yk8P0iuGALi+5p8GRCGyclGclabFu2Z02v4d3pgYMoR+I4+gnEK/WnEk47UvYMiSYqXc8rBU0Xv4hWRxE3WGwZcx+m3GPf6tOYx03fcrg+p8xcdJO345KmJ19NEhPl09JH8Obggwl/OlL8mZkz86oT9YMivRjk24eII5aa7QbvDmCOM+z3wsV3disTNcZ1zlEjtMw/wwQ866/cMuyK+EUY3+9tuapp0M+EStgZFORWbx7pZT/iP9zfFN2t85xN6TNRF/gYCRQDx5UX3oxFlCaGm82qnm2BI7veiMCLzVnk47Cq0vF3zEQuzP1vGBQpHc/3XXWNraq/W7JYR2IJTr8ZAaKbww7jWZ8vv32762DAAAAaAAAABNlY2RzYS1zaGEyLW5pc3RwMjU2AAAACG5pc3RwMjU2AAAAQQSUJIs7r7i/6XZ/vbGPCq9kNwvR48uvv6fy9HJ4yQaEx4Uo4bTSyNgK1J0uR23zbQUKtsi+7iZcAcu1WZm1HwTwAAAAMwAAAAtzc2gtZWQyNTUxOQAAACBbaYmWWd6DK13xllCBp68I7hmt8/s5s3gOyMUabBvIiw",
+        "accepted": false,
+        "response": ""
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_request",
+      "entry": {
+        "channel_id": 0,
+        "type": "pty-req",
+        "want_reply": true,
+        "payload": "AAAADnh0ZXJtLTI1NmNvbG9yAAAAngAAADAAAAWWAAADYgAAAQCBAAAlgIAAACWAAQAAAAMCAAAAHAMAAAB/BAAAABUFAAAABAYAAAD/BwAAAP8IAAAAEQkAAAATCgAAABoLAAAAGQwAAAASDQAAABcOAAAAFhEAAAAUEgAAAA8eAAAAAB8AAAAAIAAAAAAhAAAAACIAAAAAIwAAAAAkAAAAASYAAAAAJwAAAAEoAAAAACkAAAABKgAAAAEyAAAAATMAAAABNQAAAAE2AAAAATcAAAAAOAAAAAA5AAAAADoAAAAAOwAAAAE8AAAAAT0AAAABPgAAAAFGAAAAAUgAAAABSQAAAABKAAAAAEsAAAAAWgAAAAFbAAAAAVwAAAAAXQAAAAAA",
+        "accepted": true
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_request",
+      "entry": {
+        "channel_id": 0,
+        "type": "env",
+        "want_reply": false,
+        "payload": "AAAABExBTkcAAAALZW5fSUUuVVRGLTg",
+        "accepted": false
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_request",
+      "entry": {
+        "channel_id": 0,
+        "type": "shell",
+        "want_reply": true,
+        "payload": "",
+        "accepted": true
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "$ "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "r"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "r"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "u"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "u"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n$ "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "f"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "f"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "a"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "a"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "l"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "l"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n$ "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "c"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "a"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "ca"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": " "
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": " "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "/"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "/"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "d"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "d"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "/"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "/"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "n"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "n"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "/"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "/"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "x"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "x"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "cat: "
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "/does/not/exist: No such file or directory\r\n$ "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "c"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "c"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "h"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "h"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": " "
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": " "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "m"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "m"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": " "
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": " "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\nsome test\r\n$ "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "s"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "o"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "m"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "m"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "e"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "t"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "h"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "h"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "i"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "n"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "n"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "g"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "g"
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "something: command not found\r\n$ "
+      }
+    },
+    {
+      "source": "client",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\u0004"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_data",
+      "entry": {
+        "channel_id": 0,
+        "data": "\r\n"
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_request",
+      "entry": {
+        "channel_id": 0,
+        "type": "exit-status",
+        "want_reply": false,
+        "payload": "AAAAfw",
+        "accepted": false
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_request",
+      "entry": {
+        "channel_id": 0,
+        "type": "eow@openssh.com",
+        "want_reply": false,
+        "payload": "",
+        "accepted": false
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_eof",
+      "entry": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "server",
+      "type": "channel_close",
+      "entry": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "client",
+      "type": "connection_close",
+      "entry": {}
+    }
+  ],
+  "plain_logs": [
+    "[SOURCE] authentication for user \"\" without credentials accepted",
+    "[SOURCE] connection with client version \"SSH-2.0-Go\" established",
+    "[SOURCE] [channel 0] session requested",
+    "[SOURCE] rejection of further session channels requested",
+    "[SOURCE] [channel 0] PTY using terminal \"xterm-256color\" (size 158x48) requested",
+    "[SOURCE] [channel 0] environment variable \"LANG\" with value \"en_IE.UTF-8\" requested",
+    "[SOURCE] [channel 0] shell requested",
+    "[SOURCE] [channel 0] input: \"true\"",
+    "[SOURCE] [channel 0] input: \"false\"",
+    "[SOURCE] [channel 0] input: \"cat /does/not/exist\"",
+    "[SOURCE] [channel 0] input: \"echo some test\"",
+    "[SOURCE] [channel 0] input: \"something\"",
+    "[SOURCE] [channel 0] closed",
+    "[SOURCE] connection closed"
+  ],
+  "json_logs": [
+    {
+      "source": "SOURCE",
+      "event_type": "no_auth",
+      "event": {
+        "user": "",
+        "accepted": true
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "connection",
+      "event": {
+        "client_version": "SSH-2.0-Go"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session",
+      "event": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "no_more_sessions",
+      "event": {}
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "pty",
+      "event": {
+        "channel_id": 0,
+        "terminal": "xterm-256color",
+        "width": 158,
+        "height": 48
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "env",
+      "event": {
+        "channel_id": 0,
+        "name": "LANG",
+        "value": "en_IE.UTF-8"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "shell",
+      "event": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session_input",
+      "event": {
+        "channel_id": 0,
+        "input": "true"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session_input",
+      "event": {
+        "channel_id": 0,
+        "input": "false"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session_input",
+      "event": {
+        "channel_id": 0,
+        "input": "cat /does/not/exist"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session_input",
+      "event": {
+        "channel_id": 0,
+        "input": "echo some test"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session_input",
+      "event": {
+        "channel_id": 0,
+        "input": "something"
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "session_close",
+      "event": {
+        "channel_id": 0
+      }
+    },
+    {
+      "source": "SOURCE",
+      "event_type": "connection_close",
+      "event": {}
+    }
+  ]
+}
