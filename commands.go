@@ -16,6 +16,7 @@ type commandContext struct {
 	stdin          readLiner
 	stdout, stderr io.Writer
 	pty            bool
+	user           string
 }
 
 type command interface {
@@ -49,7 +50,12 @@ type cmdShell struct{}
 func (cmdShell) execute(context commandContext) (uint32, error) {
 	var prompt string
 	if context.pty {
+		switch context.user {
+		case "root":
+			prompt = "# "
+		default:
 		prompt = "$ "
+	}
 	}
 	var lastStatus uint32
 	var line string
