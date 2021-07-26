@@ -367,7 +367,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			recordEntry(newChannelLog{
 				Type:         clientNewChannel.ChannelType(),
 				ExtraData:    base64.RawStdEncoding.EncodeToString(clientNewChannel.ExtraData()),
-				Accepted:     err == nil,
+				Accepted:     accepted,
 				RejectReason: uint32(rejectReason),
 				Message:      message,
 			}, client)
@@ -506,6 +506,9 @@ func main() {
 		panic(err)
 	}
 	handleConn(conn, serverConfig, *serverAddress, clientKey)
+
+	output.PlainLogs = []string{}
+	output.JSONLogs = []map[string]interface{}{}
 
 	outputBytes, err := json.MarshalIndent(output, "", "  ")
 	if err != nil {
