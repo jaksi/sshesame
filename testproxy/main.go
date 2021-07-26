@@ -4,14 +4,19 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
-	"os"
 
 	"golang.org/x/crypto/ssh"
 )
+
+type event struct {
+	Source string   `json:"source"`
+	Type   string   `json:"type"`
+	Entry  logEntry `json:"entry"`
+}
 
 type source int
 
@@ -35,6 +40,10 @@ func (src source) MarshalJSON() ([]byte, error) {
 	return json.Marshal(src.String())
 }
 
+type logEntry interface {
+	eventType() string
+}
+
 type channelLog struct {
 	ChannelID int `json:"channel_id"`
 }
@@ -45,10 +54,6 @@ type requestLog struct {
 	Payload   string `json:"payload"`
 
 	Accepted bool `json:"accepted"`
-}
-
-type logEntry interface {
-	eventType() string
 }
 
 type globalRequestLog struct {
@@ -123,20 +128,21 @@ func (entry connectionCloseLog) eventType() string {
 	return "connection_close"
 }
 
-func logEvent(entry logEntry, src source) {
-	jsonBytes, err := json.Marshal(struct {
-		Source    string   `json:"source"`
-		EventType string   `json:"event_type"`
-		Event     logEntry `json:"event"`
-	}{
-		Source:    src.String(),
-		EventType: entry.eventType(),
-		Event:     entry,
-	})
-	if err != nil {
-		panic(err)
+var output struct {
+	Events []event `json:"events"`
+	Logs   struct {
+		Text string `json:"text"`
+		JSON string `json:"json"`
+	} `json:"logs"`
+}
+
+func recordEntry(entry logEntry, src source) {
+	event := event{
+		Source: src.String(),
+		Type:   entry.eventType(),
+		Entry:  entry,
 	}
-	log.Printf("%s", jsonBytes)
+	output.Events = append(output.Events, event)
 }
 
 func streamReader(reader io.Reader) <-chan string {
@@ -170,7 +176,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 		case clientInput, ok := <-clientInputStream:
 			if !ok {
 				if serverInputStream != nil {
-					logEvent(channelEOFLog{
+					recordEntry(channelEOFLog{
 						channelLog: channelLog{
 							ChannelID: channelID,
 						},
@@ -182,7 +188,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 				clientInputStream = nil
 				continue
 			}
-			logEvent(channelDataLog{
+			recordEntry(channelDataLog{
 				channelLog: channelLog{
 					ChannelID: channelID,
 				},
@@ -197,7 +203,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 					continue
 				}
 				if serverRequests != nil {
-					logEvent(channelCloseLog{
+					recordEntry(channelCloseLog{
 						channelLog: channelLog{
 							ChannelID: channelID,
 						},
@@ -213,7 +219,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 			if err != nil {
 				panic(err)
 			}
-			logEvent(channelRequestLog{
+			recordEntry(channelRequestLog{
 				channelLog: channelLog{
 					ChannelID: channelID,
 				},
@@ -232,7 +238,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 		case serverInput, ok := <-serverInputStream:
 			if !ok {
 				if clientInputStream != nil {
-					logEvent(channelEOFLog{
+					recordEntry(channelEOFLog{
 						channelLog: channelLog{
 							ChannelID: channelID,
 						},
@@ -244,7 +250,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 				serverInputStream = nil
 				continue
 			}
-			logEvent(channelDataLog{
+			recordEntry(channelDataLog{
 				channelLog: channelLog{
 					ChannelID: channelID,
 				},
@@ -258,7 +264,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 				serverErrorStream = nil
 				continue
 			}
-			logEvent(channelErrorLog{
+			recordEntry(channelErrorLog{
 				channelLog: channelLog{
 					ChannelID: channelID,
 				},
@@ -273,7 +279,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 					continue
 				}
 				if clientRequests != nil {
-					logEvent(channelCloseLog{
+					recordEntry(channelCloseLog{
 						channelLog: channelLog{
 							ChannelID: channelID,
 						},
@@ -289,7 +295,7 @@ func handleChannel(channelID int, clientChannel ssh.Channel, clientRequests <-ch
 			if err != nil {
 				panic(err)
 			}
-			logEvent(channelRequestLog{
+			recordEntry(channelRequestLog{
 				channelLog: channelLog{
 					ChannelID: channelID,
 				},
@@ -340,7 +346,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			if !ok {
 				clientNewChannels = nil
 				if serverNewChannels != nil {
-					logEvent(connectionCloseLog{}, client)
+					recordEntry(connectionCloseLog{}, client)
 					if err := serverSSHConn.Close(); err != nil {
 						panic(err)
 					}
@@ -360,7 +366,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 					panic(err)
 				}
 			}
-			logEvent(newChannelLog{
+			recordEntry(newChannelLog{
 				Type:         clientNewChannel.ChannelType(),
 				ExtraData:    base64.RawStdEncoding.EncodeToString(clientNewChannel.ExtraData()),
 				Accepted:     err == nil,
@@ -385,7 +391,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				continue
 			}
 			if clientRequest.Type == "no-more-sessions@openssh.com" {
-				logEvent(globalRequestLog{
+				recordEntry(globalRequestLog{
 					requestLog: requestLog{
 						Type:      clientRequest.Type,
 						WantReply: clientRequest.WantReply,
@@ -400,7 +406,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			if err != nil {
 				panic(err)
 			}
-			logEvent(globalRequestLog{
+			recordEntry(globalRequestLog{
 				requestLog: requestLog{
 					Type:      clientRequest.Type,
 					WantReply: clientRequest.WantReply,
@@ -415,7 +421,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 		case serverNewChannel, ok := <-serverNewChannels:
 			if !ok {
 				if clientNewChannels != nil {
-					logEvent(connectionCloseLog{}, server)
+					recordEntry(connectionCloseLog{}, server)
 					if err := clientSSHConn.Close(); err != nil {
 						panic(err)
 					}
@@ -430,7 +436,7 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 				continue
 			}
 			accepted, response, err := clientSSHConn.SendRequest(serverRequest.Type, serverRequest.WantReply, serverRequest.Payload)
-			logEvent(globalRequestLog{
+			recordEntry(globalRequestLog{
 				requestLog: requestLog{
 					Type:      serverRequest.Type,
 					WantReply: serverRequest.WantReply,
@@ -468,9 +474,6 @@ func main() {
 		panic("client key file is required")
 	}
 
-	log.SetFlags(0)
-	log.SetOutput(os.Stdout)
-
 	serverConfig := &ssh.ServerConfig{
 		NoClientAuth:  true,
 		ServerVersion: "SSH-2.0-OpenSSH_7.2",
@@ -499,11 +502,16 @@ func main() {
 		panic(err)
 	}
 	defer listener.Close()
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			panic(err)
-		}
-		go handleConn(conn, serverConfig, *serverAddress, clientKey)
+
+	conn, err := listener.Accept()
+	if err != nil {
+		panic(err)
 	}
+	handleConn(conn, serverConfig, *serverAddress, clientKey)
+
+	outputBytes, err := json.MarshalIndent(output, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(outputBytes))
 }
