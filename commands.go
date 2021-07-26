@@ -29,6 +29,7 @@ var commands = map[string]command{
 	"false": cmdFalse{},
 	"echo":  cmdEcho{},
 	"cat":   cmdCat{},
+	"su":    cmdSu{},
 }
 
 var shellProgram = []string{"sh"}
@@ -54,8 +55,8 @@ func (cmdShell) execute(context commandContext) (uint32, error) {
 		case "root":
 			prompt = "# "
 		default:
-		prompt = "$ "
-	}
+			prompt = "$ "
+		}
 	}
 	var lastStatus uint32
 	var line string
@@ -131,4 +132,16 @@ func (cmdCat) execute(context commandContext) (uint32, error) {
 		}
 	}
 	return 0, err
+}
+
+type cmdSu struct{}
+
+func (cmdSu) execute(context commandContext) (uint32, error) {
+	newContext := context
+	newContext.user = "root"
+	if len(context.args) > 1 {
+		newContext.user = context.args[1]
+	}
+	newContext.args = shellProgram
+	return executeProgram(newContext)
 }
