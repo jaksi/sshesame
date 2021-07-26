@@ -1,4 +1,5 @@
 {
+  "user": "jaksi",
   "events": [
     {
       "source": "server",
@@ -62,7 +63,7 @@
     }
   ],
   "plain_logs": [
-    "[SOURCE] authentication for user \"\" without credentials accepted",
+    "[SOURCE] authentication for user \"jaksi\" without credentials accepted",
     "[SOURCE] connection with client version \"SSH-2.0-Go\" established",
     "[SOURCE] TCP/IP forwarding on localhost:0 requested",
     "[SOURCE] TCP/IP forwarding on localhost:2345 requested",
@@ -75,7 +76,7 @@
       "source": "SOURCE",
       "event_type": "no_auth",
       "event": {
-        "user": "",
+        "user": "jaksi",
         "accepted": true
       }
     },

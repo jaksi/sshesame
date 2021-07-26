@@ -18,6 +18,7 @@ import (
 )
 
 type replayTest struct {
+	User      string                   `json:"user"`
 	Events    []replayTestEvent        `json:"events"`
 	PlainLogs []string                 `json:"plain_logs"`
 	JSONLogs  []map[string]interface{} `json:"json_logs"`
@@ -540,6 +541,7 @@ func TestReplay(t *testing.T) {
 					t.Fatal(err)
 				}
 				sshConn, newChannels, requests, err := ssh.NewClientConn(conn, serverAddress, &ssh.ClientConfig{
+					User:            testCase.User,
 					HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 				})
 				if err != nil {
@@ -555,9 +557,11 @@ func TestReplay(t *testing.T) {
 				for _, event := range testCase.Events {
 					var err error
 					if event.Source == client {
+						//t.Logf("> %v %v", event.Type, event.Entry)
 						err = event.Entry.Execute(t, &context)
 						time.Sleep(10 * time.Millisecond)
 					} else {
+						//t.Logf("< %v %#v", event.Type, event.Entry)
 						err = event.Entry.Wait(t, &context)
 					}
 					if err != nil {
