@@ -87,12 +87,6 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 				requests = nil
 				continue
 			}
-			context.logEvent(debugChannelRequestLog{
-				channelLog:  channelLog{ChannelID: context.channelID},
-				RequestType: request.Type,
-				WantReply:   request.WantReply,
-				Payload:     string(request.Payload),
-			})
 			warningLogger.Printf("Unsupported direct-tcpip request type %v", request.Type)
 			if request.WantReply {
 				if err := request.Reply(false, nil); err != nil {

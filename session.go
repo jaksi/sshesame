@@ -366,12 +366,6 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 				}
 				continue
 			}
-			context.logEvent(debugChannelRequestLog{
-				channelLog:  channelLog{ChannelID: context.channelID},
-				RequestType: request.Type,
-				WantReply:   request.WantReply,
-				Payload:     string(request.Payload),
-			})
 			if err := session.handleRequest(request); err != nil {
 				return err
 			}
