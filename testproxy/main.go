@@ -129,6 +129,7 @@ func (entry connectionCloseLog) eventType() string {
 }
 
 var output struct {
+	User      string                   `json:"user"`
 	Events    []event                  `json:"events"`
 	PlainLogs []string                 `json:"plain_logs"`
 	JSONLogs  []map[string]interface{} `json:"json_logs"`
@@ -323,6 +324,8 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 	if err != nil {
 		panic(err)
 	}
+
+	output.User = clientSSHConn.User()
 
 	serverSSHConn, serverNewChannels, serverRequests, err := ssh.NewClientConn(serverConn, serverAddress, &ssh.ClientConfig{
 		User:            clientSSHConn.User(),
