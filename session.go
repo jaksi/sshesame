@@ -131,7 +131,6 @@ type sessionContext struct {
 	channelContext
 	ssh.Channel
 	inputChan chan string
-	errorChan chan error
 	active    bool
 	pty       bool
 }
@@ -193,31 +192,43 @@ func (context *sessionContext) handleProgram(program []string) {
 	}
 	go func() {
 		defer close(context.inputChan)
-		defer close(context.errorChan)
+
 		result, err := executeProgram(commandContext{program, stdin, stdout, stderr, context.pty, context.User()})
-		shouldSendEOW := err == nil || (context.pty && err == clientEOF)
-		shouldSendCRLF := context.pty && err == clientEOF
-		if err == clientEOF || err == io.EOF {
-			err = nil
+		if err != nil && err != io.EOF && err != clientEOF {
+			warningLogger.Printf("Error executing program: %s", err)
+			return
 		}
-		if err == nil && shouldSendCRLF {
-			_, err = context.Write([]byte("\r\n"))
+
+		if err == clientEOF && context.pty {
+			if _, err := context.Write([]byte("\r\n")); err != nil {
+				warningLogger.Printf("Error sending CRLF: %s", err)
+				return
+			}
 		}
-		if err == nil {
-			_, err = context.SendRequest("exit-status", false, ssh.Marshal(struct {
-				ExitStatus uint32
-			}{result}))
+
+		if _, err := context.SendRequest("exit-status", false, ssh.Marshal(struct {
+			ExitStatus uint32
+		}{result})); err != nil {
+			warningLogger.Printf("Error sending exit status: %s", err)
+			return
 		}
-		if err == nil && shouldSendEOW {
-			_, err = context.SendRequest("eow@openssh.com", false, nil)
+
+		if (context.pty && err == clientEOF) || err == nil {
+			if _, err := context.SendRequest("eow@openssh.com", false, nil); err != nil {
+				warningLogger.Printf("Error sending EOW: %s", err)
+				return
+			}
 		}
-		if err == nil {
-			err = context.CloseWrite()
+
+		if err := context.CloseWrite(); err != nil {
+			warningLogger.Printf("Error sending EOF: %s", err)
+			return
 		}
-		if err == nil {
-			err = context.Close()
+
+		if err := context.Close(); err != nil {
+			warningLogger.Printf("Error closing channel: %s", err)
+			return
 		}
-		context.errorChan <- err
 	}()
 }
 
@@ -333,10 +344,9 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 	})
 
 	inputChan := make(chan string)
-	errorChan := make(chan error)
-	session := sessionContext{context, channel, inputChan, errorChan, false, false}
+	session := sessionContext{context, channel, inputChan, false, false}
 
-	for inputChan != nil || errorChan != nil || requests != nil {
+	for inputChan != nil || requests != nil {
 		select {
 		case input, ok := <-inputChan:
 			if !ok {
@@ -349,20 +359,11 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 				},
 				Input: input,
 			})
-		case err, ok := <-errorChan:
-			if !ok {
-				errorChan = nil
-				continue
-			}
-			if err != nil {
-				return err
-			}
 		case request, ok := <-requests:
 			if !ok {
 				requests = nil
 				if !session.active {
 					close(inputChan)
-					close(errorChan)
 				}
 				continue
 			}
