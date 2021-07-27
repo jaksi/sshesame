@@ -12,7 +12,7 @@ import (
 )
 
 type tcpipServer interface {
-	serve(channel ssh.Channel, input chan<- string) error
+	serve(channel ssh.Channel, input chan<- string)
 }
 
 var servers = map[uint32]tcpipServer{
@@ -54,14 +54,12 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 	})
 
 	inputChan := make(chan string)
-	errorChan := make(chan error)
 	go func() {
 		defer close(inputChan)
-		defer close(errorChan)
-		errorChan <- server.serve(channel, inputChan)
+		server.serve(channel, inputChan)
 	}()
 
-	for inputChan != nil || errorChan != nil || requests != nil {
+	for inputChan != nil || requests != nil {
 		select {
 		case input, ok := <-inputChan:
 			if !ok {
@@ -74,14 +72,6 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 				},
 				Input: input,
 			})
-		case err, ok := <-errorChan:
-			if !ok {
-				errorChan = nil
-				continue
-			}
-			if err != nil {
-				return err
-			}
 		case request, ok := <-requests:
 			if !ok {
 				requests = nil
@@ -115,16 +105,20 @@ func (httpServer) serveRequest(channel ssh.Channel, input chan<- string) error {
 	return err
 }
 
-func (server httpServer) serve(channel ssh.Channel, input chan<- string) error {
+func (server httpServer) serve(channel ssh.Channel, input chan<- string) {
 	var err error
 	for err == nil {
 		err = server.serveRequest(channel, input)
 	}
 	if err != nil && err != io.EOF {
-		return err
+		warningLogger.Printf("Error serving HTTP request: %v", err)
 	}
 	if err = channel.CloseWrite(); err != nil {
-		return err
+		warningLogger.Printf("Error sending EOF to channel: %v", err)
+		return
 	}
-	return channel.Close()
+	if err := channel.Close(); err != nil {
+		warningLogger.Printf("Error closing channel: %v", err)
+		return
+	}
 }
