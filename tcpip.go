@@ -22,8 +22,9 @@ type tcpipServer interface {
 }
 
 var servers = map[uint32]tcpipServer{
-	25: smtpServer{},
-	80: httpServer{},
+	25:  smtpServer{},
+	80:  httpServer{},
+	110: pop3Server{},
 }
 
 type tcpipChannelData struct {
@@ -273,4 +274,94 @@ func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 
 func (smtpServer) name() string {
 	return "SMTP"
+}
+
+type pop3Server struct{}
+
+type pop3Response struct {
+	status  bool
+	message string
+}
+
+func (pop3Server) writeResponse(writer io.Writer, reply pop3Response) error {
+	lines := strings.Split(reply.message, "\n")
+	if reply.status {
+		_, err := fmt.Fprintf(writer, "+OK %s\r\n", lines[0])
+		return err
+	}
+	_, err := fmt.Fprintf(writer, "-ERR %s\r\n", lines[0])
+	if err != nil {
+		return err
+	}
+	for _, line := range lines[1:] {
+		if strings.HasPrefix(line, ".") {
+			fmt.Fprintf(writer, ".%s\r\n", line)
+		} else {
+			fmt.Fprintf(writer, "%s\r\n", line)
+		}
+	}
+	if _, err := fmt.Fprintf(writer, ".\r\n"); err != nil {
+		return err
+	}
+	return nil
+}
+
+type pop3Command struct {
+	keyword string
+	args    []string
+}
+
+func (command pop3Command) String() string {
+	if len(command.args) == 0 {
+		return command.keyword
+	}
+	return fmt.Sprintf("%s %s", command.keyword, strings.Join(command.args, " "))
+}
+
+func (pop3Server) readCommand(reader io.Reader) (pop3Command, error) {
+	line, err := bufio.NewReader(reader).ReadString('\n')
+	if err != nil {
+		return pop3Command{}, err
+	}
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return pop3Command{}, fmt.Errorf("empty command")
+	}
+	keyword := strings.ToUpper(fields[0])
+	args := fields[1:]
+	return pop3Command{keyword, args}, nil
+}
+
+func (server pop3Server) serve(readWriter io.ReadWriter, input chan<- string) {
+	if err := server.writeResponse(readWriter, pop3Response{true, "localhost"}); err != nil {
+		warningLogger.Printf("Error writing greeting: %v", err)
+		return
+	}
+	for {
+		command, err := server.readCommand(readWriter)
+		if err != nil {
+			warningLogger.Printf("Error reading command: %v", err)
+			return
+		}
+		input <- command.String()
+		reply := pop3Response{true, "OK"}
+		switch command.keyword {
+		case "QUIT":
+			reply = pop3Response{true, "Bye!"}
+		default:
+			warningLogger.Printf("Unknown POP3 command: %v", command)
+			reply = pop3Response{false, "unknown command"}
+		}
+		if err := server.writeResponse(readWriter, reply); err != nil {
+			warningLogger.Printf("Error writing reply: %v", err)
+			return
+		}
+		if command.keyword == "QUIT" {
+			break
+		}
+	}
+}
+
+func (pop3Server) name() string {
+	return "POP3"
 }
