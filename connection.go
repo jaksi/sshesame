@@ -42,6 +42,10 @@ var (
 		Name: "sshesame_active_ssh_connections",
 		Help: "Number of active SSH connections",
 	})
+	unknownChannelsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sshesame_unknown_channels_total",
+		Help: "Total number of unknown channels",
+	})
 )
 
 func handleConnection(conn net.Conn, cfg *config) {
@@ -95,6 +99,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 			channelType := newChannel.ChannelType()
 			handler := channelHandlers[channelType]
 			if handler == nil {
+				unknownChannelsMetric.Inc()
 				warningLogger.Printf("Unsupported channel type %v", channelType)
 				if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
 					warningLogger.Printf("Failed to reject channel: %v", err)
