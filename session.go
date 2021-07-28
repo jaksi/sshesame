@@ -354,13 +354,13 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 	if len(newChannel.ExtraData()) != 0 {
 		return errors.New("invalid channel data")
 	}
+	sessionChannelsMetric.Inc()
+	activeSessionChannelsMetric.Inc()
+	defer activeSessionChannelsMetric.Dec()
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		return err
 	}
-	sessionChannelsMetric.Inc()
-	activeSessionChannelsMetric.Inc()
-	defer activeSessionChannelsMetric.Dec()
 	context.logEvent(sessionLog{
 		channelLog: channelLog{
 			ChannelID: context.channelID,

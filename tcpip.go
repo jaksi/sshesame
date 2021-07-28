@@ -55,16 +55,17 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 	}
 	server := servers[channelData.Port]
 	if server == nil {
+		tcpipChannelsMetric.WithLabelValues("unknown").Inc()
 		warningLogger.Printf("Unsupported port %v", channelData.Port)
 		return newChannel.Reject(ssh.ConnectionFailed, "Connection refused")
-	}
-	channel, requests, err := newChannel.Accept()
-	if err != nil {
-		return err
 	}
 	tcpipChannelsMetric.WithLabelValues(server.name()).Inc()
 	activeTCPIPChannelsMetric.WithLabelValues(server.name()).Inc()
 	defer activeTCPIPChannelsMetric.WithLabelValues(server.name()).Dec()
+	channel, requests, err := newChannel.Accept()
+	if err != nil {
+		return err
+	}
 	context.logEvent(directTCPIPLog{
 		channelLog: channelLog{
 			ChannelID: context.channelID,
