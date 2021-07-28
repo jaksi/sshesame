@@ -172,16 +172,13 @@ type smtpReply struct {
 
 func (smtpServer) writeReply(writer io.Writer, reply smtpReply) error {
 	lines := strings.Split(reply.message, "\n")
-	for i, line := range lines {
-		var err error
-		if i == len(lines)-1 {
-			_, err = fmt.Fprintf(writer, "%d %s\r\n", reply.code, line)
-		} else {
-			_, err = fmt.Fprintf(writer, "%d-%s\r\n", reply.code, line)
-		}
-		if err != nil {
+	for _, line := range lines[:len(lines)-1] {
+		if _, err := fmt.Fprintf(writer, "%d-%s\r\n", reply.code, line); err != nil {
 			return err
 		}
+	}
+	if _, err := fmt.Fprintf(writer, "%d %s\r\n", reply.code, lines[len(lines)-1]); err != nil {
+		return err
 	}
 	return nil
 }
@@ -230,57 +227,46 @@ func (smtpServer) readData(reader io.Reader) (string, error) {
 }
 
 func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
-	reply := smtpReply{
-		code:    220,
-		message: "localhost",
+	if err := server.writeReply(readWriter, smtpReply{220, "localhost"}); err != nil {
+		warningLogger.Printf("Error writing greeting: %v", err)
+		return
 	}
-	reader := bufio.NewReader(readWriter)
-	var previousCommand string
 	for {
-		if err := server.writeReply(readWriter, reply); err != nil {
-			warningLogger.Printf("Error writing reply: %v", err)
+		command, err := server.readCommand(readWriter)
+		if err != nil {
+			warningLogger.Printf("Error reading command: %v", err)
 			return
 		}
-		if previousCommand == "QUIT" {
-			return
-		}
-		if previousCommand == "DATA" {
+		input <- command.String()
+		reply := smtpReply{250, "OK"}
+		switch command.command {
+		case "EHLO":
+			reply = smtpReply{220, "localhost"}
+		case "MAIL":
+		case "RCPT":
+		case "DATA":
+			if err := server.writeReply(readWriter, smtpReply{354, "Start mail input; end with <CRLF>.<CRLF>"}); err != nil {
+				warningLogger.Printf("Error writing reply: %v", err)
+				return
+			}
 			data, err := server.readData(readWriter)
 			if err != nil {
 				warningLogger.Printf("Error reading data: %v", err)
 				return
 			}
 			input <- data
-			reply = smtpReply{
-				code:    250,
-				message: "OK",
-			}
-			previousCommand = ""
-			continue
+		case "QUIT":
+			reply = smtpReply{221, "Bye!"}
+		default:
+			warningLogger.Printf("Unknown SMTP command: %v", command)
+			reply = smtpReply{500, "unknown command"}
 		}
-		command, err := server.readCommand(reader)
-		if err != nil {
-			warningLogger.Printf("Error reading command: %v", err)
+		if err := server.writeReply(readWriter, reply); err != nil {
+			warningLogger.Printf("Error writing reply: %v", err)
 			return
 		}
-		input <- command.String()
-		previousCommand = command.command
-		switch command.command {
-		case "DATA":
-			reply = smtpReply{
-				code:    354,
-				message: "Start mail input; end with <CRLF>.<CRLF>",
-			}
-		case "QUIT":
-			reply = smtpReply{
-				code:    221,
-				message: "Bye",
-			}
-		default:
-			reply = smtpReply{
-				code:    250,
-				message: "OK",
-			}
+		if command.command == "QUIT" {
+			break
 		}
 	}
 }
