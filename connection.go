@@ -4,6 +4,8 @@ import (
 	"net"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -23,13 +25,38 @@ var channelHandlers = map[string]func(newChannel ssh.NewChannel, context channel
 	"direct-tcpip": handleDirectTCPIPChannel,
 }
 
+var (
+	tcpConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "tcp_connections_total",
+		Help: "Total number of TCP connections",
+	})
+	activeTCPConnectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "active_tcp_connections",
+		Help: "Number of active TCP connections",
+	})
+	sshConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "ssh_connections_total",
+		Help: "Total number of SSH connections",
+	})
+	activeSSHConnectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "active_ssh_connections",
+		Help: "Number of active SSH connections",
+	})
+)
+
 func handleConnection(conn net.Conn, cfg *config) {
+	tcpConnectionsMetric.Inc()
+	activeTCPConnectionsMetric.Inc()
+	defer activeTCPConnectionsMetric.Dec()
 	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
 		warningLogger.Printf("Failed to establish SSH connection: %v", err)
 		conn.Close()
 		return
 	}
+	sshConnectionsMetric.Inc()
+	activeSSHConnectionsMetric.Inc()
+	defer activeSSHConnectionsMetric.Dec()
 	var channels sync.WaitGroup
 	context := connContext{ConnMetadata: serverConn, cfg: cfg}
 	defer func() {
