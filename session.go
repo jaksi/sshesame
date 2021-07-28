@@ -325,8 +325,9 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 		}
 		context.logEvent(payload.logEntry(context.channelID))
 		return request.Reply(true, payload.reply())
+	default:
+		sessionChannelRequestsMetric.WithLabelValues("unknown").Inc()
 	}
-	sessionChannelRequestsMetric.WithLabelValues("unknown").Inc()
 	warningLogger.Printf("Rejected session request: %s", request.Type)
 	return request.Reply(false, nil)
 }
