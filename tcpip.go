@@ -11,11 +11,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/ssh"
 )
 
 type tcpipServer interface {
 	serve(readWriter io.ReadWriter, input chan<- string)
+	name() string
 }
 
 var servers = map[uint32]tcpipServer{
@@ -29,6 +31,21 @@ type tcpipChannelData struct {
 	OriginatorAddress string
 	OriginatorPort    uint32
 }
+
+var (
+	tcpipChannelsMetric = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "tcpip_channels_total",
+		Help: "Total number of TCP/IP channels",
+	}, []string{"service"})
+	activeTCPIPChannelsMetric = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "active_tcpip_channels",
+		Help: "Number of active TCP/IP channels",
+	}, []string{"service"})
+	tcpipChannelRequestsMetric = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "tcpip_channel_requests_total",
+		Help: "Total number of TCP/IP channel requests",
+	}, []string{"service"})
+)
 
 func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext) error {
 	channelData := &tcpipChannelData{}
@@ -44,6 +61,9 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 	if err != nil {
 		return err
 	}
+	tcpipChannelsMetric.WithLabelValues(server.name()).Inc()
+	activeTCPIPChannelsMetric.WithLabelValues(server.name()).Inc()
+	defer activeTCPIPChannelsMetric.WithLabelValues(server.name()).Dec()
 	context.logEvent(directTCPIPLog{
 		channelLog: channelLog{
 			ChannelID: context.channelID,
@@ -89,6 +109,7 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 				requests = nil
 				continue
 			}
+			tcpipChannelRequestsMetric.WithLabelValues("unknown").Inc()
 			warningLogger.Printf("Unsupported direct-tcpip request type %v", request.Type)
 			if request.WantReply {
 				if err := request.Reply(false, nil); err != nil {
@@ -134,6 +155,10 @@ func (server httpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 			return
 		}
 	}
+}
+
+func (httpServer) name() string {
+	return "HTTP"
 }
 
 type smtpServer struct{}
@@ -256,4 +281,8 @@ func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 			}
 		}
 	}
+}
+
+func (smtpServer) name() string {
+	return "SMTP"
 }
