@@ -5,11 +5,25 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 )
 
+var authAttemptsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "sshesame_auth_attempts_total",
+	Help: "Total number of authentication attempts",
+}, []string{"method", "accepted"})
+
 func (cfg *config) getAuthLogCallback() func(conn ssh.ConnMetadata, method string, err error) {
 	return func(conn ssh.ConnMetadata, method string, err error) {
+		var acceptedLabel string
+		if err == nil {
+			acceptedLabel = "true"
+		} else {
+			acceptedLabel = "false"
+		}
+		authAttemptsMetric.WithLabelValues(method, acceptedLabel).Inc()
 		if method == "none" {
 			connContext{ConnMetadata: conn, cfg: cfg}.logEvent(noAuthLog{authLog: authLog{
 				User:     conn.User(),

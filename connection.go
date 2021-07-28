@@ -4,6 +4,8 @@ import (
 	"net"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -23,13 +25,42 @@ var channelHandlers = map[string]func(newChannel ssh.NewChannel, context channel
 	"direct-tcpip": handleDirectTCPIPChannel,
 }
 
+var (
+	tcpConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sshesame_tcp_connections_total",
+		Help: "Total number of TCP connections",
+	})
+	activeTCPConnectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sshesame_active_tcp_connections",
+		Help: "Number of active TCP connections",
+	})
+	sshConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sshesame_ssh_connections_total",
+		Help: "Total number of SSH connections",
+	})
+	activeSSHConnectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sshesame_active_ssh_connections",
+		Help: "Number of active SSH connections",
+	})
+	unknownChannelsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sshesame_unknown_channels_total",
+		Help: "Total number of unknown channels",
+	})
+)
+
 func handleConnection(conn net.Conn, cfg *config) {
+	tcpConnectionsMetric.Inc()
+	activeTCPConnectionsMetric.Inc()
+	defer activeTCPConnectionsMetric.Dec()
 	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
 		warningLogger.Printf("Failed to establish SSH connection: %v", err)
 		conn.Close()
 		return
 	}
+	sshConnectionsMetric.Inc()
+	activeSSHConnectionsMetric.Inc()
+	defer activeSSHConnectionsMetric.Dec()
 	var channels sync.WaitGroup
 	context := connContext{ConnMetadata: serverConn, cfg: cfg}
 	defer func() {
@@ -68,6 +99,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 			channelType := newChannel.ChannelType()
 			handler := channelHandlers[channelType]
 			if handler == nil {
+				unknownChannelsMetric.Inc()
 				warningLogger.Printf("Unsupported channel type %v", channelType)
 				if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
 					warningLogger.Printf("Failed to reject channel: %v", err)

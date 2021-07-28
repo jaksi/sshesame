@@ -21,8 +21,9 @@ import (
 )
 
 type serverConfig struct {
-	ListenAddress string   `yaml:"listen_address"`
-	HostKeys      []string `yaml:"host_keys"`
+	ListenAddress  string   `yaml:"listen_address"`
+	HostKeys       []string `yaml:"host_keys"`
+	MetricsAddress string   `yaml:"metrics_address"`
 }
 
 type loggingConfig struct {

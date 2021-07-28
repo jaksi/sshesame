@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )
@@ -235,6 +237,7 @@ func (context *sessionContext) handleProgram(program []string) {
 func (context *sessionContext) handleRequest(request *ssh.Request) error {
 	switch request.Type {
 	case "pty-req":
+		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
 		if !context.active {
 			if context.pty {
 				return errors.New("a pty is already requested")
@@ -251,6 +254,7 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 			return nil
 		}
 	case "shell":
+		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
 		if !context.active {
 			if len(request.Payload) != 0 {
 				return errors.New("invalid request payload")
@@ -265,6 +269,7 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 			return nil
 		}
 	case "x11-req":
+		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
 		if !context.active {
 			payload := &x11RequestPayload{}
 			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
@@ -274,6 +279,7 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 			return request.Reply(true, payload.reply())
 		}
 	case "env":
+		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
 		if !context.active {
 			payload := &envRequestPayload{}
 			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
@@ -283,6 +289,7 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 			return request.Reply(true, payload.reply())
 		}
 	case "exec":
+		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
 		if !context.active {
 			payload := &execRequestPayload{}
 			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
@@ -297,6 +304,7 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 			return nil
 		}
 	case "subsystem":
+		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
 		if !context.active {
 			payload := &subsystemRequestPayload{}
 			if err := ssh.Unmarshal(request.Payload, payload); err != nil {
@@ -310,16 +318,34 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 			context.handleProgram(strings.Fields(payload.Subsystem))
 		}
 	case "window-change":
+		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
 		payload := &windowChangeRequestPayload{}
 		if err := ssh.Unmarshal(request.Payload, payload); err != nil {
 			return err
 		}
 		context.logEvent(payload.logEntry(context.channelID))
 		return request.Reply(true, payload.reply())
+	default:
+		sessionChannelRequestsMetric.WithLabelValues("unknown").Inc()
 	}
 	warningLogger.Printf("Rejected session request: %s", request.Type)
 	return request.Reply(false, nil)
 }
+
+var (
+	sessionChannelsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sshesame_session_channels_total",
+		Help: "Total number of session channels",
+	})
+	activeSessionChannelsMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sshesame_active_session_channels",
+		Help: "Number of active session channels",
+	})
+	sessionChannelRequestsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "sshesame_session_channel_requests_total",
+		Help: "Total number of session channel requests",
+	}, []string{"type"})
+)
 
 func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) error {
 	if context.noMoreSessions {
@@ -328,6 +354,9 @@ func handleSessionChannel(newChannel ssh.NewChannel, context channelContext) err
 	if len(newChannel.ExtraData()) != 0 {
 		return errors.New("invalid channel data")
 	}
+	sessionChannelsMetric.Inc()
+	activeSessionChannelsMetric.Inc()
+	defer activeSessionChannelsMetric.Dec()
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		return err

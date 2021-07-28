@@ -11,11 +11,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 )
 
 type tcpipServer interface {
 	serve(readWriter io.ReadWriter, input chan<- string)
+	name() string
 }
 
 var servers = map[uint32]tcpipServer{
@@ -30,6 +33,21 @@ type tcpipChannelData struct {
 	OriginatorPort    uint32
 }
 
+var (
+	tcpipChannelsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "sshesame_tcpip_channels_total",
+		Help: "Total number of TCP/IP channels",
+	}, []string{"service"})
+	activeTCPIPChannelsMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "sshesame_active_tcpip_channels",
+		Help: "Number of active TCP/IP channels",
+	}, []string{"service"})
+	tcpipChannelRequestsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "sshesame_tcpip_channel_requests_total",
+		Help: "Total number of TCP/IP channel requests",
+	}, []string{"service"})
+)
+
 func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext) error {
 	channelData := &tcpipChannelData{}
 	if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
@@ -37,9 +55,13 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 	}
 	server := servers[channelData.Port]
 	if server == nil {
+		tcpipChannelsMetric.WithLabelValues("unknown").Inc()
 		warningLogger.Printf("Unsupported port %v", channelData.Port)
 		return newChannel.Reject(ssh.ConnectionFailed, "Connection refused")
 	}
+	tcpipChannelsMetric.WithLabelValues(server.name()).Inc()
+	activeTCPIPChannelsMetric.WithLabelValues(server.name()).Inc()
+	defer activeTCPIPChannelsMetric.WithLabelValues(server.name()).Dec()
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		return err
@@ -89,6 +111,7 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 				requests = nil
 				continue
 			}
+			tcpipChannelRequestsMetric.WithLabelValues("unknown").Inc()
 			warningLogger.Printf("Unsupported direct-tcpip request type %v", request.Type)
 			if request.WantReply {
 				if err := request.Reply(false, nil); err != nil {
@@ -134,6 +157,10 @@ func (server httpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 			return
 		}
 	}
+}
+
+func (httpServer) name() string {
+	return "HTTP"
 }
 
 type smtpServer struct{}
@@ -256,4 +283,8 @@ func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 			}
 		}
 	}
+}
+
+func (smtpServer) name() string {
+	return "SMTP"
 }

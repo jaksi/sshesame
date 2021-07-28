@@ -6,6 +6,8 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -80,9 +82,17 @@ var globalRequestPayloads = map[string]globalRequestPayloadParser{
 	},
 }
 
+var (
+	globalRequestsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "sshesame_global_requests_total",
+		Help: "Total number of global requests",
+	}, []string{"type"})
+)
+
 func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 	parser := globalRequestPayloads[request.Type]
 	if parser == nil {
+		globalRequestsMetric.WithLabelValues("unknown").Inc()
 		warningLogger.Printf("Unsupported global request type %v", request.Type)
 		if request.WantReply {
 			if err := request.Reply(false, nil); err != nil {
@@ -91,6 +101,7 @@ func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 		}
 		return nil
 	}
+	globalRequestsMetric.WithLabelValues(request.Type).Inc()
 	payload, err := parser(request.Payload)
 	if err != nil {
 		return err
