@@ -5,10 +5,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path"
 
 	"github.com/adrg/xdg"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -49,6 +51,16 @@ func main() {
 	defer listener.Close()
 
 	infoLogger.Printf("Listening on %v", listener.Addr())
+
+	if cfg.Server.MetricsAddress != "" {
+		http.Handle("/metrics", promhttp.Handler())
+		infoLogger.Printf("Serving metrics on %v", cfg.Server.MetricsAddress)
+		go func() {
+			if err := http.ListenAndServe(cfg.Server.MetricsAddress, nil); err != nil {
+				errorLogger.Fatalf("Failed to serve metrics: %v", err)
+			}
+		}()
+	}
 
 	for {
 		conn, err := listener.Accept()
