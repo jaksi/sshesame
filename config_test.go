@@ -166,11 +166,11 @@ func TestUserConfigDefaultKeys(t *testing.T) {
 	cfgString := fmt.Sprintf(`
 server:
   listen_address: 0.0.0.0:22
-  metrics_address: 0.0.0.0:2112
 logging:
   file: %v
   json: true
   timestamps: false
+  metrics_address: 0.0.0.0:2112
 auth:
   max_tries: 234
   no_auth: true
@@ -212,10 +212,10 @@ ssh_proto:
 		path.Join(dataDir, "host_ecdsa_key"),
 		path.Join(dataDir, "host_ed25519_key"),
 	}
-	expectedConfig.Server.MetricsAddress = "0.0.0.0:2112"
 	expectedConfig.Logging.File = logFile
 	expectedConfig.Logging.JSON = true
 	expectedConfig.Logging.Timestamps = false
+	expectedConfig.Logging.MetricsAddress = "0.0.0.0:2112"
 	expectedConfig.Auth.MaxTries = 234
 	expectedConfig.Auth.NoAuth = true
 	expectedConfig.Auth.PublicKeyAuth.Accepted = true

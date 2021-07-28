@@ -21,15 +21,15 @@ import (
 )
 
 type serverConfig struct {
-	ListenAddress  string   `yaml:"listen_address"`
-	HostKeys       []string `yaml:"host_keys"`
-	MetricsAddress string   `yaml:"metrics_address"`
+	ListenAddress string   `yaml:"listen_address"`
+	HostKeys      []string `yaml:"host_keys"`
 }
 
 type loggingConfig struct {
-	File       string `yaml:"file"`
-	JSON       bool   `yaml:"json"`
-	Timestamps bool   `yaml:"timestamps"`
+	File           string `yaml:"file"`
+	JSON           bool   `yaml:"json"`
+	Timestamps     bool   `yaml:"timestamps"`
+	MetricsAddress string `yaml:"metrics_address"`
 }
 
 type commonAuthConfig struct {
