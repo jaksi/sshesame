@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )
@@ -331,16 +332,16 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 }
 
 var (
-	sessionChannelsMetric = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "session_channels_total",
+	sessionChannelsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sshesame_session_channels_total",
 		Help: "Total number of session channels",
 	})
-	activeSessionChannelsMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "active_session_channels",
+	activeSessionChannelsMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sshesame_active_session_channels",
 		Help: "Number of active session channels",
 	})
-	sessionChannelRequestsMetric = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "session_channel_requests_total",
+	sessionChannelRequestsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "sshesame_session_channel_requests_total",
 		Help: "Total number of session channel requests",
 	}, []string{"type"})
 )

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -33,16 +34,16 @@ type tcpipChannelData struct {
 }
 
 var (
-	tcpipChannelsMetric = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "tcpip_channels_total",
+	tcpipChannelsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "sshesame_tcpip_channels_total",
 		Help: "Total number of TCP/IP channels",
 	}, []string{"service"})
-	activeTCPIPChannelsMetric = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "active_tcpip_channels",
+	activeTCPIPChannelsMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "sshesame_active_tcpip_channels",
 		Help: "Number of active TCP/IP channels",
 	}, []string{"service"})
-	tcpipChannelRequestsMetric = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "tcpip_channel_requests_total",
+	tcpipChannelRequestsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "sshesame_tcpip_channel_requests_total",
 		Help: "Total number of TCP/IP channel requests",
 	}, []string{"service"})
 )

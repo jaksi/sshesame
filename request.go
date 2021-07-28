@@ -84,7 +84,7 @@ var globalRequestPayloads = map[string]globalRequestPayloadParser{
 
 var (
 	globalRequestsMetric = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "global_requests_total",
+		Name: "sshesame_global_requests_total",
 		Help: "Total number of global requests",
 	}, []string{"type"})
 )

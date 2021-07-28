@@ -27,19 +27,19 @@ var channelHandlers = map[string]func(newChannel ssh.NewChannel, context channel
 
 var (
 	tcpConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "tcp_connections_total",
+		Name: "sshesame_tcp_connections_total",
 		Help: "Total number of TCP connections",
 	})
 	activeTCPConnectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "active_tcp_connections",
+		Name: "sshesame_active_tcp_connections",
 		Help: "Number of active TCP connections",
 	})
 	sshConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "ssh_connections_total",
+		Name: "sshesame_ssh_connections_total",
 		Help: "Total number of SSH connections",
 	})
 	activeSSHConnectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "active_ssh_connections",
+		Name: "sshesame_active_ssh_connections",
 		Help: "Number of active SSH connections",
 	})
 )
