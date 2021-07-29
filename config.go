@@ -90,9 +90,10 @@ func getDefaultConfig() *config {
 }
 
 var defaultTCPIPServices = map[uint32]string{
-	25:  "SMTP",
-	80:  "HTTP",
-	110: "POP3",
+	25:   "SMTP",
+	80:   "HTTP",
+	110:  "POP3",
+	8080: "HTTP",
 }
 
 type keySignature int

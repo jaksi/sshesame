@@ -152,9 +152,10 @@ func TestDefaultConfig(t *testing.T) {
 		path.Join(dataDir, "host_ed25519_key"),
 	}
 	expectedConfig.Server.TCPIPServices = map[uint32]string{
-		25:  "SMTP",
-		80:  "HTTP",
-		110: "POP3",
+		25:   "SMTP",
+		80:   "HTTP",
+		110:  "POP3",
+		8080: "HTTP",
 	}
 	expectedConfig.Logging.Timestamps = true
 	expectedConfig.Auth.PasswordAuth.Enabled = true
