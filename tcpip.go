@@ -271,19 +271,29 @@ func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 type pop3Server struct{}
 
 type pop3Response struct {
-	status  bool
-	message string
+	status    bool
+	message   string
+	multiline bool
 }
 
 func (pop3Server) writeResponse(writer io.Writer, reply pop3Response) error {
 	lines := strings.Split(reply.message, "\n")
+	if len(lines) > 1 && !reply.multiline {
+		return fmt.Errorf("multiline response not allowed")
+	}
 	if reply.status {
 		_, err := fmt.Fprintf(writer, "+OK %s\r\n", lines[0])
-		return err
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := fmt.Fprintf(writer, "-ERR %s\r\n", lines[0])
+		if err != nil {
+			return err
+		}
 	}
-	_, err := fmt.Fprintf(writer, "-ERR %s\r\n", lines[0])
-	if err != nil {
-		return err
+	if !reply.multiline {
+		return nil
 	}
 	for _, line := range lines[1:] {
 		if strings.HasPrefix(line, ".") {
@@ -325,7 +335,7 @@ func (pop3Server) readCommand(reader io.Reader) (pop3Command, error) {
 }
 
 func (server pop3Server) serve(readWriter io.ReadWriter, input chan<- string) {
-	if err := server.writeResponse(readWriter, pop3Response{true, "localhost"}); err != nil {
+	if err := server.writeResponse(readWriter, pop3Response{true, "localhost", false}); err != nil {
 		warningLogger.Printf("Error writing greeting: %v", err)
 		return
 	}
@@ -338,11 +348,19 @@ func (server pop3Server) serve(readWriter io.ReadWriter, input chan<- string) {
 		input <- command.String()
 		var response pop3Response
 		switch command.keyword {
+		case "CAPA":
+			response = pop3Response{true, "Capability list follows", true}
+		case "LIST":
+			if len(command.args) == 0 {
+				response = pop3Response{true, "0 messages", true}
+			} else {
+				response = pop3Response{false, "No such message", false}
+			}
 		case "QUIT":
-			response = pop3Response{true, "Bye!"}
+			response = pop3Response{true, "Bye!", false}
 		default:
 			warningLogger.Printf("Unknown POP3 command: %v", command)
-			response = pop3Response{false, "unknown command"}
+			response = pop3Response{false, "unknown command", false}
 		}
 		if err := server.writeResponse(readWriter, response); err != nil {
 			warningLogger.Printf("Error writing reply: %v", err)
