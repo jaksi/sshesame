@@ -21,15 +21,16 @@ import (
 )
 
 type serverConfig struct {
-	ListenAddress  string   `yaml:"listen_address"`
-	HostKeys       []string `yaml:"host_keys"`
-	MetricsAddress string   `yaml:"metrics_address"`
+	ListenAddress string            `yaml:"listen_address"`
+	HostKeys      []string          `yaml:"host_keys"`
+	TCPIPServices map[uint32]string `yaml:"tcpip_services"`
 }
 
 type loggingConfig struct {
-	File       string `yaml:"file"`
-	JSON       bool   `yaml:"json"`
-	Timestamps bool   `yaml:"timestamps"`
+	File           string `yaml:"file"`
+	JSON           bool   `yaml:"json"`
+	Timestamps     bool   `yaml:"timestamps"`
+	MetricsAddress string `yaml:"metrics_address"`
 }
 
 type commonAuthConfig struct {
@@ -86,6 +87,14 @@ func getDefaultConfig() *config {
 	cfg.SSHProto.Version = "SSH-2.0-sshesame"
 	cfg.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
 	return cfg
+}
+
+var defaultTCPIPServices = map[uint32]string{
+	25:   "SMTP",
+	80:   "HTTP",
+	110:  "POP3",
+	587:  "SMTP",
+	8080: "HTTP",
 }
 
 type keySignature int
@@ -230,6 +239,16 @@ func getConfig(configString string, dataDir string) (*config, error) {
 
 	if err := yaml.UnmarshalStrict([]byte(configString), cfg); err != nil {
 		return nil, err
+	}
+
+	if cfg.Server.TCPIPServices == nil {
+		cfg.Server.TCPIPServices = defaultTCPIPServices
+	}
+
+	for _, service := range cfg.Server.TCPIPServices {
+		if _, ok := servers[service]; !ok {
+			return nil, fmt.Errorf("unknown service %q", service)
+		}
 	}
 
 	if len(cfg.Server.HostKeys) == 0 {

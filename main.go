@@ -52,11 +52,11 @@ func main() {
 
 	infoLogger.Printf("Listening on %v", listener.Addr())
 
-	if cfg.Server.MetricsAddress != "" {
+	if cfg.Logging.MetricsAddress != "" {
 		http.Handle("/metrics", promhttp.Handler())
-		infoLogger.Printf("Serving metrics on %v", cfg.Server.MetricsAddress)
+		infoLogger.Printf("Serving metrics on %v", cfg.Logging.MetricsAddress)
 		go func() {
-			if err := http.ListenAndServe(cfg.Server.MetricsAddress, nil); err != nil {
+			if err := http.ListenAndServe(cfg.Logging.MetricsAddress, nil); err != nil {
 				errorLogger.Fatalf("Failed to serve metrics: %v", err)
 			}
 		}()

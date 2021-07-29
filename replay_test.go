@@ -488,6 +488,9 @@ func TestReplay(t *testing.T) {
 	}
 	cfg := &config{}
 	cfg.Server.HostKeys = []string{keyFile}
+	cfg.Server.TCPIPServices = map[uint32]string{
+		80: "HTTP",
+	}
 	cfg.Auth.NoAuth = true
 	if err := cfg.setupSSHConfig(); err != nil {
 		t.Fatal(err)

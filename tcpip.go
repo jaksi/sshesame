@@ -18,12 +18,12 @@ import (
 
 type tcpipServer interface {
 	serve(readWriter io.ReadWriter, input chan<- string)
-	name() string
 }
 
-var servers = map[uint32]tcpipServer{
-	25: smtpServer{},
-	80: httpServer{},
+var servers = map[string]tcpipServer{
+	"SMTP": smtpServer{},
+	"HTTP": httpServer{},
+	"POP3": pop3Server{},
 }
 
 type tcpipChannelData struct {
@@ -53,15 +53,16 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 	if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
 		return err
 	}
-	server := servers[channelData.Port]
+	service := context.cfg.Server.TCPIPServices[channelData.Port]
+	server := servers[service]
 	if server == nil {
 		tcpipChannelsMetric.WithLabelValues("unknown").Inc()
 		warningLogger.Printf("Unsupported port %v", channelData.Port)
 		return newChannel.Reject(ssh.ConnectionFailed, "Connection refused")
 	}
-	tcpipChannelsMetric.WithLabelValues(server.name()).Inc()
-	activeTCPIPChannelsMetric.WithLabelValues(server.name()).Inc()
-	defer activeTCPIPChannelsMetric.WithLabelValues(server.name()).Dec()
+	tcpipChannelsMetric.WithLabelValues(service).Inc()
+	activeTCPIPChannelsMetric.WithLabelValues(service).Inc()
+	defer activeTCPIPChannelsMetric.WithLabelValues(service).Dec()
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		return err
@@ -159,10 +160,6 @@ func (server httpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 	}
 }
 
-func (httpServer) name() string {
-	return "HTTP"
-}
-
 type smtpServer struct{}
 
 type smtpReply struct {
@@ -172,16 +169,13 @@ type smtpReply struct {
 
 func (smtpServer) writeReply(writer io.Writer, reply smtpReply) error {
 	lines := strings.Split(reply.message, "\n")
-	for i, line := range lines {
-		var err error
-		if i == len(lines)-1 {
-			_, err = fmt.Fprintf(writer, "%d %s\r\n", reply.code, line)
-		} else {
-			_, err = fmt.Fprintf(writer, "%d-%s\r\n", reply.code, line)
-		}
-		if err != nil {
+	for _, line := range lines[:len(lines)-1] {
+		if _, err := fmt.Fprintf(writer, "%d-%s\r\n", reply.code, line); err != nil {
 			return err
 		}
+	}
+	if _, err := fmt.Fprintf(writer, "%d %s\r\n", reply.code, lines[len(lines)-1]); err != nil {
+		return err
 	}
 	return nil
 }
@@ -230,61 +224,152 @@ func (smtpServer) readData(reader io.Reader) (string, error) {
 }
 
 func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
-	reply := smtpReply{
-		code:    220,
-		message: "localhost",
+	if err := server.writeReply(readWriter, smtpReply{220, "localhost"}); err != nil {
+		warningLogger.Printf("Error writing greeting: %v", err)
+		return
 	}
-	reader := bufio.NewReader(readWriter)
-	var previousCommand string
 	for {
-		if err := server.writeReply(readWriter, reply); err != nil {
-			warningLogger.Printf("Error writing reply: %v", err)
+		command, err := server.readCommand(readWriter)
+		if err != nil {
+			warningLogger.Printf("Error reading command: %v", err)
 			return
 		}
-		if previousCommand == "QUIT" {
-			return
-		}
-		if previousCommand == "DATA" {
+		input <- command.String()
+		reply := smtpReply{250, "OK"}
+		switch command.command {
+		case "HELO":
+			reply = smtpReply{250, "localhost"}
+		case "EHLO":
+			reply = smtpReply{250, "localhost"}
+		case "MAIL":
+		case "RCPT":
+		case "DATA":
+			if err := server.writeReply(readWriter, smtpReply{354, "Start mail input; end with <CRLF>.<CRLF>"}); err != nil {
+				warningLogger.Printf("Error writing reply: %v", err)
+				return
+			}
 			data, err := server.readData(readWriter)
 			if err != nil {
 				warningLogger.Printf("Error reading data: %v", err)
 				return
 			}
 			input <- data
-			reply = smtpReply{
-				code:    250,
-				message: "OK",
-			}
-			previousCommand = ""
-			continue
+		case "QUIT":
+			reply = smtpReply{221, "Bye!"}
+		default:
+			warningLogger.Printf("Unknown SMTP command: %v", command)
+			reply = smtpReply{500, "unknown command"}
 		}
-		command, err := server.readCommand(reader)
+		if err := server.writeReply(readWriter, reply); err != nil {
+			warningLogger.Printf("Error writing reply: %v", err)
+			return
+		}
+		if command.command == "QUIT" {
+			break
+		}
+	}
+}
+
+type pop3Server struct{}
+
+type pop3Response struct {
+	status    bool
+	message   string
+	multiline bool
+}
+
+func (pop3Server) writeResponse(writer io.Writer, reply pop3Response) error {
+	lines := strings.Split(reply.message, "\n")
+	if len(lines) > 1 && !reply.multiline {
+		return fmt.Errorf("multiline response not allowed")
+	}
+	if reply.status {
+		_, err := fmt.Fprintf(writer, "+OK %s\r\n", lines[0])
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := fmt.Fprintf(writer, "-ERR %s\r\n", lines[0])
+		if err != nil {
+			return err
+		}
+	}
+	if !reply.multiline {
+		return nil
+	}
+	for _, line := range lines[1:] {
+		if strings.HasPrefix(line, ".") {
+			fmt.Fprintf(writer, ".%s\r\n", line)
+		} else {
+			fmt.Fprintf(writer, "%s\r\n", line)
+		}
+	}
+	if _, err := fmt.Fprintf(writer, ".\r\n"); err != nil {
+		return err
+	}
+	return nil
+}
+
+type pop3Command struct {
+	keyword string
+	args    []string
+}
+
+func (command pop3Command) String() string {
+	if len(command.args) == 0 {
+		return command.keyword
+	}
+	return fmt.Sprintf("%s %s", command.keyword, strings.Join(command.args, " "))
+}
+
+func (pop3Server) readCommand(reader io.Reader) (pop3Command, error) {
+	line, err := bufio.NewReader(reader).ReadString('\n')
+	if err != nil {
+		return pop3Command{}, err
+	}
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return pop3Command{}, fmt.Errorf("empty command")
+	}
+	keyword := strings.ToUpper(fields[0])
+	args := fields[1:]
+	return pop3Command{keyword, args}, nil
+}
+
+func (server pop3Server) serve(readWriter io.ReadWriter, input chan<- string) {
+	if err := server.writeResponse(readWriter, pop3Response{true, "localhost", false}); err != nil {
+		warningLogger.Printf("Error writing greeting: %v", err)
+		return
+	}
+	for {
+		command, err := server.readCommand(readWriter)
 		if err != nil {
 			warningLogger.Printf("Error reading command: %v", err)
 			return
 		}
 		input <- command.String()
-		previousCommand = command.command
-		switch command.command {
-		case "DATA":
-			reply = smtpReply{
-				code:    354,
-				message: "Start mail input; end with <CRLF>.<CRLF>",
+		var response pop3Response
+		switch command.keyword {
+		case "CAPA":
+			response = pop3Response{true, "Capability list follows", true}
+		case "LIST":
+			if len(command.args) == 0 {
+				response = pop3Response{true, "0 messages", true}
+			} else {
+				response = pop3Response{false, "No such message", false}
 			}
 		case "QUIT":
-			reply = smtpReply{
-				code:    221,
-				message: "Bye",
-			}
+			response = pop3Response{true, "Bye!", false}
 		default:
-			reply = smtpReply{
-				code:    250,
-				message: "OK",
-			}
+			warningLogger.Printf("Unknown POP3 command: %v", command)
+			response = pop3Response{false, "unknown command", false}
+		}
+		if err := server.writeResponse(readWriter, response); err != nil {
+			warningLogger.Printf("Error writing reply: %v", err)
+			return
+		}
+		if command.keyword == "QUIT" {
+			break
 		}
 	}
-}
-
-func (smtpServer) name() string {
-	return "SMTP"
 }
