@@ -336,15 +336,15 @@ func (server pop3Server) serve(readWriter io.ReadWriter, input chan<- string) {
 			return
 		}
 		input <- command.String()
-		reply := pop3Response{true, "OK"}
+		var response pop3Response
 		switch command.keyword {
 		case "QUIT":
-			reply = pop3Response{true, "Bye!"}
+			response = pop3Response{true, "Bye!"}
 		default:
 			warningLogger.Printf("Unknown POP3 command: %v", command)
-			reply = pop3Response{false, "unknown command"}
+			response = pop3Response{false, "unknown command"}
 		}
-		if err := server.writeResponse(readWriter, reply); err != nil {
+		if err := server.writeResponse(readWriter, response); err != nil {
 			warningLogger.Printf("Error writing reply: %v", err)
 			return
 		}
