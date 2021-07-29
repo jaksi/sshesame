@@ -237,8 +237,10 @@ func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 		input <- command.String()
 		reply := smtpReply{250, "OK"}
 		switch command.command {
+		case "HELO":
+			reply = smtpReply{250, "localhost"}
 		case "EHLO":
-			reply = smtpReply{220, "localhost"}
+			reply = smtpReply{250, "localhost"}
 		case "MAIL":
 		case "RCPT":
 		case "DATA":
