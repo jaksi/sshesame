@@ -18,13 +18,12 @@ import (
 
 type tcpipServer interface {
 	serve(readWriter io.ReadWriter, input chan<- string)
-	name() string
 }
 
-var servers = map[uint32]tcpipServer{
-	25:  smtpServer{},
-	80:  httpServer{},
-	110: pop3Server{},
+var servers = map[string]tcpipServer{
+	"SMTP": smtpServer{},
+	"HTTP": httpServer{},
+	"POP3": pop3Server{},
 }
 
 type tcpipChannelData struct {
@@ -54,15 +53,16 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 	if err := ssh.Unmarshal(newChannel.ExtraData(), channelData); err != nil {
 		return err
 	}
-	server := servers[channelData.Port]
+	service := context.cfg.Server.TCPIPServices[channelData.Port]
+	server := servers[service]
 	if server == nil {
 		tcpipChannelsMetric.WithLabelValues("unknown").Inc()
 		warningLogger.Printf("Unsupported port %v", channelData.Port)
 		return newChannel.Reject(ssh.ConnectionFailed, "Connection refused")
 	}
-	tcpipChannelsMetric.WithLabelValues(server.name()).Inc()
-	activeTCPIPChannelsMetric.WithLabelValues(server.name()).Inc()
-	defer activeTCPIPChannelsMetric.WithLabelValues(server.name()).Dec()
+	tcpipChannelsMetric.WithLabelValues(service).Inc()
+	activeTCPIPChannelsMetric.WithLabelValues(service).Inc()
+	defer activeTCPIPChannelsMetric.WithLabelValues(service).Dec()
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		return err
@@ -158,10 +158,6 @@ func (server httpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 			return
 		}
 	}
-}
-
-func (httpServer) name() string {
-	return "HTTP"
 }
 
 type smtpServer struct{}
@@ -272,10 +268,6 @@ func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 	}
 }
 
-func (smtpServer) name() string {
-	return "SMTP"
-}
-
 type pop3Server struct{}
 
 type pop3Response struct {
@@ -360,8 +352,4 @@ func (server pop3Server) serve(readWriter io.ReadWriter, input chan<- string) {
 			break
 		}
 	}
-}
-
-func (pop3Server) name() string {
-	return "POP3"
 }

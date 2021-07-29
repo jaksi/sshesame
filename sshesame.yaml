@@ -1,6 +1,10 @@
 server:
   listen_address: 127.0.0.1:2022
   host_keys: null # Host private key files. If unspecified then an RSA, ECDSA and Ed25519 key will be generated and stored.
+  tcpip_services: # Fake internal services for handling direct-tcpip channels (`ssh -L`).
+    25: SMTP
+    80: HTTP
+    110: POP3
 logging:
   file: null # The log file to output activity logs to. Debug and error logs are still going to standard error. If unspecified, activity logs are written to standard out.
   json: false # Makes activity logs JSON-formatted instead of human readable.

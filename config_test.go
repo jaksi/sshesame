@@ -151,6 +151,11 @@ func TestDefaultConfig(t *testing.T) {
 		path.Join(dataDir, "host_ecdsa_key"),
 		path.Join(dataDir, "host_ed25519_key"),
 	}
+	expectedConfig.Server.TCPIPServices = map[uint32]string{
+		25:  "SMTP",
+		80:  "HTTP",
+		110: "POP3",
+	}
 	expectedConfig.Logging.Timestamps = true
 	expectedConfig.Auth.PasswordAuth.Enabled = true
 	expectedConfig.Auth.PasswordAuth.Accepted = true
@@ -166,6 +171,7 @@ func TestUserConfigDefaultKeys(t *testing.T) {
 	cfgString := fmt.Sprintf(`
 server:
   listen_address: 0.0.0.0:22
+  tcpip_services: {}
 logging:
   file: %v
   json: true
@@ -212,6 +218,7 @@ ssh_proto:
 		path.Join(dataDir, "host_ecdsa_key"),
 		path.Join(dataDir, "host_ed25519_key"),
 	}
+	expectedConfig.Server.TCPIPServices = map[uint32]string{}
 	expectedConfig.Logging.File = logFile
 	expectedConfig.Logging.JSON = true
 	expectedConfig.Logging.Timestamps = false
@@ -235,11 +242,13 @@ ssh_proto:
 	verifyDefaultKeys(t, dataDir)
 }
 
-func TestUserConfigCustomKeys(t *testing.T) {
+func TestUserConfigCustomKeysAndServices(t *testing.T) {
 	keyFile, err := generateKey(t.TempDir(), ecdsa_key)
 	cfgString := fmt.Sprintf(`
 server:
   host_keys: [%v]
+  tcpip_services:
+    8080: HTTP
 `, keyFile)
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
@@ -252,6 +261,9 @@ server:
 	expectedConfig := &config{}
 	expectedConfig.Server.ListenAddress = "127.0.0.1:2022"
 	expectedConfig.Server.HostKeys = []string{keyFile}
+	expectedConfig.Server.TCPIPServices = map[uint32]string{
+		8080: "HTTP",
+	}
 	expectedConfig.Logging.Timestamps = true
 	expectedConfig.Auth.PasswordAuth.Enabled = true
 	expectedConfig.Auth.PasswordAuth.Accepted = true
