@@ -155,6 +155,7 @@ func TestDefaultConfig(t *testing.T) {
 		25:   "SMTP",
 		80:   "HTTP",
 		110:  "POP3",
+		587:  "SMTP",
 		8080: "HTTP",
 	}
 	expectedConfig.Logging.Timestamps = true
