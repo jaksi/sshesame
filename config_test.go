@@ -315,3 +315,27 @@ func TestExistingKey(t *testing.T) {
 		t.Errorf("oldKey!=newKey")
 	}
 }
+
+func TestDefaultConfigFile(t *testing.T) {
+	configBytes, err := ioutil.ReadFile("sshesame.yaml")
+	if err != nil {
+		t.Fatalf("Failed to read config file: %v", err)
+	}
+	dataDir := t.TempDir()
+	cfg, err := getConfig(string(configBytes), dataDir)
+	if err != nil {
+		t.Fatalf("Failed to get config: %v", err)
+	}
+
+	// The sample config has example keyboard interactive auth options set.
+	// Since the auth method itself is disabled, this doesn't make a difference.
+	// Unset them so they don't affect the comparison.
+	cfg.Auth.KeyboardInteractiveAuth.Instruction = ""
+	cfg.Auth.KeyboardInteractiveAuth.Questions = nil
+
+	defaultCfg, err := getConfig("", dataDir)
+	if err != nil {
+		t.Fatalf("Failed to get default config: %v", err)
+	}
+	verifyConfig(t, cfg, defaultCfg)
+}
