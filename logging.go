@@ -287,6 +287,12 @@ func (entry windowChangeLog) eventType() string {
 	return "window_change"
 }
 
+type debugGlobalRequestLog struct {
+	RequestType string `json:"request_type"`
+	WantReply   bool   `json:"want_reply"`
+	Payload     string `json:"payload"`
+}
+
 func (context connContext) logEvent(entry logEntry) {
 	if context.cfg.Logging.JSON {
 		var jsonEntry interface{}
