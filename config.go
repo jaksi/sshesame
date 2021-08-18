@@ -31,6 +31,7 @@ type loggingConfig struct {
 	JSON           bool   `yaml:"json"`
 	Timestamps     bool   `yaml:"timestamps"`
 	MetricsAddress string `yaml:"metrics_address"`
+	Debug          bool   `yaml:"debug"`
 }
 
 type commonAuthConfig struct {
