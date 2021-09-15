@@ -56,7 +56,6 @@ jobs:
           GOARCH: arm64
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             sshesame-linux-amd64
