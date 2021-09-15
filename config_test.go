@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/ssh"
+	"gopkg.in/yaml.v2"
 )
 
 type mockPublicKey struct {
@@ -321,10 +322,16 @@ func TestDefaultConfigFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read config file: %v", err)
 	}
+	cfg := &config{}
+	if err := yaml.UnmarshalStrict(configBytes, cfg); err != nil {
+		t.Fatalf("Failed to unmarshal config: %v", err)
+	}
 	dataDir := t.TempDir()
-	cfg, err := getConfig(string(configBytes), dataDir)
-	if err != nil {
-		t.Fatalf("Failed to get config: %v", err)
+	if err := cfg.setDefaultHostKeys(dataDir, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
+		t.Fatalf("Failed to set default host keys: %v", err)
+	}
+	if err := cfg.setupSSHConfig(); err != nil {
+		t.Fatalf("Failed to setup SSH config: %v", err)
 	}
 
 	// The sample config has example keyboard interactive auth options set.
