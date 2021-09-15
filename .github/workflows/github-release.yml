@@ -2,7 +2,7 @@ name: GitHub Release
 
 on:
   push:
-    branches: ["master", "binary-release"]
+    branches: ["master"]
 
 jobs:
   build:
@@ -54,6 +54,8 @@ jobs:
         env:
           GOOS: windows
           GOARCH: arm64
+      - name: Tag
+        uses: actions/tag-version@v2
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
