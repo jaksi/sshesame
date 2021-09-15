@@ -48,3 +48,4 @@ Debug and error logs are written to standard error. Activity logs by default are
 2021/07/04 00:37:17 [127.0.0.1:64515] [channel 1] closed
 2021/07/04 00:37:17 [127.0.0.1:64515] connection closed
 ```
+test
