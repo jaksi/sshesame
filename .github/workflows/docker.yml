@@ -1,7 +1,7 @@
 name: Create and publish a Docker image
 
 on:
-  push:
+  create:
     tags:
       - v*
 
