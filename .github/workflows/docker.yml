@@ -1,11 +1,11 @@
 name: Create and publish a Docker image
 
 on:
-  push:
-    branches:
-      - "!*"
-    tags:
-      - "v*"
+  workflow_run:
+    workflows:
+      - "Bump version"
+    types:
+      - completed
 
 env:
   REGISTRY: ghcr.io
