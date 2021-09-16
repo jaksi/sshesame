@@ -1,4 +1,4 @@
-name: go-test
+name: Test
 on:
   pull_request:
     branches:
@@ -8,7 +8,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    name: test
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
