@@ -11,10 +11,6 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "^1.16"
-      - run: go build -o sshesame-linux-386
-        env:
-          GOOS: linux
-          GOARCH: "386"
       - run: go build -o sshesame-linux-amd64
         env:
           GOOS: linux
@@ -35,10 +31,6 @@ jobs:
         env:
           GOOS: darwin
           GOARCH: arm64
-      - run: go build -o sshesame-windows-386.exe
-        env:
-          GOOS: windows
-          GOARCH: "386"
       - run: go build -o sshesame-windows-amd64.exe
         env:
           GOOS: windows
