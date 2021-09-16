@@ -1,74 +1,57 @@
-name: Release binary builds
-
+name: Release binaries
 on:
-  workflow_run:
-    workflows:
-      - "Bump version"
-    types:
-      - completed
-
+  push:
+    tags:
+      - v*
 jobs:
-  build:
+  release-binaries:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
         with:
           go-version: "^1.16"
-      - name: Build (linux 386)
-        run: go build -o sshesame-linux-386
+      - run: go build -o sshesame-linux-386
         env:
           GOOS: linux
           GOARCH: "386"
-      - name: Build (linux amd64)
-        run: go build -o sshesame-linux-amd64
+      - run: go build -o sshesame-linux-amd64
         env:
           GOOS: linux
           GOARCH: amd64
-      - name: Build (linux arm)
-        run: go build -o sshesame-linux-arm
+      - run: go build -o sshesame-linux-arm
         env:
           GOOS: linux
           GOARCH: arm
-      - name: Build (linux arm64)
-        run: go build -o sshesame-linux-arm64
+      - run: go build -o sshesame-linux-arm64
         env:
           GOOS: linux
           GOARCH: arm64
-      - name: Build (darwin amd64)
-        run: go build -o sshesame-macos-amd64
+      - run: go build -o sshesame-macos-amd64
         env:
           GOOS: darwin
           GOARCH: amd64
-      - name: Build (darwin arm64)
-        run: go build -o sshesame-macos-arm64
+      - run: go build -o sshesame-macos-arm64
         env:
           GOOS: darwin
           GOARCH: arm64
-      - name: Build (windows 386)
-        run: go build -o sshesame-windows-386.exe
+      - run: go build -o sshesame-windows-386.exe
         env:
           GOOS: windows
           GOARCH: "386"
-      - name: Build (windows amd64)
-        run: go build -o sshesame-windows-amd64.exe
+      - run: go build -o sshesame-windows-amd64.exe
         env:
           GOOS: windows
           GOARCH: amd64
-      - name: Build (windows arm)
-        run: go build -o sshesame-windows-arm.exe
+      - run: go build -o sshesame-windows-arm.exe
         env:
           GOOS: windows
           GOARCH: arm
-      - name: Build (windows arm64)
-        run: go build -o sshesame-windows-arm64.exe
+      - run: go build -o sshesame-windows-arm64.exe
         env:
           GOOS: windows
           GOARCH: arm64
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v1
         with:
           files: |
             sshesame-linux-amd64
@@ -79,3 +62,4 @@ jobs:
             sshesame-windows-amd64.exe
             sshesame-windows-arm.exe
             sshesame-windows-arm64.exe
+            sshesame.yaml
