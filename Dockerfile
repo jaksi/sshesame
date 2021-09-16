@@ -1,7 +1,6 @@
 FROM golang as build-env
 WORKDIR /go/src/sshesame
 ADD . /go/src/sshesame
-RUN go get -d
 RUN go build -o /go/bin/sshesame
 RUN sed -i 's/listen_address: .*/listen_address: 0.0.0.0:2022/' sshesame.yaml
 FROM gcr.io/distroless/base
