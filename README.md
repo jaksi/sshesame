@@ -8,6 +8,10 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 ## Installation and usage
 
+### GitHub release
+
+Binaries are built and released automatically and are available on the [releases page](https://github.com/jaksi/sshesame/releases).
+
 ### From source
 
 ```
