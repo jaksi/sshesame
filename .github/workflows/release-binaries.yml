@@ -15,10 +15,16 @@ jobs:
         env:
           GOOS: linux
           GOARCH: amd64
-      - run: go build -o sshesame-linux-arm
+      - run: go build -o sshesame-linux-armv6
         env:
           GOOS: linux
           GOARCH: arm
+          GOARM: 6
+      - run: go build -o sshesame-linux-armv7
+        env:
+          GOOS: linux
+          GOARCH: arm
+          GOARM: 7
       - run: go build -o sshesame-linux-arm64
         env:
           GOOS: linux
@@ -35,10 +41,11 @@ jobs:
         env:
           GOOS: windows
           GOARCH: amd64
-      - run: go build -o sshesame-windows-arm.exe
+      - run: go build -o sshesame-windows-armv7.exe
         env:
           GOOS: windows
           GOARCH: arm
+          GOARM: 7
       - run: go build -o sshesame-windows-arm64.exe
         env:
           GOOS: windows
@@ -47,11 +54,12 @@ jobs:
         with:
           files: |
             sshesame-linux-amd64
-            sshesame-linux-arm
+            sshesame-linux-armv6
+            sshesame-linux-armv7
             sshesame-linux-arm64
             sshesame-macos-amd64
             sshesame-macos-arm64
             sshesame-windows-amd64.exe
-            sshesame-windows-arm.exe
+            sshesame-windows-armv7.exe
             sshesame-windows-arm64.exe
             sshesame.yaml
