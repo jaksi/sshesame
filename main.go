@@ -26,8 +26,8 @@ func init() {
 }
 
 func main() {
-	configFile := flag.String("config", "", "config file")
-	dataDir := flag.String("data_dir", path.Join(xdg.DataHome, "sshesame"), "data directory")
+	configFile := flag.String("config", "", "optional config file")
+	dataDir := flag.String("data_dir", path.Join(xdg.DataHome, "sshesame"), "data directory to store automatically generated host keys in")
 	flag.Parse()
 
 	configString := ""

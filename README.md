@@ -8,34 +8,74 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 ## Installation and usage
 
-### GitHub release
-
-Binaries are built and released automatically and are available on the [releases page](https://github.com/jaksi/sshesame/releases).
-
 ### From source
 
+```shell
+$ git clone https://github.com/jaksi/sshesame.git
+$ cd sshesame
+$ go build
 ```
-go get github.com/jaksi/sshesame
-sshesame [-config sshesame.yaml] [-data_dir /etc/sshesame]
+
+### GitHub releases
+
+Linux, macOS and Windows binaries for several architectures are built and released automatically and are available on the [Releases page](https://github.com/jaksi/sshesame/releases).
+
+### Usage
+
+```shell
+$ sshesame -h
+Usage of sshesame:
+  -config string
+    	optional config file
+  -data_dir string
+    	data directory to store automatically generated host keys in (default "...")
 ```
+
+Debug and error logs are written to standard error. Activity logs by default are written to standard out, unless the `logging.file` config option is set.
 
 ### Docker
 
-Images are automatically published to [GitHub Packages](https://github.com/jaksi/sshesame/pkgs/container/sshesame).
+Images for amd64, arm64 and armv7 are built and published automatically and are available on the [Packages page](https://github.com/jaksi/sshesame/pkgs/container/sshesame).
 
+#### CLI
+
+```shell
+$ docker run -it --rm\
+    -p 127.0.0.1:2022:2022\
+    -v sshesame-data:/data\
+    [-v $PWD/sshesame.yaml:/config.yaml]\
+    ghcr.io/jaksi/sshesame
 ```
-docker run -it --rm -p 127.0.0.1:2022:2022 -v sshesame-data:/data [-v $PWD/sshesame.yaml:/config.yaml] ghcr.io/jaksi/sshesame
+
+#### Dockerfile
+
+```dockerfile
+FROM ghcr.io/jaksi/sshesame
+#COPY sshesame.yaml /config.yaml
+```
+
+#### Docker Compose
+
+```yaml
+services:
+  sshesame:
+    image: ghcr.io/jaksi/sshesame
+    ports:
+      - "127.0.0.1:2022:2022"
+    volumes:
+      - sshesame-data:/data
+      #- ./sshesame.yaml:/config.yaml
+volumes:
+  sshesame-data: {}
 ```
 
 ### Configuration
 
 A configuration file can optionally be passed using the `-config` flag.
-Without specifying one, sane defaults will be used and RSA, ECDSA and Ed25519 host keys will be generated and stored in the directory specified in the `-data_dir` flag.
+Without specifying one, sane defaults will be used and an RSA, ECDSA and Ed25519 host key will be generated and stored in the directory specified in the `-data_dir` flag.
 
-A [sample configuration file](sshesame.yaml) with explanations for the configuration options is included.
+A [sample configuration file](sshesame.yaml) with default settings and explanations for all configuration options is included.  
 A [minimal configuration file](openssh.yaml) which tries to mimic an OpenSSH server is also included.
-
-Debug and error logs are written to standard error. Activity logs by default are written to standard out, unless the `logging.file` config option is set.
 
 ## Sample output
 
