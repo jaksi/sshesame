@@ -65,6 +65,9 @@ jobs:
             sshesame-windows-arm64.exe
             sshesame.yaml
   release-docker-images:
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
     name: Release Docker images
     runs-on: ubuntu-latest
     permissions:
