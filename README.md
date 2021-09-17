@@ -10,7 +10,7 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 ### From source
 
-```shell
+```
 $ git clone https://github.com/jaksi/sshesame.git
 $ cd sshesame
 $ go build
@@ -22,7 +22,7 @@ Linux, macOS and Windows binaries for several architectures are built and releas
 
 ### Usage
 
-```shell
+```
 $ sshesame -h
 Usage of sshesame:
   -config string
@@ -39,7 +39,7 @@ Images for amd64, arm64 and armv7 are built and published automatically and are 
 
 #### CLI
 
-```shell
+```
 $ docker run -it --rm\
     -p 127.0.0.1:2022:2022\
     -v sshesame-data:/data\
