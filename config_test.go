@@ -247,16 +247,16 @@ ssh_proto:
 
 func TestUserConfigCustomKeysAndServices(t *testing.T) {
 	keyFile, err := generateKey(t.TempDir(), ecdsa_key)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+	dataDir := t.TempDir()
 	cfgString := fmt.Sprintf(`
 server:
   host_keys: [%v]
   tcpip_services:
     8080: HTTP
 `, keyFile)
-	if err != nil {
-		t.Fatalf("Failed to generate key: %v", err)
-	}
-	dataDir := t.TempDir()
 	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
@@ -345,4 +345,60 @@ func TestDefaultConfigFile(t *testing.T) {
 		t.Fatalf("Failed to get default config: %v", err)
 	}
 	verifyConfig(t, cfg, defaultCfg)
+}
+
+func TestUnspecifiedHostKeys(t *testing.T) {
+	cfgString := `
+server:
+  host_keys: null
+`
+	cfg, err := getConfig(cfgString, t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to get config: %v", err)
+	}
+	if len(cfg.parsedHostKeys) != 3 {
+		t.Errorf("len(cfg.parsedHostKeys)=%d, want 3", len(cfg.parsedHostKeys))
+	}
+}
+
+func TestEmptyHostKeys(t *testing.T) {
+	cfgString := `
+server:
+  host_keys: []
+`
+	cfg, err := getConfig(cfgString, t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to get config: %v", err)
+	}
+	if len(cfg.parsedHostKeys) != 3 {
+		t.Errorf("len(cfg.parsedHostKeys)=%d, want 3", len(cfg.parsedHostKeys))
+	}
+}
+
+func TestUnspecifiedTCPIPServices(t *testing.T) {
+	cfgString := `
+server:
+  tcpip_services: null
+`
+	cfg, err := getConfig(cfgString, t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to get config: %v", err)
+	}
+	if len(cfg.Server.TCPIPServices) == 0 {
+		t.Errorf("len(cfg.Server.TCPIPServices)=%d, want >0", len(cfg.Server.TCPIPServices))
+	}
+}
+
+func TestEmptyTCPIPServices(t *testing.T) {
+	cfgString := `
+server:
+  tcpip_services: {}
+`
+	cfg, err := getConfig(cfgString, t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to get config: %v", err)
+	}
+	if len(cfg.Server.TCPIPServices) != 0 {
+		t.Errorf("len(cfg.Server.TCPIPServices)=%d, want 0", len(cfg.Server.TCPIPServices))
+	}
 }
