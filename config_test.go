@@ -247,16 +247,16 @@ ssh_proto:
 
 func TestUserConfigCustomKeysAndServices(t *testing.T) {
 	keyFile, err := generateKey(t.TempDir(), ecdsa_key)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+	dataDir := t.TempDir()
 	cfgString := fmt.Sprintf(`
 server:
   host_keys: [%v]
   tcpip_services:
     8080: HTTP
 `, keyFile)
-	if err != nil {
-		t.Fatalf("Failed to generate key: %v", err)
-	}
-	dataDir := t.TempDir()
 	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
