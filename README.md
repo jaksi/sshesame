@@ -8,6 +8,8 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 ## Installation and usage
 
+> :warning: **The [`sshesame` package](https://packages.debian.org/stable/sshesame) in the official Debian (and derivatives) repositories may be (probably is) outdated.**
+
 ### From source
 
 ```
