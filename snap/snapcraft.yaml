@@ -1,0 +1,28 @@
+name: sshesame
+base: core18
+adopt-info: sshesame
+summary: An easy to set up and use SSH honeypot
+description: |
+  sshesame is an easy to set up and use SSH honeypot, a fake SSH server that lets anyone in and logs their activity.
+  It accepts and logs SSH connections and activity (channels, requests), without doing anything on the host (e.g. executing commands, making network requests).
+grade: stable
+confinement: strict
+architectures:
+  - build-on:
+    - amd64
+    - i386
+    - armhf
+    - arm64
+parts:
+  sshesame:
+    plugin: go
+    source: .
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version "$(git describe --tags)"
+apps:
+  sshesame:
+    command: bin/sshesame
+    plugs:
+      - network-bind
+      - home
