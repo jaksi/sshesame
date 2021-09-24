@@ -9,10 +9,10 @@ grade: stable
 confinement: strict
 architectures:
   - build-on:
-    - amd64
-    - i386
-    - armhf
-    - arm64
+      - amd64
+      - i386
+      - armhf
+      - arm64
 parts:
   sshesame:
     plugin: go
