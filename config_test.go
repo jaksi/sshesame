@@ -207,6 +207,7 @@ ssh_proto:
   macs: [mac]
 `, logFile)
 	dataDir := t.TempDir()
+	writeTestKeys(t, dataDir)
 	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
@@ -327,6 +328,7 @@ func TestDefaultConfigFile(t *testing.T) {
 		t.Fatalf("Failed to unmarshal config: %v", err)
 	}
 	dataDir := t.TempDir()
+	writeTestKeys(t, dataDir)
 	if err := cfg.setDefaultHostKeys(dataDir, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
 		t.Fatalf("Failed to set default host keys: %v", err)
 	}
@@ -340,6 +342,7 @@ func TestDefaultConfigFile(t *testing.T) {
 	cfg.Auth.KeyboardInteractiveAuth.Instruction = ""
 	cfg.Auth.KeyboardInteractiveAuth.Questions = nil
 
+	writeTestKeys(t, dataDir)
 	defaultCfg, err := getConfig("", dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get default config: %v", err)
@@ -352,7 +355,9 @@ func TestUnspecifiedHostKeys(t *testing.T) {
 server:
   host_keys: null
 `
-	cfg, err := getConfig(cfgString, t.TempDir())
+	dataDir := t.TempDir()
+	writeTestKeys(t, dataDir)
+	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -366,7 +371,9 @@ func TestEmptyHostKeys(t *testing.T) {
 server:
   host_keys: []
 `
-	cfg, err := getConfig(cfgString, t.TempDir())
+	dataDir := t.TempDir()
+	writeTestKeys(t, dataDir)
+	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -380,7 +387,9 @@ func TestUnspecifiedTCPIPServices(t *testing.T) {
 server:
   tcpip_services: null
 `
-	cfg, err := getConfig(cfgString, t.TempDir())
+	dataDir := t.TempDir()
+	writeTestKeys(t, dataDir)
+	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -394,7 +403,9 @@ func TestEmptyTCPIPServices(t *testing.T) {
 server:
   tcpip_services: {}
 `
-	cfg, err := getConfig(cfgString, t.TempDir())
+	dataDir := t.TempDir()
+	writeTestKeys(t, dataDir)
+	cfg, err := getConfig(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
