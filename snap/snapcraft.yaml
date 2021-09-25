@@ -17,6 +17,8 @@ parts:
   sshesame:
     plugin: go
     source: .
+    build-packages:
+      - git
     override-pull: |
       snapcraftctl pull
       snapcraftctl set-version "$(git describe --tags)"
