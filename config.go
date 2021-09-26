@@ -237,7 +237,7 @@ func (cfg *config) setupLogging() error {
 }
 
 func (cfg *config) load(configString string, dataDir string) error {
-	cfg = &config{}
+	*cfg = config{}
 
 	cfg.setDefaults()
 
