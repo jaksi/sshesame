@@ -213,20 +213,23 @@ func (cfg *config) setupSSHConfig() error {
 }
 
 func (cfg *config) setupLogging() error {
-	if cfg.logFileHandle != nil {
-		cfg.logFileHandle.Close()
-	}
+	var logFile io.WriteCloser
 	if cfg.Logging.File != "" {
-		logFile, err := os.OpenFile(cfg.Logging.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		var err error
+		logFile, err = os.OpenFile(cfg.Logging.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		log.SetOutput(logFile)
-		cfg.logFileHandle = logFile
-	} else {
-		log.SetOutput(os.Stdout)
-		cfg.logFileHandle = nil
 	}
+	if logFile == nil {
+		log.SetOutput(os.Stdout)
+	} else {
+		log.SetOutput(logFile)
+	}
+	if cfg.logFileHandle != nil {
+		cfg.logFileHandle.Close()
+	}
+	cfg.logFileHandle = logFile
 	if !cfg.Logging.JSON && cfg.Logging.Timestamps {
 		log.SetFlags(log.LstdFlags)
 	} else {
