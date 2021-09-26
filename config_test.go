@@ -142,7 +142,8 @@ func verifyDefaultKeys(t *testing.T, dataDir string) {
 
 func TestDefaultConfig(t *testing.T) {
 	dataDir := t.TempDir()
-	cfg, err := getConfig("", dataDir)
+	cfg := &config{}
+	err := cfg.load("", dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -209,7 +210,8 @@ ssh_proto:
 `, logFile)
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
+	cfg := &config{}
+	err := cfg.load(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -259,7 +261,8 @@ server:
   tcpip_services:
     8080: HTTP
 `, keyFile)
-	cfg, err := getConfig(cfgString, dataDir)
+	cfg := &config{}
+	err = cfg.load(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -405,7 +408,8 @@ func TestDefaultConfigFile(t *testing.T) {
 	cfg.Auth.KeyboardInteractiveAuth.Questions = nil
 
 	writeTestKeys(t, dataDir)
-	defaultCfg, err := getConfig("", dataDir)
+	defaultCfg := &config{}
+	err = defaultCfg.load("", dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get default config: %v", err)
 	}
@@ -419,8 +423,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.parsedHostKeys) != 3 {
@@ -435,8 +439,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.parsedHostKeys) != 3 {
@@ -451,8 +455,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.Server.TCPIPServices) == 0 {
@@ -467,8 +471,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.Server.TCPIPServices) != 0 {

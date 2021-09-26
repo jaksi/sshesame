@@ -78,8 +78,7 @@ type config struct {
 	logFileHandle  io.WriteCloser
 }
 
-func getDefaultConfig() *config {
-	cfg := &config{}
+func (cfg *config) setDefaults() {
 	cfg.Server.ListenAddress = "127.0.0.1:2022"
 	cfg.Logging.Timestamps = true
 	cfg.Auth.PasswordAuth.Enabled = true
@@ -87,7 +86,6 @@ func getDefaultConfig() *config {
 	cfg.Auth.PublicKeyAuth.Enabled = true
 	cfg.SSHProto.Version = "SSH-2.0-sshesame"
 	cfg.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
-	return cfg
 }
 
 var defaultTCPIPServices = map[uint32]string{
@@ -238,11 +236,13 @@ func (cfg *config) setupLogging() error {
 	return nil
 }
 
-func getConfig(configString string, dataDir string) (*config, error) {
-	cfg := getDefaultConfig()
+func (cfg *config) load(configString string, dataDir string) error {
+	cfg = &config{}
+
+	cfg.setDefaults()
 
 	if err := yaml.UnmarshalStrict([]byte(configString), cfg); err != nil {
-		return nil, err
+		return err
 	}
 
 	if cfg.Server.TCPIPServices == nil {
@@ -251,23 +251,23 @@ func getConfig(configString string, dataDir string) (*config, error) {
 
 	for _, service := range cfg.Server.TCPIPServices {
 		if _, ok := servers[service]; !ok {
-			return nil, fmt.Errorf("unknown service %q", service)
+			return fmt.Errorf("unknown service %q", service)
 		}
 	}
 
 	if len(cfg.Server.HostKeys) == 0 {
 		infoLogger.Printf("No host keys configured, using keys at %q", dataDir)
 		if err := cfg.setDefaultHostKeys(dataDir, []keySignature{rsa_key, ecdsa_key, ed25519_key}); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if err := cfg.setupSSHConfig(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := cfg.setupLogging(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return cfg, nil
+	return nil
 }
