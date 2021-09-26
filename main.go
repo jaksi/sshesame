@@ -7,7 +7,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path"
+	"syscall"
 
 	"github.com/adrg/xdg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -30,6 +32,7 @@ func main() {
 	dataDir := flag.String("data_dir", path.Join(xdg.DataHome, "sshesame"), "data directory to store automatically generated host keys in")
 	flag.Parse()
 
+	cfg := &config{}
 	configString := ""
 	if *configFile != "" {
 		configBytes, err := ioutil.ReadFile(*configFile)
@@ -38,11 +41,27 @@ func main() {
 		}
 		configString = string(configBytes)
 	}
-
-	cfg, err := getConfig(configString, *dataDir)
+	err := cfg.load(configString, *dataDir)
 	if err != nil {
-		errorLogger.Fatalf("Failed to get config: %v", err)
+		errorLogger.Fatalf("Failed to load config: %v", err)
 	}
+	reloadSignals := make(chan os.Signal, 1)
+	defer close(reloadSignals)
+	go func() {
+		for signal := range reloadSignals {
+			infoLogger.Printf("Reloading config due to %s", signal)
+			configBytes, err := ioutil.ReadFile(*configFile)
+			if err != nil {
+				warningLogger.Printf("Failed to read config file: %v", err)
+			}
+			configString = string(configBytes)
+			err = cfg.load(configString, *dataDir)
+			if err != nil {
+				warningLogger.Printf("Failed to reload config: %v", err)
+			}
+		}
+	}()
+	signal.Notify(reloadSignals, syscall.SIGHUP)
 
 	listener, err := net.Listen("tcp", cfg.Server.ListenAddress)
 	if err != nil {

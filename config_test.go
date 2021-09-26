@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"path"
 	"reflect"
 	"testing"
@@ -141,7 +142,8 @@ func verifyDefaultKeys(t *testing.T, dataDir string) {
 
 func TestDefaultConfig(t *testing.T) {
 	dataDir := t.TempDir()
-	cfg, err := getConfig("", dataDir)
+	cfg := &config{}
+	err := cfg.load("", dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -208,7 +210,8 @@ ssh_proto:
 `, logFile)
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
+	cfg := &config{}
+	err := cfg.load(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -258,7 +261,8 @@ server:
   tcpip_services:
     8080: HTTP
 `, keyFile)
-	cfg, err := getConfig(cfgString, dataDir)
+	cfg := &config{}
+	err = cfg.load(cfgString, dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
@@ -292,6 +296,67 @@ func TestSetupLoggingOldHandleClosed(t *testing.T) {
 	}
 	if !file.closed {
 		t.Errorf("file.closed=false, want true")
+	}
+}
+
+func TestLogReloadSameFile(t *testing.T) {
+	cfg := &config{}
+	tempDir := t.TempDir()
+	cfg.Logging.File = path.Join(tempDir, "test.log")
+	if err := cfg.setupLogging(); err != nil {
+		t.Fatalf("Failed to set up logging: %v", err)
+	}
+	log.Printf("test1")
+	if err := cfg.setupLogging(); err != nil {
+		t.Fatalf("Failed to set up logging: %v", err)
+	}
+	log.Printf("test2")
+	if err := cfg.logFileHandle.Close(); err != nil {
+		t.Fatalf("Failed to close log file: %v", err)
+	}
+	logs, err := ioutil.ReadFile(cfg.Logging.File)
+	if err != nil {
+		t.Fatalf("Failed to read log file: %v", err)
+	}
+	expectedLogs := "test1\ntest2\n"
+	if string(logs) != expectedLogs {
+		t.Errorf("logs=%v, want %v", string(logs), expectedLogs)
+	}
+}
+
+func TestLogReloadDifferentFile(t *testing.T) {
+	cfg := &config{}
+	tempDir := t.TempDir()
+	logFile1 := path.Join(tempDir, "test1.log")
+	cfg.Logging.File = logFile1
+	if err := cfg.setupLogging(); err != nil {
+		t.Fatalf("Failed to set up logging: %v", err)
+	}
+	log.Printf("test1")
+	logFile2 := path.Join(tempDir, "test2.log")
+	cfg.Logging.File = logFile2
+	if err := cfg.setupLogging(); err != nil {
+		t.Fatalf("Failed to set up logging: %v", err)
+	}
+	log.Printf("test2")
+	if err := cfg.logFileHandle.Close(); err != nil {
+		t.Fatalf("Failed to close log file: %v", err)
+	}
+	logs1, err := ioutil.ReadFile(logFile1)
+	if err != nil {
+		t.Fatalf("Failed to read log file: %v", err)
+	}
+	expectedLogs1 := "test1\n"
+	if string(logs1) != expectedLogs1 {
+		t.Errorf("logs1=%v, want %v", string(logs1), expectedLogs1)
+	}
+	logs2, err := ioutil.ReadFile(logFile2)
+	if err != nil {
+		t.Fatalf("Failed to read log file: %v", err)
+	}
+	expectedLogs2 := "test2\n"
+	if string(logs2) != expectedLogs2 {
+		t.Errorf("logs2=%v, want %v", string(logs2), expectedLogs2)
 	}
 }
 
@@ -343,7 +408,8 @@ func TestDefaultConfigFile(t *testing.T) {
 	cfg.Auth.KeyboardInteractiveAuth.Questions = nil
 
 	writeTestKeys(t, dataDir)
-	defaultCfg, err := getConfig("", dataDir)
+	defaultCfg := &config{}
+	err = defaultCfg.load("", dataDir)
 	if err != nil {
 		t.Fatalf("Failed to get default config: %v", err)
 	}
@@ -357,8 +423,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.parsedHostKeys) != 3 {
@@ -373,8 +439,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.parsedHostKeys) != 3 {
@@ -389,8 +455,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.Server.TCPIPServices) == 0 {
@@ -405,8 +471,8 @@ server:
 `
 	dataDir := t.TempDir()
 	writeTestKeys(t, dataDir)
-	cfg, err := getConfig(cfgString, dataDir)
-	if err != nil {
+	cfg := &config{}
+	if err := cfg.load(cfgString, dataDir); err != nil {
 		t.Fatalf("Failed to get config: %v", err)
 	}
 	if len(cfg.Server.TCPIPServices) != 0 {
