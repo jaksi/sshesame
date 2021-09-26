@@ -316,6 +316,7 @@ func (context *sessionContext) handleRequest(request *ssh.Request) error {
 			}
 			context.active = true
 			context.handleProgram(strings.Fields(payload.Subsystem))
+			return nil
 		}
 	case "window-change":
 		sessionChannelRequestsMetric.WithLabelValues(request.Type).Inc()
