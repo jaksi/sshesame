@@ -244,11 +244,10 @@ func (server smtpServer) serve(readWriter io.ReadWriter, input chan<- string) {
 		reply := smtpReply{250, "OK"}
 		switch command.command {
 		case "HELO":
-			reply = smtpReply{250, "localhost"}
 		case "EHLO":
-			reply = smtpReply{250, "localhost"}
 		case "MAIL":
 		case "RCPT":
+		case "RSET":
 		case "DATA":
 			if err := server.writeReply(readWriter, smtpReply{354, "Start mail input; end with <CRLF>.<CRLF>"}); err != nil {
 				warningLogger.Printf("Error writing reply: %v", err)
