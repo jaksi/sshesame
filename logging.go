@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -125,6 +126,21 @@ func (entry noMoreSessionsLog) String() string {
 }
 func (entry noMoreSessionsLog) eventType() string {
 	return "no_more_sessions"
+}
+
+type hostKeysProveLog struct {
+	HostKeyFiles []string `json:"host_key_files"`
+}
+
+func (entry hostKeysProveLog) String() string {
+	baseNames := make([]string, len(entry.HostKeyFiles))
+	for i, hostKeyFile := range entry.HostKeyFiles {
+		baseNames[i] = fmt.Sprintf("%q", filepath.Base(hostKeyFile))
+	}
+	return fmt.Sprintf("proof of ownership of host keys %v requested", strings.Join(baseNames, ", "))
+}
+func (entry hostKeysProveLog) eventType() string {
+	return "host_keys_prove"
 }
 
 type channelLog struct {
