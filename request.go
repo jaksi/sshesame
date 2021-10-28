@@ -159,3 +159,23 @@ func marshalBytes(data [][]byte) []byte {
 	}
 	return result
 }
+
+func unmarshalBytes(data []byte) ([][]byte, error) {
+	var result [][]byte
+	for len(data) > 0 {
+		if len(data) < 4 {
+			return nil, errors.New("invalid request payload")
+		}
+		length := binary.BigEndian.Uint32(data[:4])
+		if len(data) < 4+int(length) {
+			return nil, errors.New("invalid request payload")
+		}
+		var s struct { S string }
+		if err := ssh.Unmarshal(data[:4+length], &s); err != nil {
+			return nil, err
+		}
+		result = append(result, []byte(s.S))
+		data = data[4+length:]
+	}
+	return result, nil
+}
