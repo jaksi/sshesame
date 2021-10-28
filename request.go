@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	cryptoRand "crypto/rand"
+	"encoding/binary"
 	"errors"
 	mathRand "math/rand"
 	"net"
@@ -112,6 +114,27 @@ var globalRequestPayloads = map[string]globalRequestPayloadParser{
 			return nil, errors.New("invalid request payload")
 		}
 		return &noMoreSessionsRequest{}, nil
+	},
+	"hostkeys-prove-00@openssh.com": func(data []byte, context *connContext) (globalRequestPayload, error) {
+		payloadBytes, err := unmarshalBytes(data)
+		if err != nil {
+			return nil, err
+		}
+		hostKeyIndices := make([]int, len(payloadBytes))
+		for i, publicKeyBytes := range payloadBytes {
+			found := false
+			for j, hostKey := range context.cfg.parsedHostKeys {
+				if bytes.Equal(publicKeyBytes, hostKey.PublicKey().Marshal()) {
+					hostKeyIndices[i] = j
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, errors.New("host key not found")
+			}
+		}
+		return &hostKeysProveRequest{hostKeyIndices}, nil
 	},
 }
 
