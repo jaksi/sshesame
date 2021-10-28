@@ -73,7 +73,11 @@ func handleConnection(conn net.Conn, cfg *config) {
 		ClientVersion: string(serverConn.ClientVersion()),
 	})
 
-	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, createHostkeysRequestPayload(cfg.parsedHostKeys)); err != nil {
+	hostKeysPayload := make([][]byte, len(cfg.parsedHostKeys))
+	for i, key := range cfg.parsedHostKeys {
+		hostKeysPayload[i] = key.PublicKey().Marshal()
+	}
+	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, marshalBytes(hostKeysPayload)); err != nil {
 		warningLogger.Printf("Failed to send hostkeys-00@openssh.com request: %v", err)
 		return
 	}

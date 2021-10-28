@@ -119,10 +119,10 @@ func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 	return nil
 }
 
-func createHostkeysRequestPayload(keys []ssh.Signer) []byte {
-	result := make([]byte, 0)
-	for _, key := range keys {
-		result = append(result, ssh.Marshal(struct{ key string }{string(key.PublicKey().Marshal())})...)
+func marshalBytes(data [][]byte) []byte {
+	var result []byte
+	for _, b := range data {
+		result = append(result, ssh.Marshal(struct{ string }{string(b)})...)
 	}
 	return result
 }
