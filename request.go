@@ -12,7 +12,7 @@ import (
 )
 
 type globalRequestPayload interface {
-	reply() []byte
+	reply(context *connContext) []byte
 	logEntry() logEntry
 }
 
@@ -23,7 +23,7 @@ type tcpipRequest struct {
 	Port    uint32
 }
 
-func (request tcpipRequest) reply() []byte {
+func (request tcpipRequest) reply(context *connContext) []byte {
 	if request.Port != 0 {
 		return nil
 	}
@@ -40,7 +40,7 @@ type cancelTCPIPRequest struct {
 	Port    uint32
 }
 
-func (request cancelTCPIPRequest) reply() []byte {
+func (request cancelTCPIPRequest) reply(context *connContext) []byte {
 	return nil
 }
 func (request cancelTCPIPRequest) logEntry() logEntry {
@@ -52,7 +52,7 @@ func (request cancelTCPIPRequest) logEntry() logEntry {
 type noMoreSessionsRequest struct {
 }
 
-func (request noMoreSessionsRequest) reply() []byte {
+func (request noMoreSessionsRequest) reply(context *connContext) []byte {
 	return nil
 }
 func (request noMoreSessionsRequest) logEntry() logEntry {
@@ -111,7 +111,7 @@ func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 		context.noMoreSessions = true
 	}
 	if request.WantReply {
-		if err := request.Reply(true, payload.reply()); err != nil {
+		if err := request.Reply(true, payload.reply(context)); err != nil {
 			return err
 		}
 	}
