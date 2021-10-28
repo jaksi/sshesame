@@ -1,8 +1,9 @@
 package main
 
 import (
+	cryptoRand "crypto/rand"
 	"errors"
-	"math/rand"
+	mathRand "math/rand"
 	"net"
 	"strconv"
 
@@ -27,7 +28,7 @@ func (request tcpipRequest) reply(context *connContext) []byte {
 	if request.Port != 0 {
 		return nil
 	}
-	return ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
+	return ssh.Marshal(struct{ port uint32 }{uint32(mathRand.Intn(65536-1024) + 1024)})
 }
 func (request tcpipRequest) logEntry(context *connContext) logEntry {
 	return tcpipForwardLog{
@@ -57,6 +58,38 @@ func (request noMoreSessionsRequest) reply(context *connContext) []byte {
 }
 func (request noMoreSessionsRequest) logEntry(context *connContext) logEntry {
 	return noMoreSessionsLog{}
+}
+
+type hostKeysProveRequest struct {
+	hostKeyIndices []int
+}
+
+func (request hostKeysProveRequest) reply(context *connContext) []byte {
+	signatures := make([][]byte, len(request.hostKeyIndices))
+	for i, index := range request.hostKeyIndices {
+		signature, err := context.cfg.parsedHostKeys[index].Sign(cryptoRand.Reader, ssh.Marshal(struct {
+			requestType, sessionID, hostKey string
+		}{
+			"hostkeys-prove-00@openssh.com",
+			string(context.SessionID()),
+			string(context.cfg.parsedHostKeys[index].PublicKey().Marshal()),
+		}))
+		if err != nil {
+			warningLogger.Printf("Failed to sign host key: %v", err)
+			return nil
+		}
+		signatures[i] = ssh.Marshal(signature)
+	}
+	return marshalBytes(signatures)
+}
+func (request hostKeysProveRequest) logEntry(context *connContext) logEntry {
+	hostKeyFiles := make([]string, len(request.hostKeyIndices))
+	for i, index := range request.hostKeyIndices {
+		hostKeyFiles[i] = context.cfg.Server.HostKeys[index]
+	}
+	return hostKeysProveLog{
+		HostKeyFiles: hostKeyFiles,
+	}
 }
 
 var globalRequestPayloads = map[string]globalRequestPayloadParser{
