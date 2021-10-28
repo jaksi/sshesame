@@ -13,7 +13,7 @@ import (
 
 type globalRequestPayload interface {
 	reply(context *connContext) []byte
-	logEntry() logEntry
+	logEntry(context *connContext) logEntry
 }
 
 type globalRequestPayloadParser func(data []byte) (globalRequestPayload, error)
@@ -29,7 +29,7 @@ func (request tcpipRequest) reply(context *connContext) []byte {
 	}
 	return ssh.Marshal(struct{ port uint32 }{uint32(rand.Intn(65536-1024) + 1024)})
 }
-func (request tcpipRequest) logEntry() logEntry {
+func (request tcpipRequest) logEntry(context *connContext) logEntry {
 	return tcpipForwardLog{
 		Address: net.JoinHostPort(request.Address, strconv.Itoa(int(request.Port))),
 	}
@@ -43,7 +43,7 @@ type cancelTCPIPRequest struct {
 func (request cancelTCPIPRequest) reply(context *connContext) []byte {
 	return nil
 }
-func (request cancelTCPIPRequest) logEntry() logEntry {
+func (request cancelTCPIPRequest) logEntry(context *connContext) logEntry {
 	return cancelTCPIPForwardLog{
 		Address: net.JoinHostPort(request.Address, strconv.Itoa(int(request.Port))),
 	}
@@ -55,7 +55,7 @@ type noMoreSessionsRequest struct {
 func (request noMoreSessionsRequest) reply(context *connContext) []byte {
 	return nil
 }
-func (request noMoreSessionsRequest) logEntry() logEntry {
+func (request noMoreSessionsRequest) logEntry(context *connContext) logEntry {
 	return noMoreSessionsLog{}
 }
 
@@ -115,7 +115,7 @@ func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 			return err
 		}
 	}
-	context.logEvent(payload.logEntry())
+	context.logEvent(payload.logEntry(context))
 	return nil
 }
 
