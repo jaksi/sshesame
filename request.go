@@ -17,7 +17,7 @@ type globalRequestPayload interface {
 	logEntry(context *connContext) logEntry
 }
 
-type globalRequestPayloadParser func(data []byte) (globalRequestPayload, error)
+type globalRequestPayloadParser func(data []byte, context *connContext) (globalRequestPayload, error)
 
 type tcpipRequest struct {
 	Address string
@@ -93,21 +93,21 @@ func (request hostKeysProveRequest) logEntry(context *connContext) logEntry {
 }
 
 var globalRequestPayloads = map[string]globalRequestPayloadParser{
-	"tcpip-forward": func(data []byte) (globalRequestPayload, error) {
+	"tcpip-forward": func(data []byte, context *connContext) (globalRequestPayload, error) {
 		payload := &tcpipRequest{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
-	"cancel-tcpip-forward": func(data []byte) (globalRequestPayload, error) {
+	"cancel-tcpip-forward": func(data []byte, context *connContext) (globalRequestPayload, error) {
 		payload := &cancelTCPIPRequest{}
 		if err := ssh.Unmarshal(data, payload); err != nil {
 			return nil, err
 		}
 		return payload, nil
 	},
-	"no-more-sessions@openssh.com": func(data []byte) (globalRequestPayload, error) {
+	"no-more-sessions@openssh.com": func(data []byte, context *connContext) (globalRequestPayload, error) {
 		if len(data) != 0 {
 			return nil, errors.New("invalid request payload")
 		}
@@ -135,7 +135,7 @@ func handleGlobalRequest(request *ssh.Request, context *connContext) error {
 		return nil
 	}
 	globalRequestsMetric.WithLabelValues(request.Type).Inc()
-	payload, err := parser(request.Payload)
+	payload, err := parser(request.Payload, context)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func unmarshalBytes(data []byte) ([][]byte, error) {
 		if len(data) < 4+int(length) {
 			return nil, errors.New("invalid request payload")
 		}
-		var s struct { S string }
+		var s struct{ S string }
 		if err := ssh.Unmarshal(data[:4+length], &s); err != nil {
 			return nil, err
 		}
