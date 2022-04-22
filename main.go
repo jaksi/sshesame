@@ -4,7 +4,6 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/adrg/xdg"
+	"github.com/jaksi/sshutils"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -63,7 +63,7 @@ func main() {
 	}()
 	signal.Notify(reloadSignals, syscall.SIGHUP)
 
-	listener, err := net.Listen("tcp", cfg.Server.ListenAddress)
+	listener, err := sshutils.Listen(cfg.Server.ListenAddress, cfg.sshConfig)
 	if err != nil {
 		errorLogger.Fatalf("Failed to listen for connections: %v", err)
 	}

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"net"
 	"sync"
 
+	"github.com/jaksi/sshutils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/crypto/ssh"
@@ -26,14 +26,6 @@ var channelHandlers = map[string]func(newChannel ssh.NewChannel, context channel
 }
 
 var (
-	tcpConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "sshesame_tcp_connections_total",
-		Help: "Total number of TCP connections",
-	})
-	activeTCPConnectionsMetric = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "sshesame_active_tcp_connections",
-		Help: "Number of active TCP connections",
-	})
 	sshConnectionsMetric = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "sshesame_ssh_connections_total",
 		Help: "Total number of SSH connections",
@@ -48,46 +40,43 @@ var (
 	})
 )
 
-func handleConnection(conn net.Conn, cfg *config) {
-	tcpConnectionsMetric.Inc()
-	activeTCPConnectionsMetric.Inc()
-	defer activeTCPConnectionsMetric.Dec()
-	serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
+func handleConnection(conn *sshutils.Conn, cfg *config) {
+	/*serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
 	if err != nil {
 		warningLogger.Printf("Failed to establish SSH connection: %v", err)
 		conn.Close()
 		return
-	}
+	}*/
 	sshConnectionsMetric.Inc()
 	activeSSHConnectionsMetric.Inc()
 	defer activeSSHConnectionsMetric.Dec()
 	var channels sync.WaitGroup
-	context := connContext{ConnMetadata: serverConn, cfg: cfg}
+	context := connContext{ConnMetadata: conn, cfg: cfg}
 	defer func() {
-		serverConn.Close()
+		conn.Close()
 		channels.Wait()
 		context.logEvent(connectionCloseLog{})
 	}()
 
 	context.logEvent(connectionLog{
-		ClientVersion: string(serverConn.ClientVersion()),
+		ClientVersion: string(conn.ClientVersion()),
 	})
 
 	hostKeysPayload := make([][]byte, len(cfg.parsedHostKeys))
 	for i, key := range cfg.parsedHostKeys {
 		hostKeysPayload[i] = key.PublicKey().Marshal()
 	}
-	if _, _, err := serverConn.SendRequest("hostkeys-00@openssh.com", false, marshalBytes(hostKeysPayload)); err != nil {
+	if _, _, err := conn.SendRequest("hostkeys-00@openssh.com", false, marshalBytes(hostKeysPayload)); err != nil {
 		warningLogger.Printf("Failed to send hostkeys-00@openssh.com request: %v", err)
 		return
 	}
 
 	channelID := 0
-	for requests != nil || newChannels != nil {
+	for conn.Requests != nil || conn.NewChannels != nil {
 		select {
-		case request, ok := <-requests:
+		case request, ok := <-conn.Requests:
 			if !ok {
-				requests = nil
+				conn.Requests = nil
 				continue
 			}
 			context.logEvent(debugGlobalRequestLog{
@@ -97,12 +86,12 @@ func handleConnection(conn net.Conn, cfg *config) {
 			})
 			if err := handleGlobalRequest(request, &context); err != nil {
 				warningLogger.Printf("Failed to handle global request: %v", err)
-				requests = nil
+				conn.Requests = nil
 				continue
 			}
-		case newChannel, ok := <-newChannels:
+		case newChannel, ok := <-conn.NewChannels:
 			if !ok {
-				newChannels = nil
+				conn.NewChannels = nil
 				continue
 			}
 			context.logEvent(debugChannelLog{
@@ -117,7 +106,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 				warningLogger.Printf("Unsupported channel type %v", channelType)
 				if err := newChannel.Reject(ssh.ConnectionFailed, "open failed"); err != nil {
 					warningLogger.Printf("Failed to reject channel: %v", err)
-					newChannels = nil
+					conn.NewChannels = nil
 					continue
 				}
 				continue
@@ -127,7 +116,7 @@ func handleConnection(conn net.Conn, cfg *config) {
 				defer channels.Done()
 				if err := handler(newChannel, context); err != nil {
 					warningLogger.Printf("Failed to handle new channel: %v", err)
-					serverConn.Close()
+					conn.Close()
 				}
 			}(channelContext{context, channelID})
 			channelID++
