@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jaksi/sshutils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -496,9 +497,9 @@ func TestReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serverAddress := path.Join(tempDir, "server.sock")
+	//serverAddress := path.Join(tempDir, "server.sock")
 
-	listener, err := net.Listen("unix", serverAddress)
+	listener, err := sshutils.Listen("localhost:0", cfg.sshConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -539,11 +540,11 @@ func TestReplay(t *testing.T) {
 					handleConnection(conn, cfg)
 					serverResult <- nil
 				}()
-				conn, err := net.Dial("unix", serverAddress)
+				conn, err := net.Dial("tcp", listener.Addr().String())
 				if err != nil {
 					t.Fatal(err)
 				}
-				sshConn, newChannels, requests, err := ssh.NewClientConn(conn, serverAddress, &ssh.ClientConfig{
+				sshConn, newChannels, requests, err := ssh.NewClientConn(conn, listener.Addr().String(), &ssh.ClientConfig{
 					User:            testCase.User,
 					HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 				})
