@@ -41,12 +41,6 @@ var (
 )
 
 func handleConnection(conn *sshutils.Conn, cfg *config) {
-	/*serverConn, newChannels, requests, err := ssh.NewServerConn(conn, cfg.sshConfig)
-	if err != nil {
-		warningLogger.Printf("Failed to establish SSH connection: %v", err)
-		conn.Close()
-		return
-	}*/
 	sshConnectionsMetric.Inc()
 	activeSSHConnectionsMetric.Inc()
 	defer activeSSHConnectionsMetric.Dec()

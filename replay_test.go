@@ -497,8 +497,6 @@ func TestReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//serverAddress := path.Join(tempDir, "server.sock")
-
 	listener, err := sshutils.Listen("localhost:0", cfg.sshConfig)
 	if err != nil {
 		t.Fatal(err)
