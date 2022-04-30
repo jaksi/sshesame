@@ -6,19 +6,18 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 [![asciicast](https://asciinema.org/a/VSqzZi1oPA0FhQDyqht22iA6k.svg)](https://asciinema.org/a/VSqzZi1oPA0FhQDyqht22iA6k)
 
-- [sshesame](#sshesame)
-  - [Installation and usage](#installation-and-usage)
-    - [From source](#from-source)
-    - [GitHub releases](#github-releases)
-    - [Snap](#snap)
-    - [Usage](#usage)
-    - [Docker](#docker)
-      - [CLI](#cli)
-      - [Dockerfile](#dockerfile)
-      - [Docker Compose](#docker-compose)
-    - [systemd](#systemd)
-    - [Configuration](#configuration)
-  - [Sample output](#sample-output)
+- [Installation and usage](#installation-and-usage)
+  - [From source](#from-source)
+  - [GitHub releases](#github-releases)
+  - [Snap](#snap)
+  - [Usage](#usage)
+  - [Docker](#docker)
+    - [CLI](#cli)
+    - [Dockerfile](#dockerfile)
+    - [Docker Compose](#docker-compose)
+  - [systemd](#systemd)
+  - [Configuration](#configuration)
+- [Sample output](#sample-output)
 
 ## Installation and usage
 
