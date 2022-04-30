@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/adrg/xdg v0.4.0
-	github.com/jaksi/sshutils v0.0.10
+	github.com/jaksi/sshutils v0.0.11
 	github.com/prometheus/client_golang v1.12.1
 	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171
