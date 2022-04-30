@@ -81,6 +81,23 @@ volumes:
   sshesame-data: {}
 ```
 
+### systemd
+
+```desktop
+[Unit]
+Description=SSH honeypot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/path/to/sshesame #-config /path/to/sshesame.yaml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+
 ### Configuration
 
 A configuration file can optionally be passed using the `-config` flag.
