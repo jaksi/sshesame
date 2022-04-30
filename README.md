@@ -6,6 +6,19 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 
 [![asciicast](https://asciinema.org/a/VSqzZi1oPA0FhQDyqht22iA6k.svg)](https://asciinema.org/a/VSqzZi1oPA0FhQDyqht22iA6k)
 
+- [Installation and usage](#installation-and-usage)
+  - [From source](#from-source)
+  - [GitHub releases](#github-releases)
+  - [Snap](#snap)
+  - [Usage](#usage)
+  - [Docker](#docker)
+    - [CLI](#cli)
+    - [Dockerfile](#dockerfile)
+    - [Docker Compose](#docker-compose)
+  - [systemd](#systemd)
+  - [Configuration](#configuration)
+- [Sample output](#sample-output)
+
 ## Installation and usage
 
 > :warning: **The [`sshesame` package](https://packages.debian.org/stable/sshesame) in the official Debian (and derivatives) repositories may be (probably is) outdated.**
@@ -80,6 +93,23 @@ services:
 volumes:
   sshesame-data: {}
 ```
+
+### systemd
+
+```desktop
+[Unit]
+Description=SSH honeypot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/path/to/sshesame #-config /path/to/sshesame.yaml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
 
 ### Configuration
 
