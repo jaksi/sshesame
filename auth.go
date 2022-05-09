@@ -37,18 +37,40 @@ func (cfg *config) getPasswordCallback() func(conn ssh.ConnMetadata, password []
 	if !cfg.Auth.PasswordAuth.Enabled {
 		return nil
 	}
-	return func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
-		connContext{ConnMetadata: conn, cfg: cfg}.logEvent(passwordAuthLog{
-			authLog: authLog{
-				User:     conn.User(),
-				Accepted: authAccepted(cfg.Auth.PasswordAuth.Accepted),
-			},
-			Password: string(password),
-		})
-		if !cfg.Auth.PasswordAuth.Accepted {
-			return nil, errors.New("")
+	if cfg.db == nil {
+		return func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+			connContext{ConnMetadata: conn, cfg: cfg}.logEvent(passwordAuthLog{
+				authLog: authLog{
+					User:     conn.User(),
+					Accepted: authAccepted(cfg.Auth.PasswordAuth.Accepted),
+				},
+				Password: string(password),
+			})
+			if !cfg.Auth.PasswordAuth.Accepted {
+				return nil, errors.New("")
+			}
+			return nil, nil
 		}
-		return nil, nil
+	} else {
+		return func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+			connContext{ConnMetadata: conn, cfg: cfg}.logPasswordToDatabase(databaseLoginEntry{
+					Source:  conn.RemoteAddr().String(),
+					User:    conn.User(),
+					Pass:    string(password),
+					Version: string(conn.ClientVersion()),
+			})
+			connContext{ConnMetadata: conn, cfg: cfg}.logEvent(passwordAuthLog{
+				authLog: authLog{
+					User:     conn.User(),
+					Accepted: authAccepted(cfg.Auth.PasswordAuth.Accepted),
+				},
+				Password: string(password),
+			})
+			if !cfg.Auth.PasswordAuth.Accepted {
+				return nil, errors.New("")
+			}
+			return nil, nil
+		}
 	}
 }
 

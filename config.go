@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"database/sql"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -76,6 +77,7 @@ type config struct {
 	parsedHostKeys []ssh.Signer
 	sshConfig      *ssh.ServerConfig
 	logFileHandle  io.WriteCloser
+	db             *sql.DB
 }
 
 func (cfg *config) setDefaults() {

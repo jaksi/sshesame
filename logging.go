@@ -44,6 +44,13 @@ type passwordAuthLog struct {
 	Password string `json:"password"`
 }
 
+type databaseLoginEntry struct {
+	Source  string
+	User    string
+	Pass    string
+	Version string
+}
+
 func (entry passwordAuthLog) String() string {
 	return fmt.Sprintf("authentication for user %q with password %q %v", entry.User, entry.Password, entry.Accepted)
 }
@@ -388,4 +395,8 @@ func (context connContext) logEvent(entry logEntry) {
 	} else {
 		log.Printf("[%v] %v", context.RemoteAddr().String(), entry)
 	}
+}
+
+func (context connContext) logPasswordToDatabase(entry databaseLoginEntry) {
+	StoreLogin(context.cfg.db, entry.Source, entry.User, entry.Pass, entry.Version)
 }

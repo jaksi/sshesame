@@ -30,9 +30,11 @@ func init() {
 func main() {
 	configFile := flag.String("config", "", "optional config file")
 	dataDir := flag.String("data_dir", path.Join(xdg.DataHome, "sshesame"), "data directory to store automatically generated host keys in")
+  dbFile := flag.String("db", "", "path to sqlite database")
 	flag.Parse()
 
 	cfg := &config{}
+
 	configString := ""
 	if *configFile != "" {
 		configBytes, err := ioutil.ReadFile(*configFile)
@@ -79,6 +81,12 @@ func main() {
 				errorLogger.Fatalf("Failed to serve metrics: %v", err)
 			}
 		}()
+	}
+
+	if *dbFile != "" {
+		cfg.db = InitDB(*dbFile)
+  	CreateTableLogins(cfg.db)
+  	defer cfg.db.Close()
 	}
 
 	for {
