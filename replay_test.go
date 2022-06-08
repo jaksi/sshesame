@@ -200,13 +200,13 @@ func (event newChannelReplayEntry) Execute(t *testing.T, context *clientContext)
 	}
 	channel, requests, err := context.conn.OpenChannel(event.Type, rawExtraData)
 	accepted := true
-	if err, ok := err.(*ssh.OpenChannelError); ok {
+	if openChannelErr, ok := err.(*ssh.OpenChannelError); ok {
 		accepted = false
-		if uint32(err.Reason) != event.RejectReason {
-			t.Errorf("Reject reason mismatch: got %v, want %v", uint32(err.Reason), event.RejectReason)
+		if uint32(openChannelErr.Reason) != event.RejectReason {
+			t.Errorf("Reject reason mismatch: got %v, want %v", uint32(openChannelErr.Reason), event.RejectReason)
 		}
-		if err.Message != event.Message {
-			t.Errorf("Message mismatch: got %q, want %q", err.Message, event.Message)
+		if openChannelErr.Message != event.Message {
+			t.Errorf("Message mismatch: got %q, want %q", openChannelErr.Message, event.Message)
 		}
 	} else if err != nil {
 		return err
