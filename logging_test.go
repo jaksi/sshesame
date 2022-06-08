@@ -85,3 +85,75 @@ func TestJSONWithoutTimestamps(t *testing.T) {
 		t.Errorf("logs=%v, want %v", logs, expectedLogs)
 	}
 }
+
+func TestPlainWithAddressSplitting(t *testing.T) {
+	cfg := &config{
+		Logging: loggingConfig{
+			JSON:          false,
+			SplitHostPort: true,
+		},
+	}
+	logBuffer := setupLogBuffer(t, cfg)
+	connContext{ConnMetadata: mockConnContext{}, cfg: cfg}.logEvent(mockLogEntry{"amet"})
+	logs := logBuffer.String()
+	expectedLogs := `[127.0.0.1:1234] test amet
+`
+
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", logs, expectedLogs)
+	}
+}
+
+func TestJSONWithAddressSplitting(t *testing.T) {
+	cfg := &config{
+		Logging: loggingConfig{
+			JSON:          true,
+			SplitHostPort: true,
+		},
+	}
+	logBuffer := setupLogBuffer(t, cfg)
+	connContext{ConnMetadata: mockConnContext{}, cfg: cfg}.logEvent(mockLogEntry{"consectetur"})
+	logs := logBuffer.String()
+	expectedLogs := `{"source":{"host":"127.0.0.1","port":1234},"event_type":"test","event":{"content":"consectetur"}}
+`
+
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", logs, expectedLogs)
+	}
+}
+
+func TestPlainWithoutAddressSplitting(t *testing.T) {
+	cfg := &config{
+		Logging: loggingConfig{
+			JSON:          false,
+			SplitHostPort: false,
+		},
+	}
+	logBuffer := setupLogBuffer(t, cfg)
+	connContext{ConnMetadata: mockConnContext{}, cfg: cfg}.logEvent(mockLogEntry{"adipiscing"})
+	logs := logBuffer.String()
+	expectedLogs := `[127.0.0.1:1234] test adipiscing
+`
+
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", logs, expectedLogs)
+	}
+}
+
+func TestJSONWithoutAddressSplitting(t *testing.T) {
+	cfg := &config{
+		Logging: loggingConfig{
+			JSON:          true,
+			SplitHostPort: false,
+		},
+	}
+	logBuffer := setupLogBuffer(t, cfg)
+	connContext{ConnMetadata: mockConnContext{}, cfg: cfg}.logEvent(mockLogEntry{"elit"})
+	logs := logBuffer.String()
+	expectedLogs := `{"source":"127.0.0.1:1234","event_type":"test","event":{"content":"elit"}}
+`
+
+	if logs != expectedLogs {
+		t.Errorf("logs=%v, want %v", logs, expectedLogs)
+	}
+}

@@ -32,6 +32,7 @@ type loggingConfig struct {
 	Timestamps     bool   `yaml:"timestamps"`
 	MetricsAddress string `yaml:"metrics_address"`
 	Debug          bool   `yaml:"debug"`
+	SplitHostPort  bool   `yaml:"split_host_port"`
 }
 
 type commonAuthConfig struct {

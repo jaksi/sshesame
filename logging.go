@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"path/filepath"
 	"strings"
 	"time"
@@ -365,19 +366,32 @@ func (context connContext) logEvent(entry logEntry) {
 	}
 	if context.cfg.Logging.JSON {
 		var jsonEntry interface{}
+		var source interface{}
+		if context.cfg.Logging.SplitHostPort {
+			tcpSource := context.RemoteAddr().(*net.TCPAddr)
+			source = struct {
+				Host string `json:"host"`
+				Port int    `json:"port"`
+			}{
+				Host: tcpSource.IP.String(),
+				Port: tcpSource.Port,
+			}
+		} else {
+			source = context.RemoteAddr().String()
+		}
 		if context.cfg.Logging.Timestamps {
 			jsonEntry = struct {
-				Time      string   `json:"time"`
-				Source    string   `json:"source"`
-				EventType string   `json:"event_type"`
-				Event     logEntry `json:"event"`
-			}{time.Now().Format(time.RFC3339), context.RemoteAddr().String(), entry.eventType(), entry}
+				Time      string      `json:"time"`
+				Source    interface{} `json:"source"`
+				EventType string      `json:"event_type"`
+				Event     logEntry    `json:"event"`
+			}{time.Now().Format(time.RFC3339), source, entry.eventType(), entry}
 		} else {
 			jsonEntry = struct {
-				Source    string   `json:"source"`
-				EventType string   `json:"event_type"`
-				Event     logEntry `json:"event"`
-			}{context.RemoteAddr().String(), entry.eventType(), entry}
+				Source    interface{} `json:"source"`
+				EventType string      `json:"event_type"`
+				Event     logEntry    `json:"event"`
+			}{source, entry.eventType(), entry}
 		}
 		logBytes, err := json.Marshal(jsonEntry)
 		if err != nil {

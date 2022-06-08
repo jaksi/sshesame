@@ -33,6 +33,9 @@ logging:
   # If unspecified or null, metrics are not served.
   metrics_address: null
 
+  # When logging in JSON, log addresses as objects including the hostname and the port instead of strings.
+  split_host_port: false
+
 auth:
   # Allow clients to connect without authenticating.
   no_auth: false
