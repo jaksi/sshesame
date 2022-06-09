@@ -15,6 +15,26 @@ type logEntry interface {
 	eventType() string
 }
 
+type addressLog struct {
+	Host string `json:"host"`
+	Port int    `json:"port"`
+}
+
+func (entry addressLog) String() string {
+	return net.JoinHostPort(entry.Host, fmt.Sprint(entry.Port))
+}
+
+func getAddressLog(host string, port int, cfg *config) interface{} {
+	entry := addressLog{
+		Host: host,
+		Port: port,
+	}
+	if cfg.Logging.SplitHostPort {
+		return entry
+	}
+	return entry.String()
+}
+
 type authAccepted bool
 
 func (accepted authAccepted) String() string {
@@ -98,7 +118,7 @@ func (entry connectionCloseLog) eventType() string {
 }
 
 type tcpipForwardLog struct {
-	Address string `json:"address"`
+	Address interface{} `json:"address"`
 }
 
 func (entry tcpipForwardLog) String() string {
@@ -109,7 +129,7 @@ func (entry tcpipForwardLog) eventType() string {
 }
 
 type cancelTCPIPForwardLog struct {
-	Address string `json:"address"`
+	Address interface{} `json:"address"`
 }
 
 func (entry cancelTCPIPForwardLog) String() string {
@@ -184,8 +204,8 @@ func (entry sessionInputLog) eventType() string {
 
 type directTCPIPLog struct {
 	channelLog
-	From string `json:"from"`
-	To   string `json:"to"`
+	From interface{} `json:"from"`
+	To   interface{} `json:"to"`
 }
 
 func (entry directTCPIPLog) String() string {
@@ -366,19 +386,8 @@ func (context connContext) logEvent(entry logEntry) {
 	}
 	if context.cfg.Logging.JSON {
 		var jsonEntry interface{}
-		var source interface{}
-		if context.cfg.Logging.SplitHostPort {
-			tcpSource := context.RemoteAddr().(*net.TCPAddr)
-			source = struct {
-				Host string `json:"host"`
-				Port int    `json:"port"`
-			}{
-				Host: tcpSource.IP.String(),
-				Port: tcpSource.Port,
-			}
-		} else {
-			source = context.RemoteAddr().String()
-		}
+		tcpSource := context.RemoteAddr().(*net.TCPAddr)
+		source := getAddressLog(tcpSource.IP.String(), tcpSource.Port, context.cfg)
 		if context.cfg.Logging.Timestamps {
 			jsonEntry = struct {
 				Time      string      `json:"time"`

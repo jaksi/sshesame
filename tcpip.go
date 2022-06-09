@@ -5,10 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httputil"
-	"strconv"
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -71,8 +69,8 @@ func handleDirectTCPIPChannel(newChannel ssh.NewChannel, context channelContext)
 		channelLog: channelLog{
 			ChannelID: context.channelID,
 		},
-		From: net.JoinHostPort(channelData.OriginatorAddress, strconv.Itoa(int(channelData.OriginatorPort))),
-		To:   net.JoinHostPort(channelData.Address, strconv.Itoa(int(channelData.Port))),
+		From: getAddressLog(channelData.OriginatorAddress, int(channelData.OriginatorPort), context.cfg),
+		To:   getAddressLog(channelData.Address, int(channelData.Port), context.cfg),
 	})
 	defer context.logEvent(directTCPIPCloseLog{
 		channelLog: channelLog{

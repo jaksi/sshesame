@@ -6,8 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	mathRand "math/rand"
-	"net"
-	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -34,7 +32,7 @@ func (request tcpipRequest) reply(context *connContext) []byte {
 }
 func (request tcpipRequest) logEntry(context *connContext) logEntry {
 	return tcpipForwardLog{
-		Address: net.JoinHostPort(request.Address, strconv.Itoa(int(request.Port))),
+		Address: getAddressLog(request.Address, int(request.Port), context.cfg),
 	}
 }
 
@@ -48,7 +46,7 @@ func (request cancelTCPIPRequest) reply(context *connContext) []byte {
 }
 func (request cancelTCPIPRequest) logEntry(context *connContext) logEntry {
 	return cancelTCPIPForwardLog{
-		Address: net.JoinHostPort(request.Address, strconv.Itoa(int(request.Port))),
+		Address: getAddressLog(request.Address, int(request.Port), context.cfg),
 	}
 }
 
