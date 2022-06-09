@@ -359,10 +359,10 @@ func handleConn(clientConn net.Conn, sshServerConfig *ssh.ServerConfig, serverAd
 			var rejectReason ssh.RejectionReason
 			var message string
 			if err != nil {
-				if err, ok := err.(*ssh.OpenChannelError); ok {
+				if openChannelErr, ok := err.(*ssh.OpenChannelError); ok {
 					accepted = false
-					rejectReason = err.Reason
-					message = err.Message
+					rejectReason = openChannelErr.Reason
+					message = openChannelErr.Message
 				} else {
 					panic(err)
 				}

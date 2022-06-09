@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"path/filepath"
 	"strings"
 	"time"
@@ -12,6 +13,26 @@ import (
 type logEntry interface {
 	fmt.Stringer
 	eventType() string
+}
+
+type addressLog struct {
+	Host string `json:"host"`
+	Port int    `json:"port"`
+}
+
+func (entry addressLog) String() string {
+	return net.JoinHostPort(entry.Host, fmt.Sprint(entry.Port))
+}
+
+func getAddressLog(host string, port int, cfg *config) interface{} {
+	entry := addressLog{
+		Host: host,
+		Port: port,
+	}
+	if cfg.Logging.SplitHostPort {
+		return entry
+	}
+	return entry.String()
 }
 
 type authAccepted bool
@@ -97,7 +118,7 @@ func (entry connectionCloseLog) eventType() string {
 }
 
 type tcpipForwardLog struct {
-	Address string `json:"address"`
+	Address interface{} `json:"address"`
 }
 
 func (entry tcpipForwardLog) String() string {
@@ -108,7 +129,7 @@ func (entry tcpipForwardLog) eventType() string {
 }
 
 type cancelTCPIPForwardLog struct {
-	Address string `json:"address"`
+	Address interface{} `json:"address"`
 }
 
 func (entry cancelTCPIPForwardLog) String() string {
@@ -183,8 +204,8 @@ func (entry sessionInputLog) eventType() string {
 
 type directTCPIPLog struct {
 	channelLog
-	From string `json:"from"`
-	To   string `json:"to"`
+	From interface{} `json:"from"`
+	To   interface{} `json:"to"`
 }
 
 func (entry directTCPIPLog) String() string {
@@ -365,19 +386,21 @@ func (context connContext) logEvent(entry logEntry) {
 	}
 	if context.cfg.Logging.JSON {
 		var jsonEntry interface{}
+		tcpSource := context.RemoteAddr().(*net.TCPAddr)
+		source := getAddressLog(tcpSource.IP.String(), tcpSource.Port, context.cfg)
 		if context.cfg.Logging.Timestamps {
 			jsonEntry = struct {
-				Time      string   `json:"time"`
-				Source    string   `json:"source"`
-				EventType string   `json:"event_type"`
-				Event     logEntry `json:"event"`
-			}{time.Now().Format(time.RFC3339), context.RemoteAddr().String(), entry.eventType(), entry}
+				Time      string      `json:"time"`
+				Source    interface{} `json:"source"`
+				EventType string      `json:"event_type"`
+				Event     logEntry    `json:"event"`
+			}{time.Now().Format(time.RFC3339), source, entry.eventType(), entry}
 		} else {
 			jsonEntry = struct {
-				Source    string   `json:"source"`
-				EventType string   `json:"event_type"`
-				Event     logEntry `json:"event"`
-			}{context.RemoteAddr().String(), entry.eventType(), entry}
+				Source    interface{} `json:"source"`
+				EventType string      `json:"event_type"`
+				Event     logEntry    `json:"event"`
+			}{source, entry.eventType(), entry}
 		}
 		logBytes, err := json.Marshal(jsonEntry)
 		if err != nil {

@@ -182,6 +182,7 @@ logging:
   json: true
   timestamps: false
   metrics_address: 0.0.0.0:2112
+  split_host_port: true
 auth:
   max_tries: 234
   no_auth: true
@@ -230,6 +231,7 @@ ssh_proto:
 	expectedConfig.Logging.JSON = true
 	expectedConfig.Logging.Timestamps = false
 	expectedConfig.Logging.MetricsAddress = "0.0.0.0:2112"
+	expectedConfig.Logging.SplitHostPort = true
 	expectedConfig.Auth.MaxTries = 234
 	expectedConfig.Auth.NoAuth = true
 	expectedConfig.Auth.PublicKeyAuth.Accepted = true
