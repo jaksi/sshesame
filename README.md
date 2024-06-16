@@ -20,8 +20,8 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 - [Sample output](#sample-output)
 
 ## Installation and usage
-
-> :warning: **The [`sshesame` package](https://packages.debian.org/stable/sshesame) in the official Debian (and derivatives) repositories may be (probably is) outdated.**
+> [!WARNING]
+> The [`sshesame` package](https://packages.debian.org/stable/sshesame) in the official Debian (and derivatives) repositories may be (probably is) outdated.
 
 ### From source
 
@@ -39,7 +39,8 @@ Linux, macOS and Windows binaries for several architectures are built and releas
 
 Snaps for several architectures are built and released automatically and are available on the [Snap Store](https://snapcraft.io/sshesame).
 
-> :warning: **The snap can only access files (configs, keys, logs) in the user's home directory.**
+> [!IMPORTANT]
+> The snap can only access files (configs, keys, logs) in the user's home directory.
 
 ```
 $ snap install sshesame
@@ -61,6 +62,9 @@ Debug and error logs are written to standard error. Activity logs by default are
 ### Docker
 
 Images for amd64, arm64 and armv7 are built and published automatically and are available on the [Packages page](https://github.com/jaksi/sshesame/pkgs/container/sshesame).
+
+> [!IMPORTANT]
+> When using a custom config file, set `server.listen_address` to listen on all interfaces (e.g. to `0.0.0.0:2022`) to ensure Docker port forwarding works.
 
 #### CLI
 
