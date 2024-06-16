@@ -9,7 +9,6 @@ An easy to set up and use SSH honeypot, a fake SSH server that lets anyone in an
 - [Installation and usage](#installation-and-usage)
   - [From source](#from-source)
   - [GitHub releases](#github-releases)
-  - [Snap](#snap)
   - [Usage](#usage)
   - [Docker](#docker)
     - [CLI](#cli)
@@ -34,17 +33,6 @@ $ go build
 ### GitHub releases
 
 Linux, macOS and Windows binaries for several architectures are built and released automatically and are available on the [Releases page](https://github.com/jaksi/sshesame/releases).
-
-### Snap
-
-Snaps for several architectures are built and released automatically and are available on the [Snap Store](https://snapcraft.io/sshesame).
-
-> [!IMPORTANT]
-> The snap can only access files (configs, keys, logs) in the user's home directory.
-
-```
-$ snap install sshesame
-```
 
 ### Usage
 
