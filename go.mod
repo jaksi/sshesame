@@ -6,7 +6,7 @@ require (
 	github.com/adrg/xdg v0.4.0
 	github.com/jaksi/sshutils v0.0.11
 	github.com/prometheus/client_golang v1.15.0
-	golang.org/x/crypto v0.17.0
+	golang.org/x/crypto v0.24.0
 	golang.org/x/term v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 )
