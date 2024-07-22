@@ -3,7 +3,7 @@ module github.com/jaksi/sshesame
 go 1.18
 
 require (
-	github.com/adrg/xdg v0.4.0
+	github.com/adrg/xdg v0.5.0
 	github.com/jaksi/sshutils v0.0.11
 	github.com/prometheus/client_golang v1.19.1
 	golang.org/x/crypto v0.25.0
