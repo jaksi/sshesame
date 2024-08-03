@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -35,7 +34,7 @@ func main() {
 	cfg := &config{}
 	configString := ""
 	if *configFile != "" {
-		configBytes, err := ioutil.ReadFile(*configFile)
+		configBytes, err := os.ReadFile(*configFile)
 		if err != nil {
 			errorLogger.Fatalf("Failed to read config file: %v", err)
 		}
@@ -50,7 +49,7 @@ func main() {
 	go func() {
 		for signal := range reloadSignals {
 			infoLogger.Printf("Reloading config due to %s", signal)
-			configBytes, err := ioutil.ReadFile(*configFile)
+			configBytes, err := os.ReadFile(*configFile)
 			if err != nil {
 				warningLogger.Printf("Failed to read config file: %v", err)
 			}

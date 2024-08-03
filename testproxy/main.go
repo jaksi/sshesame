@@ -6,8 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -479,7 +479,7 @@ func main() {
 		NoClientAuth:  true,
 		ServerVersion: "SSH-2.0-OpenSSH_7.2",
 	}
-	hostKeyBytes, err := ioutil.ReadFile(*hostKeyFile)
+	hostKeyBytes, err := os.ReadFile(*hostKeyFile)
 	if err != nil {
 		panic(err)
 	}
@@ -489,7 +489,7 @@ func main() {
 	}
 	serverConfig.AddHostKey(hostKey)
 
-	clientKeyBytes, err := ioutil.ReadFile(*clientKeyFile)
+	clientKeyBytes, err := os.ReadFile(*clientKeyFile)
 	if err != nil {
 		panic(err)
 	}
