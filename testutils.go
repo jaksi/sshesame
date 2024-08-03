@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -75,7 +75,7 @@ func writeTestKeys(t *testing.T, dataDir string) {
 		"host_ecdsa_key":   testECDSAKey,
 		"host_ed25519_key": testEd25519Key,
 	} {
-		if err := ioutil.WriteFile(filepath.Join(dataDir, fileName), []byte(content), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(dataDir, fileName), []byte(content), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}

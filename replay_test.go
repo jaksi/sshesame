@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -520,7 +520,7 @@ func TestReplay(t *testing.T) {
 			}
 			t.Run(testName, func(t *testing.T) {
 				logBuffer := setupLogBuffer(t, cfg)
-				testCaseBytes, err := ioutil.ReadFile(testFile)
+				testCaseBytes, err := os.ReadFile(testFile)
 				if err != nil {
 					t.Fatal(err)
 				}

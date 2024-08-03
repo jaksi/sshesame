@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"reflect"
 	"testing"
@@ -114,7 +114,7 @@ func verifyConfig(t *testing.T, cfg *config, expected *config) {
 }
 
 func verifyDefaultKeys(t *testing.T, dataDir string) {
-	files, err := ioutil.ReadDir(dataDir)
+	files, err := os.ReadDir(dataDir)
 	if err != nil {
 		t.Fatalf("Faield to list directory: %v", err)
 	}
@@ -125,7 +125,7 @@ func verifyDefaultKeys(t *testing.T, dataDir string) {
 	}
 	keys := map[string]string{}
 	for _, file := range files {
-		keyBytes, err := ioutil.ReadFile(path.Join(dataDir, file.Name()))
+		keyBytes, err := os.ReadFile(path.Join(dataDir, file.Name()))
 		if err != nil {
 			t.Fatalf("Failed to read key: %v", err)
 		}
@@ -281,7 +281,7 @@ server:
 	expectedConfig.SSHProto.Version = "SSH-2.0-sshesame"
 	expectedConfig.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."
 	verifyConfig(t, cfg, expectedConfig)
-	files, err := ioutil.ReadDir(dataDir)
+	files, err := os.ReadDir(dataDir)
 	if err != nil {
 		t.Fatalf("Failed to read directory: %v", err)
 	}
@@ -316,7 +316,7 @@ func TestLogReloadSameFile(t *testing.T) {
 	if err := cfg.logFileHandle.Close(); err != nil {
 		t.Fatalf("Failed to close log file: %v", err)
 	}
-	logs, err := ioutil.ReadFile(cfg.Logging.File)
+	logs, err := os.ReadFile(cfg.Logging.File)
 	if err != nil {
 		t.Fatalf("Failed to read log file: %v", err)
 	}
@@ -344,7 +344,7 @@ func TestLogReloadDifferentFile(t *testing.T) {
 	if err := cfg.logFileHandle.Close(); err != nil {
 		t.Fatalf("Failed to close log file: %v", err)
 	}
-	logs1, err := ioutil.ReadFile(logFile1)
+	logs1, err := os.ReadFile(logFile1)
 	if err != nil {
 		t.Fatalf("Failed to read log file: %v", err)
 	}
@@ -352,7 +352,7 @@ func TestLogReloadDifferentFile(t *testing.T) {
 	if string(logs1) != expectedLogs1 {
 		t.Errorf("logs1=%v, want %v", string(logs1), expectedLogs1)
 	}
-	logs2, err := ioutil.ReadFile(logFile2)
+	logs2, err := os.ReadFile(logFile2)
 	if err != nil {
 		t.Fatalf("Failed to read log file: %v", err)
 	}
@@ -368,7 +368,7 @@ func TestExistingKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
 	}
-	oldKey, err := ioutil.ReadFile(oldKeyFile)
+	oldKey, err := os.ReadFile(oldKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to read key: %v", err)
 	}
@@ -376,7 +376,7 @@ func TestExistingKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
 	}
-	newKey, err := ioutil.ReadFile(newKeyFile)
+	newKey, err := os.ReadFile(newKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to read key: %v", err)
 	}
@@ -386,7 +386,7 @@ func TestExistingKey(t *testing.T) {
 }
 
 func TestDefaultConfigFile(t *testing.T) {
-	configBytes, err := ioutil.ReadFile("sshesame.yaml")
+	configBytes, err := os.ReadFile("sshesame.yaml")
 	if err != nil {
 		t.Fatalf("Failed to read config file: %v", err)
 	}
