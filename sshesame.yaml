@@ -1,6 +1,12 @@
 server:
   listen_address: 127.0.0.1:2022
 
+  # To listen on multiple addresses instead use
+  #
+  #listen_addresses:
+  #  - 127.0.0.1:2022
+  #  - "[::1]:2022"
+
   # Host private key files.
   # If unspecified, null or empty, an RSA, ECDSA and Ed25519 key will be generated and stored.
   host_keys: null

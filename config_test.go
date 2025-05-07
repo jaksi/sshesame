@@ -481,3 +481,23 @@ server:
 		t.Errorf("len(cfg.Server.TCPIPServices)=%d, want 0", len(cfg.Server.TCPIPServices))
 	}
 }
+
+func TestMultipleListenAddresses(t *testing.T) {
+	cfgString := `
+server:
+  listen_addresses:
+    - 127.0.0.1:22
+    - "[::1]:22"
+`
+	dataDir := t.TempDir()
+	cfg := &config{}
+	err := cfg.load(cfgString, dataDir)
+	if err != nil {
+		t.Fatalf("Failed to get config: %v", err)
+	}
+
+	expectedListenAddresses := []string{"127.0.0.1:22", "[::1]:22"}
+	if !reflect.DeepEqual(cfg.Server.ListenAddresses, expectedListenAddresses) {
+		t.Errorf("Server.ListenAddresses=%v, want %v", cfg.Server.ListenAddresses, expectedListenAddresses)
+	}
+}

@@ -20,9 +20,10 @@ import (
 )
 
 type serverConfig struct {
-	ListenAddress string            `yaml:"listen_address"`
-	HostKeys      []string          `yaml:"host_keys"`
-	TCPIPServices map[uint32]string `yaml:"tcpip_services"`
+	ListenAddress   string            `yaml:"listen_address"`
+	ListenAddresses []string          `yaml:"listen_addresses"`
+	HostKeys        []string          `yaml:"host_keys"`
+	TCPIPServices   map[uint32]string `yaml:"tcpip_services"`
 }
 
 type loggingConfig struct {

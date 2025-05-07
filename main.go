@@ -62,13 +62,35 @@ func main() {
 	}()
 	signal.Notify(reloadSignals, syscall.SIGHUP)
 
-	listener, err := sshutils.Listen(cfg.Server.ListenAddress, cfg.sshConfig)
-	if err != nil {
-		errorLogger.Fatalf("Failed to listen for connections: %v", err)
+	// For compatibility - if `listen_addresses` is not specified - use `listen_address` value
+	var listenAddresses []string
+	if len(cfg.Server.ListenAddresses) > 0 {
+		listenAddresses = cfg.Server.ListenAddresses
+	} else {
+		listenAddresses = []string{cfg.Server.ListenAddress}
 	}
-	defer listener.Close()
 
-	infoLogger.Printf("Listening on %v", listener.Addr())
+	type acceptedConnection struct {
+		conn *sshutils.Conn
+		err  error
+	}
+
+	incommingConnections := make(chan acceptedConnection)
+	for _, addr := range listenAddresses {
+		listener, err := sshutils.Listen(addr, cfg.sshConfig)
+		if err != nil {
+			errorLogger.Fatalf("Failed to listen for connections on %v: %v", addr, err)
+		}
+
+		go func() {
+			for {
+				conn, err := listener.Accept()
+				incommingConnections <- acceptedConnection{conn, err}
+			}
+		}()
+
+		infoLogger.Printf("Listening on %v", listener.Addr())
+	}
 
 	if cfg.Logging.MetricsAddress != "" {
 		http.Handle("/metrics", promhttp.Handler())
@@ -81,11 +103,11 @@ func main() {
 	}
 
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
+		maybeConn := <-incommingConnections
+		if maybeConn.err != nil {
 			warningLogger.Printf("Failed to accept connection: %v", err)
 			continue
 		}
-		go handleConnection(conn, cfg)
+		go handleConnection(maybeConn.conn, cfg)
 	}
 }
