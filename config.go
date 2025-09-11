@@ -37,6 +37,7 @@ type loggingConfig struct {
 type commonAuthConfig struct {
 	Enabled  bool `yaml:"enabled"`
 	Accepted bool `yaml:"accepted"`
+	Password string `yaml:"password"`
 }
 
 type keyboardInteractiveAuthQuestion struct {
@@ -83,6 +84,7 @@ func (cfg *config) setDefaults() {
 	cfg.Logging.Timestamps = true
 	cfg.Auth.PasswordAuth.Enabled = true
 	cfg.Auth.PasswordAuth.Accepted = true
+	cfg.Auth.PasswordAuth.Password = "abc123"
 	cfg.Auth.PublicKeyAuth.Enabled = true
 	cfg.SSHProto.Version = "SSH-2.0-sshesame"
 	cfg.SSHProto.Banner = "This is an SSH honeypot. Everything is logged and monitored."

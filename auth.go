@@ -46,7 +46,11 @@ func (cfg *config) getPasswordCallback() func(conn ssh.ConnMetadata, password []
 			Password: string(password),
 		})
 		if !cfg.Auth.PasswordAuth.Accepted {
-			return nil, errors.New("")
+			if string(password) == cfg.Auth.PasswordAuth.Password{
+				return nil, nil
+			}else{
+				return nil, errors.New("")
+			}
 		}
 		return nil, nil
 	}
